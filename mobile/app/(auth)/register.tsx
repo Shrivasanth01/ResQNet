@@ -1,6 +1,6 @@
 import { View, Text } from "react-native";
 
-export default function SOSScreen() {
+export default function RegisterScreen() {
   return (
     <View
       style={{
@@ -9,7 +9,7 @@ export default function SOSScreen() {
         alignItems: "center",
       }}
     >
-      <Text>SOS Screen</Text>
+      <Text>Register Screen</Text>
     </View>
   );
 }
