@@ -5,6 +5,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../../theme/colors";
 import LocationCard, { LocationTelemetry } from "../LocationCard";
 import SectionHeader from "../../common/SectionHeader";
+import { saveLocationRecord } from "../../../storage/database";
 
 interface Props {
   location: LocationTelemetry | null;
@@ -42,6 +43,7 @@ export default function StepLocationCapture({ location, onUpdateLocation }: Prop
       };
 
       onUpdateLocation(telemetry);
+      await saveLocationRecord(telemetry);
     } catch (err) {
       setErrorMessage("Failed to acquire GPS signals. Ensure location services are turned on.");
     } finally {

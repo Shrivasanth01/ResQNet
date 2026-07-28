@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { authApi } from '../api/authApi';
 import { authStorage } from '../storage/authStorage';
+import { savePersonDetails } from '../storage/database';
 import type {
   AuthState,
   LoginCredentials,
@@ -79,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await Promise.all([
       authStorage.saveToken(tokens.accessToken),
       authStorage.saveUser(user),
+      savePersonDetails({ name: user.name, email: user.email, createdAt: user.createdAt }),
     ]);
     setState({ user, token: tokens.accessToken, isAuthenticated: true, isLoading: false });
   }, []);
@@ -88,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await Promise.all([
       authStorage.saveToken(tokens.accessToken),
       authStorage.saveUser(user),
+      savePersonDetails({ name: user.name, email: user.email, createdAt: user.createdAt }),
     ]);
     setState({ user, token: tokens.accessToken, isAuthenticated: true, isLoading: false });
   }, []);
