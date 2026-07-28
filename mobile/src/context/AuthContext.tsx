@@ -51,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (token && user) {
           const isValid = await authApi.validateToken(token);
           if (isValid) {
+            await savePersonDetails({ name: user.name, email: user.email, createdAt: user.createdAt });
             setState({
               user,
               token,

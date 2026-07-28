@@ -1,10 +1,10 @@
-import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from "react-native";
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import { useAuth } from "../../src/context/AuthContext";
 import PrimaryButton from "../../src/components/buttons/PrimaryButton";
 import { Colors } from "../../src/theme/colors";
-import { getPersonDetails, getLocationHistory, PersonRecord, LocationRecord } from "../../src/storage/database";
+import { getPersonDetails, getLocationHistory, savePersonDetails, saveLocationRecord, PersonRecord, LocationRecord } from "../../src/storage/database";
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
@@ -13,10 +13,34 @@ export default function SettingsScreen() {
   const [showDbInspector, setShowDbInspector] = useState<boolean>(false);
 
   const loadDbData = async () => {
-    const person = await getPersonDetails();
+    let person = await getPersonDetails();
+    if (!person && user) {
+      const newPerson = { name: user.name, email: user.email, createdAt: user.createdAt || new Date().toISOString() };
+      await savePersonDetails(newPerson);
+      person = newPerson;
+    }
     const locs = await getLocationHistory(5);
     setDbPerson(person);
     setDbLocations(locs);
+  };
+
+  const handleAddSampleLocation = async () => {
+    try {
+      let lat = 12.9716;
+      let lng = 77.5946;
+      if (Platform.OS === 'web' && 'geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+        });
+      }
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      await saveLocationRecord({ latitude: lat, longitude: lng, accuracy: 5.0, timestamp: timeStr });
+      await loadDbData();
+    } catch {
+      // Fallback
+    }
   };
 
   useEffect(() => {
@@ -89,6 +113,13 @@ export default function SettingsScreen() {
               ) : (
                 <Text style={styles.emptyText}>No location history in DB yet (use Report Wizard GPS step to record)</Text>
               )}
+
+              <Pressable 
+                style={styles.addLocBtn}
+                onPress={handleAddSampleLocation}
+              >
+                <Text style={styles.addLocBtnText}>+ Record Current Location into SQLite DB</Text>
+              </Pressable>
             </View>
           )}
         </View>
@@ -181,5 +212,17 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontStyle: "italic",
     marginBottom: 8,
+  },
+  addLocBtn: {
+    backgroundColor: Colors.primary,
+    padding: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  addLocBtnText: {
+    color: Colors.white,
+    fontWeight: "700",
+    fontSize: 13,
   },
 });
