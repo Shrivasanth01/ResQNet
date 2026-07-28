@@ -2,6 +2,7 @@ import { View, StyleSheet, ScrollView, SafeAreaView } from "react-native";
 import { useEffect, useState, useCallback } from "react";
 import { router } from "expo-router";
 import * as Location from "expo-location";
+import * as Battery from "expo-battery";
 import { Colors } from "../../src/theme/colors";
 
 // Dashboard Components
@@ -46,6 +47,11 @@ export default function HomeScreen() {
   const [gpsStatus, setGpsStatus] = useState<GpsStatusType>("Acquiring...");
   const [gpsLoading, setGpsLoading] = useState<boolean>(true);
 
+  // Battery State
+  const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
+  const [batteryState, setBatteryState] = useState<Battery.BatteryState>(Battery.BatteryState.UNKNOWN);
+  const [batteryLoading, setBatteryLoading] = useState<boolean>(true);
+
   const checkGpsPermission = useCallback(async () => {
     setGpsLoading(true);
     try {
@@ -74,15 +80,63 @@ export default function HomeScreen() {
     }
   }, []);
 
+  const fetchBatteryInfo = useCallback(async () => {
+    setBatteryLoading(true);
+    try {
+      const level = await Battery.getBatteryLevelAsync();
+      const state = await Battery.getBatteryStateAsync();
+      setBatteryLevel(level >= 0 ? Math.round(level * 100) : null);
+      setBatteryState(state);
+    } catch {
+      setBatteryLevel(null);
+    } finally {
+      setBatteryLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     checkGpsPermission();
-  }, [checkGpsPermission]);
+    fetchBatteryInfo();
+
+    const levelSubscription = Battery.addBatteryLevelListener(({ batteryLevel: lvl }) => {
+      setBatteryLevel(Math.round(lvl * 100));
+    });
+
+    const stateSubscription = Battery.addBatteryStateListener(({ batteryState: st }) => {
+      setBatteryState(st);
+    });
+
+    return () => {
+      levelSubscription && levelSubscription.remove();
+      stateSubscription && stateSubscription.remove();
+    };
+  }, [checkGpsPermission, fetchBatteryInfo]);
 
   const getGpsCardStatus = (): "success" | "warning" | "danger" | "neutral" => {
     if (gpsStatus === "Active") return "success";
     if (gpsStatus === "Denied") return "danger";
     if (gpsStatus === "Disabled") return "warning";
     return "neutral";
+  };
+
+  const getBatteryCardStatus = (): "success" | "warning" | "danger" | "neutral" => {
+    if (batteryLevel === null) return "neutral";
+    if (batteryState === Battery.BatteryState.CHARGING || batteryState === Battery.BatteryState.FULL) return "success";
+    if (batteryLevel <= 20) return "danger";
+    if (batteryLevel <= 50) return "warning";
+    return "success";
+  };
+
+  const getBatteryIcon = (): keyof typeof import("@expo/vector-icons").MaterialIcons.glyphMap => {
+    if (batteryState === Battery.BatteryState.CHARGING) return "battery-charging-full";
+    if (batteryLevel !== null && batteryLevel <= 20) return "battery-alert";
+    return "battery-full";
+  };
+
+  const getBatteryDisplayValue = (): string => {
+    if (batteryLevel === null) return "N/A";
+    const isCharging = batteryState === Battery.BatteryState.CHARGING;
+    return `${batteryLevel}%${isCharging ? " ⚡" : ""}`;
   };
 
   return (
@@ -114,9 +168,10 @@ export default function HomeScreen() {
           />
           <StatusCard
             title="Battery"
-            value="84%"
-            iconName="battery-charging-full"
-            status="success"
+            value={getBatteryDisplayValue()}
+            iconName={getBatteryIcon()}
+            status={getBatteryCardStatus()}
+            isLoading={batteryLoading}
           />
           <StatusCard
             title="Sync Status"
