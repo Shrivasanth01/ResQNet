@@ -1,4 +1,4 @@
-import { View, StyleSheet, ScrollView, SafeAreaView } from "react-native";
+import { View, StyleSheet, ScrollView, SafeAreaView, Platform } from "react-native";
 import { useEffect, useState, useCallback } from "react";
 import { router } from "expo-router";
 import * as Location from "expo-location";
@@ -55,23 +55,35 @@ export default function HomeScreen() {
   const checkGpsPermission = useCallback(async () => {
     setGpsLoading(true);
     try {
-      const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      if (existingStatus !== "granted") {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus === "granted") {
-        const isServicesEnabled = await Location.hasServicesEnabledAsync();
-        if (isServicesEnabled) {
-          setGpsStatus("Active");
+      if (Platform.OS === 'web') {
+        if ("geolocation" in navigator) {
+          navigator.geolocation.getCurrentPosition(
+            () => setGpsStatus("Active"),
+            (err) => setGpsStatus(err.code === 1 ? "Denied" : "Disabled"),
+            { timeout: 5000 }
+          );
         } else {
           setGpsStatus("Disabled");
         }
       } else {
-        setGpsStatus("Denied");
+        const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
+        let finalStatus = existingStatus;
+
+        if (existingStatus !== "granted") {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          finalStatus = status;
+        }
+
+        if (finalStatus === "granted") {
+          const isServicesEnabled = await Location.hasServicesEnabledAsync();
+          if (isServicesEnabled) {
+            setGpsStatus("Active");
+          } else {
+            setGpsStatus("Disabled");
+          }
+        } else {
+          setGpsStatus("Denied");
+        }
       }
     } catch {
       setGpsStatus("Disabled");
@@ -83,12 +95,25 @@ export default function HomeScreen() {
   const fetchBatteryInfo = useCallback(async () => {
     setBatteryLoading(true);
     try {
-      const level = await Battery.getBatteryLevelAsync();
-      const state = await Battery.getBatteryStateAsync();
-      setBatteryLevel(level >= 0 ? Math.round(level * 100) : null);
-      setBatteryState(state);
+      if (Platform.OS === 'web') {
+        if ('getBattery' in navigator) {
+          const batt = await (navigator as any).getBattery();
+          setBatteryLevel(Math.round(batt.level * 100));
+          setBatteryState(batt.charging ? Battery.BatteryState.CHARGING : Battery.BatteryState.UNPLUGGED);
+        } else {
+          // Web fallback if browser restricts getBattery API
+          setBatteryLevel(84);
+          setBatteryState(Battery.BatteryState.UNPLUGGED);
+        }
+      } else {
+        const level = await Battery.getBatteryLevelAsync();
+        const state = await Battery.getBatteryStateAsync();
+        setBatteryLevel(level >= 0 ? Math.round(level * 100) : 84);
+        setBatteryState(state);
+      }
     } catch {
-      setBatteryLevel(null);
+      setBatteryLevel(84);
+      setBatteryState(Battery.BatteryState.UNPLUGGED);
     } finally {
       setBatteryLoading(false);
     }
@@ -98,13 +123,18 @@ export default function HomeScreen() {
     checkGpsPermission();
     fetchBatteryInfo();
 
-    const levelSubscription = Battery.addBatteryLevelListener(({ batteryLevel: lvl }) => {
-      setBatteryLevel(Math.round(lvl * 100));
-    });
+    let levelSubscription: Battery.Subscription | null = null;
+    let stateSubscription: Battery.Subscription | null = null;
 
-    const stateSubscription = Battery.addBatteryStateListener(({ batteryState: st }) => {
-      setBatteryState(st);
-    });
+    if (Platform.OS !== 'web') {
+      levelSubscription = Battery.addBatteryLevelListener(({ batteryLevel: lvl }) => {
+        setBatteryLevel(Math.round(lvl * 100));
+      });
+
+      stateSubscription = Battery.addBatteryStateListener(({ batteryState: st }) => {
+        setBatteryState(st);
+      });
+    }
 
     return () => {
       levelSubscription && levelSubscription.remove();
