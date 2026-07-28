@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, Pressable, RefreshControl, Platform } from "react-native";
-import { useEffect, useState } from "react";
-import { router } from "expo-router";
+import { useEffect, useState, useCallback } from "react";
+import { router, useFocusEffect } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useAuth } from "../../src/context/AuthContext";
 import { useTheme } from "../../src/context/ThemeContext";
@@ -20,7 +20,7 @@ export default function SettingsScreen() {
   const [profile, setProfile] = useState<CompleteEmergencyProfile | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const res = await DatabaseService.getEmergencyProfile();
       if (user?.email) {
@@ -33,11 +33,13 @@ export default function SettingsScreen() {
     } catch (err) {
       // Default will render if offline
     }
-  };
+  }, [user]);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);

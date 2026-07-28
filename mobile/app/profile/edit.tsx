@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../src/theme/colors";
+import { useTheme } from "../../src/context/ThemeContext";
 import { DatabaseService } from "../../src/services/db";
 import { UserProfile, BloodGroup } from "../../src/types/profile";
 import { validateRequiredFields } from "../../src/utils/validation";
@@ -15,6 +16,7 @@ const BLOOD_GROUPS: BloodGroup[] = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "
 const SKILLS_LIST = ["CPR Certified", "First Aid", "Volunteer Responder", "Doctor", "Nurse", "EMT / Paramedic", "Structural Engineer", "Amateur Radio Operator"];
 
 export default function EditProfileScreen() {
+  const { colors } = useTheme();
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -29,7 +31,7 @@ export default function EditProfileScreen() {
     const current = formData.responderSkills || [];
     const exists = current.includes(skill);
     const next = exists ? current.filter((s) => s !== skill) : [...current, skill];
-    setFormData({ ...formData, responderSkills: next });
+    setFormData((prev) => ({ ...prev, responderSkills: next }));
   };
 
   const handleSave = async () => {
@@ -48,13 +50,12 @@ export default function EditProfileScreen() {
     try {
       await DatabaseService.saveUserProfile(formData as UserProfile);
       if (Platform.OS === 'web') {
-        alert("Personal profile and responder competencies updated in local SQLite vault.");
+        alert("Personal profile and blood group updated in local SQLite vault.");
         router.back();
       } else {
-        Alert.alert("Success", "Personal profile and responder competencies updated in local SQLite vault.", [
+        Alert.alert("Success", "Personal profile and blood group updated in local SQLite vault.", [
           { text: "OK", onPress: () => router.back() }
         ]);
-        // Fallback navigation for native
         setTimeout(() => router.back(), 500);
       }
     } catch (e) {
@@ -69,10 +70,10 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.topHeader}>
-        <MaterialIcons name="arrow-back" size={26} color={Colors.text} onPress={() => router.back()} />
-        <Text style={styles.topTitle}>Edit Personal & Skills</Text>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <View style={[styles.topHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <MaterialIcons name="arrow-back" size={26} color={colors.text} onPress={() => router.back()} />
+        <Text style={[styles.topTitle, { color: colors.text }]}>Edit Personal & Skills</Text>
         <View style={{ width: 26 }} />
       </View>
 
@@ -83,7 +84,7 @@ export default function EditProfileScreen() {
           label="Full Name"
           required
           value={formData.fullName || ""}
-          onChangeText={(val) => setFormData({ ...formData, fullName: val })}
+          onChangeText={(val) => setFormData((prev) => ({ ...prev, fullName: val }))}
           placeholder="e.g., Alex Mercer"
         />
 
@@ -92,7 +93,7 @@ export default function EditProfileScreen() {
             <EditableField
               label="Age (Years)"
               value={formData.age || ""}
-              onChangeText={(val) => setFormData({ ...formData, age: val })}
+              onChangeText={(val) => setFormData((prev) => ({ ...prev, age: val }))}
               placeholder="29"
               keyboardType="numeric"
             />
@@ -101,7 +102,7 @@ export default function EditProfileScreen() {
             <EditableField
               label="Gender"
               value={formData.gender || ""}
-              onChangeText={(val) => setFormData({ ...formData, gender: val })}
+              onChangeText={(val) => setFormData((prev) => ({ ...prev, gender: val }))}
               placeholder="e.g., Male/Female/Other"
             />
           </View>
@@ -110,21 +111,25 @@ export default function EditProfileScreen() {
         <EditableField
           label="Date of Birth"
           value={formData.dateOfBirth || ""}
-          onChangeText={(val) => setFormData({ ...formData, dateOfBirth: val })}
+          onChangeText={(val) => setFormData((prev) => ({ ...prev, dateOfBirth: val }))}
           placeholder="YYYY-MM-DD (e.g., 1997-04-12)"
         />
 
-        <Text style={styles.label}>Blood Group *</Text>
+        <Text style={[styles.label, { color: colors.text }]}>Blood Group *</Text>
         <View style={styles.bloodGrid}>
           {BLOOD_GROUPS.map((bg) => {
             const selected = formData.bloodGroup === bg;
             return (
               <Pressable
                 key={bg}
-                style={[styles.bloodChip, selected && styles.bloodChipSelected]}
-                onPress={() => setFormData({ ...formData, bloodGroup: bg })}
+                style={[
+                  styles.bloodChip, 
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  selected && styles.bloodChipSelected
+                ]}
+                onPress={() => setFormData((prev) => ({ ...prev, bloodGroup: bg }))}
               >
-                <Text style={[styles.bloodText, selected && styles.bloodTextSelected]}>{bg}</Text>
+                <Text style={[styles.bloodText, { color: colors.text }, selected && styles.bloodTextSelected]}>{bg}</Text>
               </Pressable>
             );
           })}
