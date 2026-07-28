@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useAuth } from "../../src/context/AuthContext";
+import { useTheme } from "../../src/context/ThemeContext";
 import PrimaryButton from "../../src/components/buttons/PrimaryButton";
 import { Colors } from "../../src/theme/colors";
 import { getPersonDetails, getLocationHistory, savePersonDetails, saveLocationRecord, PersonRecord, LocationRecord } from "../../src/storage/database";
@@ -15,6 +16,7 @@ import ProgressIndicator from "../../src/components/profile/ProgressIndicator";
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
+  const { isDarkMode, toggleTheme, colors } = useTheme();
   const [profile, setProfile] = useState<CompleteEmergencyProfile | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -49,18 +51,27 @@ export default function SettingsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.topHeader}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <View style={[styles.topHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={styles.headerTitleGroup}>
           <MaterialIcons name="admin-panel-settings" size={26} color={Colors.primary} />
           <View>
-            <Text style={styles.mainTitle}>Profile & App Settings</Text>
-            <Text style={styles.subTitle}>Local Data Foundation & Medical Vault</Text>
+            <Text style={[styles.mainTitle, { color: colors.text }]}>Profile & App Settings</Text>
+            <Text style={[styles.subTitle, { color: colors.textSecondary }]}>Local Data Foundation & Medical Vault</Text>
           </View>
         </View>
-        <Pressable onPress={loadData} style={styles.refreshIcon}>
-          <MaterialIcons name="refresh" size={24} color={Colors.textSecondary} />
-        </Pressable>
+        <View style={styles.headerRightActions}>
+          <Pressable onPress={toggleTheme} style={styles.iconBtn}>
+            <MaterialIcons 
+              name={isDarkMode ? "dark-mode" : "light-mode"} 
+              size={24} 
+              color={isDarkMode ? "#F59E0B" : colors.textSecondary} 
+            />
+          </Pressable>
+          <Pressable onPress={loadData} style={styles.iconBtn}>
+            <MaterialIcons name="refresh" size={24} color={colors.textSecondary} />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView
@@ -205,6 +216,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+  },
+  headerRightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  iconBtn: {
+    padding: 8,
+    borderRadius: 8,
   },
   mainTitle: {
     fontSize: 20,
