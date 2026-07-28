@@ -5,6 +5,11 @@ npm-debug.log*
 # Expo
 .expo/
 .expo-shared/
+mobile/.expo/
+
+# Next.js build output
+.next/
+out/
 
 # Build
 dist/
@@ -15,6 +20,12 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+.pytest_cache/
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
 
 # Environment
 .env

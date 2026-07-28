@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-slate-100 font-sans antialiased selection:bg-rose-500 selection:text-white;
+    overflow-x: hidden;
+  }
+
+  /* Custom styling for large wall displays and dark operations theme */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0a0d14;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #26324a;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3c4f74;
+  }
+}
+
+@layer components {
+  .card-surface {
+    @apply bg-surface border border-border/70 rounded-xl p-5 shadow-lg backdrop-blur-md transition-all hover:border-slate-500/50;
+  }
+  
+  .badge-critical {
+    @apply bg-rose-500/20 text-rose-400 border border-rose-500/40 font-semibold px-2.5 py-0.5 rounded-full text-xs shadow-[0_0_10px_rgba(225,29,72,0.3)];
+  }
+  
+  .badge-high {
+    @apply bg-amber-500/20 text-amber-400 border border-amber-500/40 font-semibold px-2.5 py-0.5 rounded-full text-xs shadow-[0_0_10px_rgba(245,158,11,0.3)];
+  }
+  
+  .badge-moderate {
+    @apply bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 font-semibold px-2.5 py-0.5 rounded-full text-xs;
+  }
+  
+  .badge-info {
+    @apply bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-semibold px-2.5 py-0.5 rounded-full text-xs;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all font-medium;
+  }
+
+  .nav-link-active {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-white bg-rose-600/20 border border-rose-500/50 font-semibold shadow-glow;
+  }
+}
