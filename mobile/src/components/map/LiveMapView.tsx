@@ -24,64 +24,7 @@ export default function LiveMapView() {
   const [isLocating, setIsLocating] = useState<boolean>(true);
   const [selectedIncident, setSelectedIncident] = useState<EmergencyIncident | null>(null);
 
-  // Generate local mock emergencies relative to active coordinates
-  const mockIncidents: EmergencyIncident[] = useMemo(() => {
-    const baseLat = userLocation?.latitude ?? DEFAULT_REGION.latitude;
-    const baseLng = userLocation?.longitude ?? DEFAULT_REGION.longitude;
-
-    return [
-      {
-        id: "RQ-9102",
-        title: "Acute Cardiac Emergency Near Metro Station",
-        category: "Medical",
-        severity: "Critical",
-        timestamp: "6 mins ago",
-        distance: "0.4 mi away",
-        latitude: baseLat + 0.0065,
-        longitude: baseLng - 0.0052,
-      },
-      {
-        id: "RQ-8421",
-        title: "Commercial Warehouse Alarm & Structural Fire",
-        category: "Fire",
-        severity: "High",
-        timestamp: "14 mins ago",
-        distance: "0.7 mi away",
-        latitude: baseLat - 0.0058,
-        longitude: baseLng + 0.0074,
-      },
-      {
-        id: "RQ-7530",
-        title: "Submerged Vehicle Under Expressway Bridge",
-        category: "Flood",
-        severity: "Medium",
-        timestamp: "32 mins ago",
-        distance: "1.1 mi away",
-        latitude: baseLat + 0.0112,
-        longitude: baseLng + 0.0105,
-      },
-      {
-        id: "RQ-6204",
-        title: "Multi-Vehicle Traffic Collision on Ramp",
-        category: "Road Accident",
-        severity: "High",
-        timestamp: "45 mins ago",
-        distance: "1.3 mi away",
-        latitude: baseLat - 0.0089,
-        longitude: baseLng - 0.0118,
-      },
-      {
-        id: "RQ-5011",
-        title: "Collapsed Utility Mast Hazard Blocking Sidewalk",
-        category: "Other",
-        severity: "Low",
-        timestamp: "1 hour ago",
-        distance: "0.9 mi away",
-        latitude: baseLat + 0.0034,
-        longitude: baseLng + 0.0138,
-      },
-    ];
-  }, [userLocation]);
+  const realIncidents: EmergencyIncident[] = [];
 
   const fetchUserLocation = async () => {
     setIsLocating(true);
@@ -176,7 +119,7 @@ export default function LiveMapView() {
           </>
         )}
 
-        {mockIncidents.map((inc) => (
+        {realIncidents.map((inc) => (
           <EmergencyMarker
             key={inc.id}
             incident={inc}

@@ -16,35 +16,7 @@ interface PastReport {
   iconName: keyof typeof MaterialIcons.glyphMap;
 }
 
-const MOCK_REPORTS: PastReport[] = [
-  {
-    id: "RQ-8849",
-    title: "Localized Flash Flooding on East River Road",
-    category: "Flood Hazard",
-    timestamp: "Today, 10:42 AM",
-    severity: "High",
-    status: "Broadcasted",
-    iconName: "water",
-  },
-  {
-    id: "RQ-7120",
-    title: "Fallen Transformer Power Line",
-    category: "Electrical Hazard",
-    timestamp: "Yesterday, 3:15 PM",
-    severity: "Critical",
-    status: "In Progress",
-    iconName: "bolt",
-  },
-  {
-    id: "RQ-5402",
-    title: "Minor Vehicle Collision Near Shelter",
-    category: "Road Accident",
-    timestamp: "Oct 14, 2026",
-    severity: "Low",
-    status: "Resolved",
-    iconName: "minor-crash",
-  },
-];
+const REAL_REPORTS: PastReport[] = [];
 
 export default function ReportsScreen() {
   const { colors } = useTheme();
@@ -96,45 +68,57 @@ export default function ReportsScreen() {
         <SectionHeader title="Broadcast History" />
 
         {/* Report List */}
-        <View style={styles.list}>
-          {MOCK_REPORTS.map((item) => (
-            <Pressable 
-              key={item.id}
-              style={({ pressed }) => [
-                styles.card, 
-                { backgroundColor: colors.surface, borderColor: colors.border },
-                pressed && styles.cardPressed
-              ]}
-              onPress={() => {
-                // Future detail drill-down view
-              }}
-            >
-              <View style={styles.cardTop}>
-                <View style={styles.iconCircle}>
-                  <MaterialIcons name={item.iconName} size={24} color={Colors.primary} />
-                </View>
-                <View style={styles.titleCol}>
-                  <View style={styles.badgeRow}>
-                    <Text style={[styles.idText, { color: colors.textSecondary }]}>{item.id}</Text>
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusBg(item.status) }]}>
-                      <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-                        {item.status}
-                      </Text>
-                    </View>
+        {REAL_REPORTS.length === 0 ? (
+          <View style={[styles.emptyBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.emptyIconCircle}>
+              <MaterialIcons name="assignment-turned-in" size={32} color={Colors.secondary} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Incident Reports Logged</Text>
+            <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
+              Emergency alerts and incident reports created via the SOS wizard will be saved locally in SQLite and listed here for real-time tracking.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {REAL_REPORTS.map((item) => (
+              <Pressable 
+                key={item.id}
+                style={({ pressed }) => [
+                  styles.card, 
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  pressed && styles.cardPressed
+                ]}
+                onPress={() => {
+                  // Future detail drill-down view
+                }}
+              >
+                <View style={styles.cardTop}>
+                  <View style={styles.iconCircle}>
+                    <MaterialIcons name={item.iconName} size={24} color={Colors.primary} />
                   </View>
-                  <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>{item.title}</Text>
+                  <View style={styles.titleCol}>
+                    <View style={styles.badgeRow}>
+                      <Text style={[styles.idText, { color: colors.textSecondary }]}>{item.id}</Text>
+                      <View style={[styles.statusBadge, { backgroundColor: getStatusBg(item.status) }]}>
+                        <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+                          {item.status}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>{item.title}</Text>
+                  </View>
                 </View>
-              </View>
 
-              <View style={[styles.cardBottom, { borderTopColor: colors.border }]}>
-                <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                  {item.category} • Severity: <Text style={{ fontWeight: "700", color: item.severity === "Critical" || item.severity === "High" ? Colors.danger : colors.text }}>{item.severity}</Text>
-                </Text>
-                <Text style={[styles.timeText, { color: colors.textSecondary }]}>{item.timestamp}</Text>
-              </View>
-            </Pressable>
-          ))}
-        </View>
+                <View style={[styles.cardBottom, { borderTopColor: colors.border }]}>
+                  <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                    {item.category} • Severity: <Text style={{ fontWeight: "700", color: item.severity === "Critical" || item.severity === "High" ? Colors.danger : colors.text }}>{item.severity}</Text>
+                  </Text>
+                  <Text style={[styles.timeText, { color: colors.textSecondary }]}>{item.timestamp}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -278,5 +262,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: Colors.textSecondary,
+  },
+  emptyBox: {
+    borderRadius: 20,
+    padding: 28,
+    alignItems: "center",
+    borderWidth: 1,
+    marginTop: 12,
+  },
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: `${Colors.secondary}15`,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  emptySub: {
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 19,
+    maxWidth: "92%",
   },
 });

@@ -20,63 +20,7 @@ export default function LiveMapView() {
   const defaultLat = 37.7749;
   const defaultLng = -122.4194;
 
-  const mockIncidents: EmergencyIncident[] = useMemo(() => {
-    const baseLat = userLocation?.latitude ?? defaultLat;
-    const baseLng = userLocation?.longitude ?? defaultLng;
-
-    return [
-      {
-        id: "RQ-9102",
-        title: "Acute Cardiac Emergency Near Metro Station",
-        category: "Medical",
-        severity: "Critical",
-        timestamp: "6 mins ago",
-        distance: "0.4 mi away",
-        latitude: baseLat + 0.0065,
-        longitude: baseLng - 0.0052,
-      },
-      {
-        id: "RQ-8421",
-        title: "Commercial Warehouse Alarm & Structural Fire",
-        category: "Fire",
-        severity: "High",
-        timestamp: "14 mins ago",
-        distance: "0.7 mi away",
-        latitude: baseLat - 0.0058,
-        longitude: baseLng + 0.0074,
-      },
-      {
-        id: "RQ-7530",
-        title: "Submerged Vehicle Under Expressway Bridge",
-        category: "Flood",
-        severity: "Medium",
-        timestamp: "32 mins ago",
-        distance: "1.1 mi away",
-        latitude: baseLat + 0.0112,
-        longitude: baseLng + 0.0105,
-      },
-      {
-        id: "RQ-6204",
-        title: "Multi-Vehicle Traffic Collision on Ramp",
-        category: "Road Accident",
-        severity: "High",
-        timestamp: "45 mins ago",
-        distance: "1.3 mi away",
-        latitude: baseLat - 0.0089,
-        longitude: baseLng - 0.0118,
-      },
-      {
-        id: "RQ-5011",
-        title: "Collapsed Utility Mast Hazard Blocking Sidewalk",
-        category: "Other",
-        severity: "Low",
-        timestamp: "1 hour ago",
-        distance: "0.9 mi away",
-        latitude: baseLat + 0.0034,
-        longitude: baseLng + 0.0138,
-      },
-    ];
-  }, [userLocation]);
+  const realIncidents: EmergencyIncident[] = [];
 
   const fetchUserLocation = async () => {
     setIsLocating(true);
@@ -90,7 +34,7 @@ export default function LiveMapView() {
           accuracy: position.coords.accuracy || undefined,
         });
       } else {
-        Alert.alert("Notice", "Location permission denied. Showing simulated command coordinates.");
+        Alert.alert("Notice", "Location permission denied. Enabling passive command radar mode.");
       }
     } catch (err) {
       // Ignore web geolocation errors and fallback gracefully
@@ -123,60 +67,74 @@ export default function LiveMapView() {
               <MaterialIcons name="radar" size={36} color={Colors.primary} />
             </View>
             <View style={styles.radarTextBox}>
-              <Text style={[styles.radarTitle, { color: colors.text }]}>Tactical Web Command Radar</Text>
+              <Text style={[styles.radarTitle, { color: colors.text }]}>Tactical Command Radar</Text>
               <Text style={[styles.radarSub, { color: colors.textSecondary }]}>
                 {userLocation 
-                  ? `Active Center: ${userLocation.latitude.toFixed(4)}°, ${userLocation.longitude.toFixed(4)}°`
-                  : "Simulating Operations Sector: Downtown Delta Zone"}
+                  ? `Active Sector: ${userLocation.latitude.toFixed(4)}°, ${userLocation.longitude.toFixed(4)}°`
+                  : "Scanning Local P2P Mesh Range..."}
               </Text>
             </View>
           </View>
 
-          <Text style={[styles.sectionHeader, { color: colors.text }]}>Surrounding Active Emergencies ({mockIncidents.length})</Text>
-          <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>Select any incident pin below to inspect severity telemetry and initiate routing.</Text>
+          <Text style={[styles.sectionHeader, { color: colors.text }]}>Surrounding Active Emergencies ({realIncidents.length})</Text>
+          <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
+            Live distress signals received via offline P2P mesh relay or FastAPI gateway.
+          </Text>
 
-          <View style={styles.grid}>
-            {mockIncidents.map((inc) => {
-              const color = getCategoryColor(inc.category);
-              const iconName = getCategoryIcon(inc.category);
-              const isSelected = selectedIncident?.id === inc.id;
+          {realIncidents.length === 0 ? (
+            <View style={[styles.emptyBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.emptyIconCircle}>
+                <MaterialIcons name="verified-user" size={32} color={Colors.success} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>Sector Clear & Protected</Text>
+              <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
+                No active emergency distress signals detected in your immediate 2.5 km P2P mesh radius. Your offline outbox and SOS button are ready for instant broadcast.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.grid}>
+              {realIncidents.map((inc) => {
+                const color = getCategoryColor(inc.category);
+                const iconName = getCategoryIcon(inc.category);
+                const isSelected = selectedIncident?.id === inc.id;
 
-              return (
-                <Pressable
-                  key={inc.id}
-                  style={({ pressed }) => [
-                    styles.incidentCard,
-                    { backgroundColor: colors.surface, borderColor: colors.border },
-                    isSelected && styles.selectedCard,
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={() => setSelectedIncident(inc)}
-                >
-                  <View style={[styles.cardHeader, { borderColor: color }]}>
-                    <View style={[styles.bubble, { backgroundColor: color }]}>
-                      <MaterialIcons name={iconName} size={24} color={Colors.white} />
-                    </View>
-                    <View style={styles.headerTextGroup}>
-                      <View style={styles.row}>
-                        <Text style={[styles.categoryTag, { color }]}>{inc.category.toUpperCase()}</Text>
-                        <Text style={[styles.distanceTag, { color: colors.textSecondary }]}>{inc.distance}</Text>
+                return (
+                  <Pressable
+                    key={inc.id}
+                    style={({ pressed }) => [
+                      styles.incidentCard,
+                      { backgroundColor: colors.surface, borderColor: colors.border },
+                      isSelected && styles.selectedCard,
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={() => setSelectedIncident(inc)}
+                  >
+                    <View style={[styles.cardHeader, { borderColor: color }]}>
+                      <View style={[styles.bubble, { backgroundColor: color }]}>
+                        <MaterialIcons name={iconName} size={24} color={Colors.white} />
                       </View>
-                      <Text style={[styles.incidentTitle, { color: colors.text }]} numberOfLines={1}>{inc.title}</Text>
+                      <View style={styles.headerTextGroup}>
+                        <View style={styles.row}>
+                          <Text style={[styles.categoryTag, { color }]}>{inc.category.toUpperCase()}</Text>
+                          <Text style={[styles.distanceTag, { color: colors.textSecondary }]}>{inc.distance}</Text>
+                        </View>
+                        <Text style={[styles.incidentTitle, { color: colors.text }]} numberOfLines={1}>{inc.title}</Text>
+                      </View>
                     </View>
-                  </View>
-                  
-                  <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
-                    <Text style={[styles.idText, { color: colors.textSecondary }]}>ID: {inc.id}</Text>
-                    <View style={[styles.sevBadge, { backgroundColor: inc.severity === "Critical" ? `${Colors.danger}20` : `${Colors.warning}20` }]}>
-                      <Text style={[styles.sevText, { color: inc.severity === "Critical" ? Colors.danger : Colors.warning }]}>
-                        {inc.severity} Severity
-                      </Text>
+                    
+                    <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
+                      <Text style={[styles.idText, { color: colors.textSecondary }]}>ID: {inc.id}</Text>
+                      <View style={[styles.sevBadge, { backgroundColor: inc.severity === "Critical" ? `${Colors.danger}20` : `${Colors.warning}20` }]}>
+                        <Text style={[styles.sevText, { color: inc.severity === "Critical" ? Colors.danger : Colors.warning }]}>
+                          {inc.severity} Severity
+                        </Text>
+                      </View>
                     </View>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
         </ScrollView>
 
         <View style={styles.bottomOverlay} pointerEvents="box-none">
@@ -340,6 +298,33 @@ const styles = StyleSheet.create({
   sevText: {
     fontSize: 12,
     fontWeight: "700",
+  },
+  emptyBox: {
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+    borderWidth: 1,
+    marginTop: 8,
+  },
+  emptyIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: `${Colors.success}15`,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  emptySub: {
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 19,
+    maxWidth: "90%",
   },
   bottomOverlay: {
     position: "absolute",
