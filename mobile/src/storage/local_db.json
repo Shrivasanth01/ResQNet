@@ -1,13 +1,61 @@
 {
   "person_details": [
     {
+      "id": "usr_active_001",
+      "fullName": "Alex Mercer",
+      "age": "29",
+      "gender": "Other",
+      "dateOfBirth": "1997-04-12",
+      "bloodGroup": "O+",
+      "height": "178 cm",
+      "weight": "74 kg",
+      "photographUrl": "placeholder_avatar_blue.png",
+      "phoneNumber": "+1 (555) 382-9102",
+      "email": "alex.mercer@resqnet.org",
+      "languagesSpoken": "English, Spanish",
+      "responderSkills": [
+        "CPR Certified",
+        "First Aid",
+        "Volunteer Responder"
+      ],
+      "consentToShareMedical": true,
+      "organDonor": true,
+      "syncHash": "RQ-HASH-INIT-SQL",
+      "lastUpdated": "2026-07-28T12:00:00.000Z"
+    }
+  ],
+  "medical_vault": [
+    {
       "id": 1,
-      "name": "GhostMesh User",
-      "email": "user@ghostmesh.org",
-      "phone": "+1-555-0192",
-      "bloodType": "O+",
-      "emergencyContact": "+1-555-0199",
-      "createdAt": "2026-07-28T11:50:00.000Z"
+      "medicalConditions": "Mild seasonal asthma",
+      "allergies": "Penicillin, Peanuts (Severe)",
+      "currentMedications": "Albuterol Inhaler (as needed), Antihistamine 10mg",
+      "disabilities": "None (Full Mobility)",
+      "pregnancyStatus": "Not Applicable",
+      "updatedAt": "2026-07-28T12:00:00.000Z"
+    }
+  ],
+  "emergency_contacts": [
+    {
+      "id": "c1",
+      "name": "Dr. Elena Mercer",
+      "relationship": "Spouse (Physician)",
+      "phoneNumber": "+1 (555) 440-8819",
+      "priorityOrder": 1
+    },
+    {
+      "id": "c2",
+      "name": "Marcus Vance",
+      "relationship": "Brother / SAR Unit",
+      "phoneNumber": "+1 (555) 712-4402",
+      "priorityOrder": 2
+    },
+    {
+      "id": "c3",
+      "name": "St. Jude Emergency Desk",
+      "relationship": "Primary Healthcare Provider",
+      "phoneNumber": "+1 (555) 911-0022",
+      "priorityOrder": 3
     }
   ],
   "location_history": [

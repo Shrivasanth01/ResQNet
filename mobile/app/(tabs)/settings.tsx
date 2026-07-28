@@ -178,12 +178,15 @@ export default function SettingsScreen() {
 
             {showDbInspector && (
               <View style={styles.dbDetails}>
-                <Text style={styles.subHeader}>Person Record (person_details table):</Text>
-                {dbPerson ? (
+                <Text style={styles.subHeader}>Person Record (person_details SQLite table):</Text>
+                {profile?.personal ? (
                   <View style={styles.codeBox}>
-                    <Text style={styles.codeText}>Name: {dbPerson.name}</Text>
-                    <Text style={styles.codeText}>Email: {dbPerson.email}</Text>
-                    <Text style={styles.codeText}>Created: {dbPerson.createdAt}</Text>
+                    <Text style={styles.codeText}>Name: {profile.personal.fullName} ({profile.personal.bloodGroup})</Text>
+                    <Text style={styles.codeText}>Email: {profile.personal.email}</Text>
+                    <Text style={styles.codeText}>Phone: {profile.personal.phoneNumber}</Text>
+                    <Text style={styles.codeText}>Details: {profile.personal.age} yrs • {profile.personal.height} • {profile.personal.weight}</Text>
+                    <Text style={styles.codeText}>Skills: {profile.personal.responderSkills?.join(', ')}</Text>
+                    <Text style={styles.codeText}>Sync Hash: {profile.personal.syncHash}</Text>
                   </View>
                 ) : (
                   <Text style={styles.emptyText}>No person record in DB yet</Text>
@@ -192,7 +195,7 @@ export default function SettingsScreen() {
                 <View style={styles.divider} />
 
                 <Text style={styles.subHeader}>
-                  Location Records ({dbLocations.length}) (location_history table):
+                  Location Records ({dbLocations.length}) (location_history SQLite table):
                 </Text>
                 {dbLocations.length > 0 ? (
                   dbLocations.map((loc, i) => (
