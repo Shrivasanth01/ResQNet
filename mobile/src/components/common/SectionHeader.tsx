@@ -1,4 +1,5 @@
 import { Text, StyleSheet, View } from "react-native";
+import { Colors } from "../../theme/colors";
 import { useTheme } from "../../context/ThemeContext";
 
 interface Props {
