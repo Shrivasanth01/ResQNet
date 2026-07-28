@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import * as Location from "expo-location";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../theme/colors";
+import { useTheme } from "../../context/ThemeContext";
 
 // Map Reusable Components
 import MapLegend from "./MapLegend";
@@ -11,6 +12,7 @@ import FloatingLocationButton from "./FloatingLocationButton";
 import { EmergencyIncident, getCategoryColor, getCategoryIcon } from "./types";
 
 export default function LiveMapView() {
+  const { colors } = useTheme();
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; accuracy?: number } | null>(null);
   const [isLocating, setIsLocating] = useState<boolean>(true);
   const [selectedIncident, setSelectedIncident] = useState<EmergencyIncident | null>(null);
@@ -109,20 +111,20 @@ export default function LiveMapView() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <View style={styles.container}>
         <View style={styles.topSection}>
           <MapLegend />
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.radarBanner}>
+          <View style={[styles.radarBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.radarIconBox}>
               <MaterialIcons name="radar" size={36} color={Colors.primary} />
             </View>
             <View style={styles.radarTextBox}>
-              <Text style={styles.radarTitle}>Tactical Web Command Radar</Text>
-              <Text style={styles.radarSub}>
+              <Text style={[styles.radarTitle, { color: colors.text }]}>Tactical Web Command Radar</Text>
+              <Text style={[styles.radarSub, { color: colors.textSecondary }]}>
                 {userLocation 
                   ? `Active Center: ${userLocation.latitude.toFixed(4)}°, ${userLocation.longitude.toFixed(4)}°`
                   : "Simulating Operations Sector: Downtown Delta Zone"}
@@ -130,8 +132,8 @@ export default function LiveMapView() {
             </View>
           </View>
 
-          <Text style={styles.sectionHeader}>Surrounding Active Emergencies ({mockIncidents.length})</Text>
-          <Text style={styles.sectionSub}>Select any incident pin below to inspect severity telemetry and initiate routing.</Text>
+          <Text style={[styles.sectionHeader, { color: colors.text }]}>Surrounding Active Emergencies ({mockIncidents.length})</Text>
+          <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>Select any incident pin below to inspect severity telemetry and initiate routing.</Text>
 
           <View style={styles.grid}>
             {mockIncidents.map((inc) => {
@@ -144,6 +146,7 @@ export default function LiveMapView() {
                   key={inc.id}
                   style={({ pressed }) => [
                     styles.incidentCard,
+                    { backgroundColor: colors.surface, borderColor: colors.border },
                     isSelected && styles.selectedCard,
                     pressed && styles.pressed,
                   ]}
@@ -156,14 +159,14 @@ export default function LiveMapView() {
                     <View style={styles.headerTextGroup}>
                       <View style={styles.row}>
                         <Text style={[styles.categoryTag, { color }]}>{inc.category.toUpperCase()}</Text>
-                        <Text style={styles.distanceTag}>{inc.distance}</Text>
+                        <Text style={[styles.distanceTag, { color: colors.textSecondary }]}>{inc.distance}</Text>
                       </View>
-                      <Text style={styles.incidentTitle} numberOfLines={1}>{inc.title}</Text>
+                      <Text style={[styles.incidentTitle, { color: colors.text }]} numberOfLines={1}>{inc.title}</Text>
                     </View>
                   </View>
                   
-                  <View style={styles.cardFooter}>
-                    <Text style={styles.idText}>ID: {inc.id}</Text>
+                  <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
+                    <Text style={[styles.idText, { color: colors.textSecondary }]}>ID: {inc.id}</Text>
                     <View style={[styles.sevBadge, { backgroundColor: inc.severity === "Critical" ? `${Colors.danger}20` : `${Colors.warning}20` }]}>
                       <Text style={[styles.sevText, { color: inc.severity === "Critical" ? Colors.danger : Colors.warning }]}>
                         {inc.severity} Severity

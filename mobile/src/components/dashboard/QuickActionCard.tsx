@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../theme/colors";
+import { useTheme } from "../../context/ThemeContext";
 
 interface Props {
   title: string;
@@ -15,10 +16,13 @@ export default function QuickActionCard({
   onPress, 
   primary = false 
 }: Props) {
+  const { colors } = useTheme();
+
   return (
     <Pressable 
       style={({ pressed }) => [
         styles.container,
+        !primary && { backgroundColor: colors.surface, borderColor: colors.border },
         primary && styles.primaryContainer,
         pressed && styles.pressed
       ]}
@@ -31,7 +35,7 @@ export default function QuickActionCard({
           color={primary ? Colors.white : Colors.primary} 
         />
       </View>
-      <Text style={[styles.title, primary && styles.primaryTitle]} numberOfLines={2}>
+      <Text style={[styles.title, !primary && { color: colors.text }, primary && styles.primaryTitle]} numberOfLines={2}>
         {title}
       </Text>
     </Pressable>

@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../theme/colors";
+import { useTheme } from "../../context/ThemeContext";
 
 export interface ActivityEvent {
   id: string;
@@ -15,16 +16,18 @@ interface Props {
 }
 
 export default function ActivityTimeline({ events }: Props) {
+  const { colors } = useTheme();
+
   if (!events || events.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No recent activity</Text>
+        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No recent activity</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       {events.map((event, index) => {
         const isLast = index === events.length - 1;
         
@@ -34,23 +37,24 @@ export default function ActivityTimeline({ events }: Props) {
             <View style={styles.timelineColumn}>
               <View style={[
                 styles.dot, 
+                { backgroundColor: colors.background, borderColor: colors.border },
                 event.isRecent && styles.dotRecent
               ]}>
                 <MaterialIcons 
                   name={event.iconName} 
                   size={14} 
-                  color={event.isRecent ? Colors.white : Colors.textSecondary} 
+                  color={event.isRecent ? Colors.white : colors.textSecondary} 
                 />
               </View>
-              {!isLast && <View style={styles.line} />}
+              {!isLast && <View style={[styles.line, { backgroundColor: colors.border }]} />}
             </View>
             
             {/* Content */}
             <View style={[styles.contentColumn, !isLast && styles.contentColumnBottomPadding]}>
-              <Text style={[styles.title, event.isRecent && styles.titleRecent]}>
+              <Text style={[styles.title, { color: colors.text }, event.isRecent && styles.titleRecent]}>
                 {event.title}
               </Text>
-              <Text style={styles.timestamp}>{event.timestamp}</Text>
+              <Text style={[styles.timestamp, { color: colors.textSecondary }]}>{event.timestamp}</Text>
             </View>
           </View>
         );

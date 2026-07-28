@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Pressable } from "react-native";
 import { useState } from "react";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../theme/colors";
+import { useTheme } from "../../context/ThemeContext";
 import { EmergencyCategory, getCategoryColor, getCategoryIcon } from "./types";
 
 const CATEGORIES: EmergencyCategory[] = [
@@ -13,17 +14,18 @@ const CATEGORIES: EmergencyCategory[] = [
 ];
 
 export default function MapLegend() {
+  const { colors } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <Pressable
         style={({ pressed }) => [styles.header, pressed && styles.pressed]}
         onPress={() => setIsExpanded(!isExpanded)}
       >
         <View style={styles.headerLeft}>
           <MaterialIcons name="layers" size={20} color={Colors.primary} />
-          <Text style={styles.headerTitle}>Marker Legend</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Marker Legend</Text>
 
           {!isExpanded && (
             <View style={styles.dotsRow}>
@@ -40,13 +42,13 @@ export default function MapLegend() {
         <MaterialIcons
           name={isExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"}
           size={22}
-          color={Colors.textSecondary}
+          color={colors.textSecondary}
         />
       </Pressable>
 
       {isExpanded && (
         <View style={styles.content}>
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <View style={styles.grid}>
             {CATEGORIES.map((category) => {
               const color = getCategoryColor(category);
@@ -57,7 +59,7 @@ export default function MapLegend() {
                   <View style={[styles.iconBox, { backgroundColor: `${color}15`, borderColor: `${color}40` }]}>
                     <MaterialIcons name={iconName} size={16} color={color} />
                   </View>
-                  <Text style={styles.labelText}>{category}</Text>
+                  <Text style={[styles.labelText, { color: colors.text }]}>{category}</Text>
                 </View>
               );
             })}

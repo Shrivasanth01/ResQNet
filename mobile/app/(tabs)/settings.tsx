@@ -87,69 +87,67 @@ export default function SettingsScreen() {
           />
         )}
 
-        <Text style={styles.sectionTitle}>Emergency Medical Vault & Management</Text>
-        <View style={styles.menuBox}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Emergency Medical Vault & Management</Text>
+        <View style={[styles.menuBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Pressable style={styles.menuRow} onPress={() => router.push("/profile" as any)}>
             <View style={[styles.menuIcon, { backgroundColor: `${Colors.secondary}20` }]}>
               <MaterialIcons name="verified-user" size={22} color={Colors.secondary} />
             </View>
             <View style={styles.menuTextGroup}>
-              <Text style={styles.menuTitle}>Master Medical Vault</Text>
-              <Text style={styles.menuSub}>View complete encrypted emergency profile</Text>
+              <Text style={[styles.menuTitle, { color: colors.text }]}>Master Medical Vault</Text>
+              <Text style={[styles.menuSub, { color: colors.textSecondary }]}>View complete encrypted emergency profile</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={24} color={Colors.textSecondary} />
+            <MaterialIcons name="chevron-right" size={24} color={colors.textSecondary} />
           </Pressable>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           <Pressable style={styles.menuRow} onPress={() => router.push("/profile/edit" as any)}>
             <View style={[styles.menuIcon, { backgroundColor: `${Colors.primary}15` }]}>
               <MaterialIcons name="person" size={22} color={Colors.primary} />
             </View>
             <View style={styles.menuTextGroup}>
-              <Text style={styles.menuTitle}>Personal & Responder Skills</Text>
-              <Text style={styles.menuSub}>Name, blood group, DOB, medical competencies</Text>
+              <Text style={[styles.menuTitle, { color: colors.text }]}>Personal & Responder Skills</Text>
+              <Text style={[styles.menuSub, { color: colors.textSecondary }]}>Name, blood group, DOB, medical competencies</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={24} color={Colors.textSecondary} />
+            <MaterialIcons name="chevron-right" size={24} color={colors.textSecondary} />
           </Pressable>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           <Pressable style={styles.menuRow} onPress={() => router.push("/profile/medical" as any)}>
             <View style={[styles.menuIcon, { backgroundColor: `${Colors.danger}15` }]}>
               <MaterialIcons name="medical-services" size={22} color={Colors.danger} />
             </View>
             <View style={styles.menuTextGroup}>
-              <Text style={styles.menuTitle}>Clinical History & Allergies</Text>
-              <Text style={styles.menuSub}>Conditions, medications, data broadcast consent</Text>
+              <Text style={[styles.menuTitle, { color: colors.text }]}>Clinical History & Allergies</Text>
+              <Text style={[styles.menuSub, { color: colors.textSecondary }]}>Conditions, medications, data broadcast consent</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={24} color={Colors.textSecondary} />
+            <MaterialIcons name="chevron-right" size={24} color={colors.textSecondary} />
           </Pressable>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           <Pressable style={styles.menuRow} onPress={() => router.push("/profile/contacts" as any)}>
             <View style={[styles.menuIcon, { backgroundColor: `${Colors.warning}20` }]}>
               <MaterialIcons name="contact-phone" size={22} color={Colors.warning} />
             </View>
             <View style={styles.menuTextGroup}>
-              <Text style={styles.menuTitle}>Emergency Contacts Vault</Text>
-              <Text style={styles.menuSub}>Manage Priority #1 to #3 notification list</Text>
+              <Text style={[styles.menuTitle, { color: colors.text }]}>Emergency Contacts Vault</Text>
+              <Text style={[styles.menuSub, { color: colors.textSecondary }]}>Manage Priority #1 to #3 notification list</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={24} color={Colors.textSecondary} />
+            <MaterialIcons name="chevron-right" size={24} color={colors.textSecondary} />
           </Pressable>
         </View>
 
-        {/* Emergency Medical Vault & Management */}
-
-        <Text style={styles.sectionTitle}>Application Intelligence Architecture</Text>
-        <View style={styles.menuBox}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Application Intelligence Architecture</Text>
+        <View style={[styles.menuBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.statusRow}>
             <View style={styles.statusLeft}>
               <MaterialIcons name="memory" size={20} color={Colors.secondary} />
               <View>
-                <Text style={styles.statusTitle}>Local SQLite Outbox Storage</Text>
-                <Text style={styles.statusSub}>ACID relational tables ready for FastAPI sync</Text>
+                <Text style={[styles.statusTitle, { color: colors.text }]}>Local SQLite Outbox Storage</Text>
+                <Text style={[styles.statusSub, { color: colors.textSecondary }]}>ACID relational tables ready for FastAPI sync</Text>
               </View>
             </View>
             <View style={styles.badgeGreen}>
@@ -157,14 +155,14 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           <View style={styles.statusRow}>
             <View style={styles.statusLeft}>
               <MaterialIcons name="bluetooth" size={20} color={Colors.primary} />
               <View>
-                <Text style={styles.statusTitle}>P2P Mesh Broadcast Mode</Text>
-                <Text style={styles.statusSub}>BLE GATT & Wi-Fi Direct peer relaying</Text>
+                <Text style={[styles.statusTitle, { color: colors.text }]}>P2P Mesh Broadcast Mode</Text>
+                <Text style={[styles.statusSub, { color: colors.textSecondary }]}>BLE GATT & Wi-Fi Direct peer relaying</Text>
               </View>
             </View>
             <View style={styles.badgeBlue}>
@@ -172,14 +170,14 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           <View style={styles.statusRow}>
             <View style={styles.statusLeft}>
               <MaterialIcons name="sensors" size={20} color={Colors.warning} />
               <View>
-                <Text style={styles.statusTitle}>Multi-Sensor ECS Trigger</Text>
-                <Text style={styles.statusSub}>Auto distress broadcast when confidence &ge; 85%</Text>
+                <Text style={[styles.statusTitle, { color: colors.text }]}>Multi-Sensor ECS Trigger</Text>
+                <Text style={[styles.statusSub, { color: colors.textSecondary }]}>Auto distress broadcast when confidence &ge; 85%</Text>
               </View>
             </View>
             <View style={styles.badgeAmber}>
@@ -190,7 +188,7 @@ export default function SettingsScreen() {
 
         <View style={styles.logoutContainer}>
           <PrimaryButton title="Log Out of Command Session" onPress={handleLogout} />
-          <Text style={styles.versionText}>ResQNet Platform v1.0.0-PROD • Phase 1 Vault Active</Text>
+          <Text style={[styles.versionText, { color: colors.textSecondary }]}>ResQNet Platform v1.0.0-PROD • Phase 1 Vault Active</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

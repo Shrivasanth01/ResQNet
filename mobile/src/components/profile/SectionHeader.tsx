@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../theme/colors";
+import { useTheme } from "../../context/ThemeContext";
 
 interface Props {
   title: string;
@@ -11,6 +12,8 @@ interface Props {
 }
 
 export default function SectionHeader({ title, subtitle, icon, actionText, onActionPress }: Props) {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.container}>
       <View style={styles.left}>
@@ -20,8 +23,8 @@ export default function SectionHeader({ title, subtitle, icon, actionText, onAct
           </View>
         )}
         <View>
-          <Text style={styles.title}>{title}</Text>
-          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+          {subtitle && <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>}
         </View>
       </View>
       {actionText && onActionPress && (

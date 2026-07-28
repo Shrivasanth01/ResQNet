@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../theme/colors";
+import { useTheme } from "../../context/ThemeContext";
 import { CompleteEmergencyProfile } from "../../types/profile";
 
 interface Props {
@@ -8,6 +9,8 @@ interface Props {
 }
 
 export default function ProgressIndicator({ profile }: Props) {
+  const { colors } = useTheme();
+
   if (!profile) return null;
 
   let score = 0;
@@ -23,7 +26,7 @@ export default function ProgressIndicator({ profile }: Props) {
   const isComplete = percentage >= 100;
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <MaterialIcons 
@@ -31,14 +34,14 @@ export default function ProgressIndicator({ profile }: Props) {
             size={22} 
             color={isComplete ? Colors.secondary : Colors.primary} 
           />
-          <Text style={styles.title}>Emergency Profile Readiness</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Emergency Profile Readiness</Text>
         </View>
         <Text style={[styles.percentage, { color: isComplete ? Colors.secondary : Colors.primary }]}>
           {percentage}%
         </Text>
       </View>
 
-      <View style={styles.track}>
+      <View style={[styles.track, { backgroundColor: `${colors.textSecondary}25` }]}>
         <View 
           style={[
             styles.bar, 
@@ -47,7 +50,7 @@ export default function ProgressIndicator({ profile }: Props) {
         />
       </View>
 
-      <Text style={styles.footerText}>
+      <Text style={[styles.footerText, { color: colors.textSecondary }]}>
         {isComplete 
           ? "Medical Vault completely encrypted and ready for offline P2P mesh relay & AI emergency triage." 
           : "Complete your medical conditions and at least 2 emergency contacts to achieve full disaster readiness."}

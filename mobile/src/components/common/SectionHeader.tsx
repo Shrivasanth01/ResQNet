@@ -1,14 +1,16 @@
 import { Text, StyleSheet, View } from "react-native";
-import { Colors } from "../../theme/colors";
+import { useTheme } from "../../context/ThemeContext";
 
 interface Props {
   title: string;
 }
 
 export default function SectionHeader({ title }: Props) {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
     </View>
   );
 }

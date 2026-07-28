@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../theme/colors";
+import { useTheme } from "../../context/ThemeContext";
 import { UserProfile } from "../../types/profile";
 
 interface Props {
@@ -10,19 +11,21 @@ interface Props {
 }
 
 export default function ProfileCard({ user, onEdit }: Props) {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={styles.header}>
         <View style={styles.infoBox}>
           <View style={styles.nameRow}>
-            <Text style={styles.name}>{user.fullName}</Text>
+            <Text style={[styles.name, { color: colors.text }]}>{user.fullName}</Text>
             <View style={[styles.bloodBadge, { backgroundColor: `${Colors.danger}15` }]}>
               <Text style={[styles.bloodText, { color: Colors.danger }]}>
                 {user.bloodGroup || "O+"}
               </Text>
             </View>
           </View>
-          <Text style={styles.subText}>{user.age} yrs • {user.gender} • DOB: {user.dateOfBirth}</Text>
+          <Text style={[styles.subText, { color: colors.textSecondary }]}>{user.age} yrs • {user.gender} • DOB: {user.dateOfBirth}</Text>
         </View>
 
         {onEdit && (
@@ -33,41 +36,41 @@ export default function ProfileCard({ user, onEdit }: Props) {
       </View>
 
       <View style={styles.grid}>
-        <View style={styles.gridItem}>
-          <MaterialIcons name="straighten" size={16} color={Colors.textSecondary} />
-          <Text style={styles.gridLabel}>Height: </Text>
-          <Text style={styles.gridValue}>{user.height}</Text>
+        <View style={[styles.gridItem, { backgroundColor: `${colors.textSecondary}15` }]}>
+          <MaterialIcons name="straighten" size={16} color={colors.textSecondary} />
+          <Text style={[styles.gridLabel, { color: colors.textSecondary }]}>Height: </Text>
+          <Text style={[styles.gridValue, { color: colors.text }]}>{user.height}</Text>
         </View>
-        <View style={styles.gridItem}>
-          <MaterialIcons name="monitor-weight" size={16} color={Colors.textSecondary} />
-          <Text style={styles.gridLabel}>Weight: </Text>
-          <Text style={styles.gridValue}>{user.weight}</Text>
+        <View style={[styles.gridItem, { backgroundColor: `${colors.textSecondary}15` }]}>
+          <MaterialIcons name="monitor-weight" size={16} color={colors.textSecondary} />
+          <Text style={[styles.gridLabel, { color: colors.textSecondary }]}>Weight: </Text>
+          <Text style={[styles.gridValue, { color: colors.text }]}>{user.weight}</Text>
         </View>
-        <View style={styles.gridItem}>
-          <MaterialIcons name="phone" size={16} color={Colors.textSecondary} />
-          <Text style={styles.gridValue}>{user.phoneNumber}</Text>
+        <View style={[styles.gridItem, { backgroundColor: `${colors.textSecondary}15` }]}>
+          <MaterialIcons name="phone" size={16} color={colors.textSecondary} />
+          <Text style={[styles.gridValue, { color: colors.text }]}>{user.phoneNumber}</Text>
         </View>
-        <View style={styles.gridItem}>
-          <MaterialIcons name="email" size={16} color={Colors.textSecondary} />
-          <Text style={styles.gridValue}>{user.email}</Text>
+        <View style={[styles.gridItem, { backgroundColor: `${colors.textSecondary}15` }]}>
+          <MaterialIcons name="email" size={16} color={colors.textSecondary} />
+          <Text style={[styles.gridValue, { color: colors.text }]}>{user.email}</Text>
         </View>
       </View>
 
-      <View style={styles.divider} />
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-      <Text style={styles.skillsHeading}>Responder Skills & Competencies:</Text>
+      <Text style={[styles.skillsHeading, { color: colors.text }]}>Responder Skills & Competencies:</Text>
       <View style={styles.skillChipRow}>
         {user.responderSkills && user.responderSkills.map((skill, index) => (
           <View key={index} style={styles.skillChip}>
             <MaterialIcons name="health-and-safety" size={14} color={Colors.secondary} />
-            <Text style={styles.skillText}>{skill}</Text>
+            <Text style={[styles.skillText, { color: colors.text }]}>{skill}</Text>
           </View>
         ))}
       </View>
 
       <View style={styles.footerRow}>
-        <MaterialIcons name="translate" size={14} color={Colors.textSecondary} />
-        <Text style={styles.footerText}>Languages: {user.languagesSpoken}</Text>
+        <MaterialIcons name="translate" size={14} color={colors.textSecondary} />
+        <Text style={[styles.footerText, { color: colors.textSecondary }]}>Languages: {user.languagesSpoken}</Text>
       </View>
     </View>
   );

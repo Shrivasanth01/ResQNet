@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../theme/colors";
+import { useTheme } from "../../context/ThemeContext";
 
 interface Props {
   title: string;
@@ -17,6 +18,7 @@ export default function StatusCard({
   status = "neutral",
   isLoading = false 
 }: Props) {
+  const { colors } = useTheme();
   
   const getStatusColor = () => {
     switch (status) {
@@ -28,12 +30,12 @@ export default function StatusCard({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={[styles.iconContainer, { backgroundColor: `${getStatusColor()}15` }]}>
         <MaterialIcons name={iconName} size={24} color={getStatusColor()} />
       </View>
       <View style={styles.textContainer}>
-        <Text style={styles.title} numberOfLines={1}>{title}</Text>
+        <Text style={[styles.title, { color: colors.textSecondary }]} numberOfLines={1}>{title}</Text>
         {isLoading ? (
           <ActivityIndicator size="small" color={getStatusColor()} style={styles.loader} />
         ) : (

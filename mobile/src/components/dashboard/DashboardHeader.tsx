@@ -1,11 +1,13 @@
 import { View, Text, StyleSheet } from "react-native";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
 import { Colors } from "../../theme/colors";
 import { MaterialIcons } from "@expo/vector-icons";
 
 export default function DashboardHeader() {
   const { user } = useAuth();
+  const { colors } = useTheme();
   const [currentDate, setCurrentDate] = useState("");
 
   useEffect(() => {
@@ -29,11 +31,11 @@ export default function DashboardHeader() {
   return (
     <View style={styles.container}>
       <View style={styles.leftContent}>
-        <Text style={styles.greeting}>Ready, {user?.name?.split(' ')[0] || "User"}</Text>
-        <Text style={styles.date}>{currentDate}</Text>
+        <Text style={[styles.greeting, { color: colors.text }]}>Ready, {user?.name?.split(' ')[0] || "User"}</Text>
+        <Text style={[styles.date, { color: colors.textSecondary }]}>{currentDate}</Text>
       </View>
       <View style={styles.rightContent}>
-        <View style={styles.iconContainer}>
+        <View style={[styles.iconContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <MaterialIcons name="security" size={28} color={Colors.primary} />
         </View>
       </View>
