@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, ScrollView, SafeAreaView, Pressable } from "rea
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Colors } from "../../src/theme/colors";
+import { useTheme } from "../../src/context/ThemeContext";
 import PrimaryButton from "../../src/components/buttons/PrimaryButton";
 import SectionHeader from "../../src/components/common/SectionHeader";
 
@@ -46,6 +47,8 @@ const MOCK_REPORTS: PastReport[] = [
 ];
 
 export default function ReportsScreen() {
+  const { colors } = useTheme();
+
   const getStatusBg = (status: PastReport["status"]) => {
     switch (status) {
       case "Broadcasted": return `${Colors.primary}15`;
@@ -63,13 +66,13 @@ export default function ReportsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* Title Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.pageTitle}>Incident Log</Text>
-            <Text style={styles.pageSubtitle}>Manage emergency reports broadcasted from this device</Text>
+            <Text style={[styles.pageTitle, { color: colors.text }]}>Incident Log</Text>
+            <Text style={[styles.pageSubtitle, { color: colors.textSecondary }]}>Manage emergency reports broadcasted from this device</Text>
           </View>
         </View>
 
@@ -97,7 +100,11 @@ export default function ReportsScreen() {
           {MOCK_REPORTS.map((item) => (
             <Pressable 
               key={item.id}
-              style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+              style={({ pressed }) => [
+                styles.card, 
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                pressed && styles.cardPressed
+              ]}
               onPress={() => {
                 // Future detail drill-down view
               }}
@@ -108,20 +115,22 @@ export default function ReportsScreen() {
                 </View>
                 <View style={styles.titleCol}>
                   <View style={styles.badgeRow}>
-                    <Text style={styles.idText}>{item.id}</Text>
+                    <Text style={[styles.idText, { color: colors.textSecondary }]}>{item.id}</Text>
                     <View style={[styles.statusBadge, { backgroundColor: getStatusBg(item.status) }]}>
                       <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
                         {item.status}
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+                  <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>{item.title}</Text>
                 </View>
               </View>
 
-              <View style={styles.cardBottom}>
-                <Text style={styles.metaText}>{item.category} • Severity: <Text style={{ fontWeight: "700", color: item.severity === "Critical" || item.severity === "High" ? Colors.danger : Colors.text }}>{item.severity}</Text></Text>
-                <Text style={styles.timeText}>{item.timestamp}</Text>
+              <View style={[styles.cardBottom, { borderTopColor: colors.border }]}>
+                <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                  {item.category} • Severity: <Text style={{ fontWeight: "700", color: item.severity === "Critical" || item.severity === "High" ? Colors.danger : colors.text }}>{item.severity}</Text>
+                </Text>
+                <Text style={[styles.timeText, { color: colors.textSecondary }]}>{item.timestamp}</Text>
               </View>
             </Pressable>
           ))}

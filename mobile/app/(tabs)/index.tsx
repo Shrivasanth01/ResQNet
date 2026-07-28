@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import * as Location from "expo-location";
 import * as Battery from "expo-battery";
 import { Colors } from "../../src/theme/colors";
+import { useTheme } from "../../src/context/ThemeContext";
 
 // Dashboard Components
 import DashboardHeader from "../../src/components/dashboard/DashboardHeader";
@@ -44,6 +45,7 @@ const MOCK_ACTIVITIES: ActivityEvent[] = [
 type GpsStatusType = "Acquiring..." | "Active" | "Denied" | "Disabled";
 
 export default function HomeScreen() {
+  const { colors } = useTheme();
   const [gpsStatus, setGpsStatus] = useState<GpsStatusType>("Acquiring...");
   const [gpsLoading, setGpsLoading] = useState<boolean>(true);
 
@@ -170,7 +172,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView 
         style={styles.container} 
         contentContainerStyle={styles.contentContainer}
