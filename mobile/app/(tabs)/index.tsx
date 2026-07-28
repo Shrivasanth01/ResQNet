@@ -1,5 +1,7 @@
 import { View, StyleSheet, ScrollView, SafeAreaView } from "react-native";
+import { useEffect, useState, useCallback } from "react";
 import { router } from "expo-router";
+import * as Location from "expo-location";
 import { Colors } from "../../src/theme/colors";
 
 // Dashboard Components
@@ -38,7 +40,51 @@ const MOCK_ACTIVITIES: ActivityEvent[] = [
   },
 ];
 
+type GpsStatusType = "Acquiring..." | "Active" | "Denied" | "Disabled";
+
 export default function HomeScreen() {
+  const [gpsStatus, setGpsStatus] = useState<GpsStatusType>("Acquiring...");
+  const [gpsLoading, setGpsLoading] = useState<boolean>(true);
+
+  const checkGpsPermission = useCallback(async () => {
+    setGpsLoading(true);
+    try {
+      const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== "granted") {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus === "granted") {
+        const isServicesEnabled = await Location.hasServicesEnabledAsync();
+        if (isServicesEnabled) {
+          setGpsStatus("Active");
+        } else {
+          setGpsStatus("Disabled");
+        }
+      } else {
+        setGpsStatus("Denied");
+      }
+    } catch {
+      setGpsStatus("Disabled");
+    } finally {
+      setGpsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkGpsPermission();
+  }, [checkGpsPermission]);
+
+  const getGpsCardStatus = (): "success" | "warning" | "danger" | "neutral" => {
+    if (gpsStatus === "Active") return "success";
+    if (gpsStatus === "Denied") return "danger";
+    if (gpsStatus === "Disabled") return "warning";
+    return "neutral";
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView 
@@ -55,9 +101,10 @@ export default function HomeScreen() {
         <View style={styles.grid}>
           <StatusCard
             title="GPS Status"
-            value="Active"
-            iconName="gps-fixed"
-            status="success"
+            value={gpsStatus}
+            iconName={gpsStatus === "Denied" ? "gps-off" : "gps-fixed"}
+            status={getGpsCardStatus()}
+            isLoading={gpsLoading}
           />
           <StatusCard
             title="Network"
