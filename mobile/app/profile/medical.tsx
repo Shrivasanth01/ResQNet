@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, Alert, Switch } from "react-native";
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, Alert, Switch, Platform } from "react-native";
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -29,11 +29,21 @@ export default function MedicalInfoScreen() {
       if (personal && personal.id) {
         await DatabaseService.saveUserProfile(personal as UserProfile);
       }
-      Alert.alert("Vault Secured", "Medical information encrypted and updated in SQLite database.", [
-        { text: "OK", onPress: () => router.back() }
-      ]);
+      if (Platform.OS === 'web') {
+        alert("Medical information encrypted and updated in SQLite database.");
+        router.back();
+      } else {
+        Alert.alert("Vault Secured", "Medical information encrypted and updated in SQLite database.", [
+          { text: "OK", onPress: () => router.back() }
+        ]);
+        setTimeout(() => router.back(), 500);
+      }
     } catch (e) {
-      Alert.alert("Error", "Could not save medical vault data.");
+      if (Platform.OS === 'web') {
+        alert("Could not save medical vault data.");
+      } else {
+        Alert.alert("Error", "Could not save medical vault data.");
+      }
     } finally {
       setIsSaving(false);
     }

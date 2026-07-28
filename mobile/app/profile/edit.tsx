@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, Alert, Pressable } from "react-native";
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, Alert, Pressable, Platform } from "react-native";
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -36,18 +36,33 @@ export default function EditProfileScreen() {
     setErrors({});
     const val = validateRequiredFields(formData);
     if (!val.isValid) {
-      Alert.alert("Validation Error", val.error || "Please check required fields.");
+      if (Platform.OS === 'web') {
+        alert(val.error || "Please check required fields.");
+      } else {
+        Alert.alert("Validation Error", val.error || "Please check required fields.");
+      }
       return;
     }
 
     setIsSaving(true);
     try {
       await DatabaseService.saveUserProfile(formData as UserProfile);
-      Alert.alert("Success", "Personal profile and responder competencies updated in local SQLite vault.", [
-        { text: "OK", onPress: () => router.back() }
-      ]);
+      if (Platform.OS === 'web') {
+        alert("Personal profile and responder competencies updated in local SQLite vault.");
+        router.back();
+      } else {
+        Alert.alert("Success", "Personal profile and responder competencies updated in local SQLite vault.", [
+          { text: "OK", onPress: () => router.back() }
+        ]);
+        // Fallback navigation for native
+        setTimeout(() => router.back(), 500);
+      }
     } catch (e) {
-      Alert.alert("Error", "Failed to write to database.");
+      if (Platform.OS === 'web') {
+        alert("Failed to write to database.");
+      } else {
+        Alert.alert("Error", "Failed to write to database.");
+      }
     } finally {
       setIsSaving(false);
     }

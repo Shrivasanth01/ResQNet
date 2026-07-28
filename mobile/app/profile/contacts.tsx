@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, Alert } from "react-native";
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, Alert, Platform } from "react-native";
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -40,18 +40,32 @@ export default function EmergencyContactsScreen() {
     const val = validateEmergencyContacts(validContacts);
     
     if (!val.isValid) {
-      Alert.alert("Validation Notice", val.error || "Please complete at least one valid emergency contact.");
+      if (Platform.OS === 'web') {
+        alert(val.error || "Please complete at least one valid emergency contact.");
+      } else {
+        Alert.alert("Validation Notice", val.error || "Please complete at least one valid emergency contact.");
+      }
       return;
     }
 
     setIsSaving(true);
     try {
       await DatabaseService.saveEmergencyContacts(validContacts);
-      Alert.alert("Contacts Updated", "Emergency contact hierarchy updated in SQLite outbox queue.", [
-        { text: "OK", onPress: () => router.back() }
-      ]);
+      if (Platform.OS === 'web') {
+        alert("Emergency contact hierarchy updated in SQLite outbox queue.");
+        router.back();
+      } else {
+        Alert.alert("Contacts Updated", "Emergency contact hierarchy updated in SQLite outbox queue.", [
+          { text: "OK", onPress: () => router.back() }
+        ]);
+        setTimeout(() => router.back(), 500);
+      }
     } catch (e) {
-      Alert.alert("Error", "Could not save contacts to SQLite.");
+      if (Platform.OS === 'web') {
+        alert("Could not save contacts to SQLite.");
+      } else {
+        Alert.alert("Error", "Could not save contacts to SQLite.");
+      }
     } finally {
       setIsSaving(false);
     }
