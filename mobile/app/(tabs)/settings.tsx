@@ -18,50 +18,19 @@ export default function SettingsScreen() {
   const [profile, setProfile] = useState<CompleteEmergencyProfile | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // SQLite Inspector state
-  const [dbPerson, setDbPerson] = useState<PersonRecord | null>(null);
-  const [dbLocations, setDbLocations] = useState<LocationRecord[]>([]);
-  const [showDbInspector, setShowDbInspector] = useState<boolean>(false);
-
-  const loadDbInspectorData = async () => {
-    let person = await getPersonDetails();
-    if (!person && user) {
-      const newPerson = { name: user.name, email: user.email, createdAt: user.createdAt || new Date().toISOString() };
-      await savePersonDetails(newPerson);
-      person = newPerson;
-    }
-    const locs = await getLocationHistory(5);
-    setDbPerson(person);
-    setDbLocations(locs);
-  };
-
-  const handleAddSampleLocation = async () => {
-    try {
-      let lat = 12.9716;
-      let lng = 77.5946;
-      if (Platform.OS === 'web' && 'geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition((pos) => {
-          lat = pos.coords.latitude;
-          lng = pos.coords.longitude;
-        });
-      }
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-      await saveLocationRecord({ latitude: lat, longitude: lng, accuracy: 5.0, timestamp: timeStr });
-      await loadDbInspectorData();
-    } catch {
-      // Fallback
-    }
-  };
-
   const loadData = async () => {
     try {
       const res = await DatabaseService.getEmergencyProfile();
+      if (user?.email) {
+        res.personal.email = user.email;
+      }
+      if (user?.name && user.name !== "Unknown") {
+        res.personal.fullName = user.name;
+      }
       setProfile(res);
     } catch (err) {
       // Default will render if offline
     }
-    await loadDbInspectorData();
   };
 
   useEffect(() => {
@@ -160,66 +129,7 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
-        {/* SQLite Storage Inspector */}
-        <Text style={styles.sectionTitle}>🗄️ SQLite Storage Inspector</Text>
-        <View style={styles.menuBox}>
-          <View style={{ padding: 16 }}>
-            <Pressable 
-              style={styles.refreshBtn}
-              onPress={() => {
-                loadDbInspectorData();
-                setShowDbInspector((prev) => !prev);
-              }}
-            >
-              <Text style={styles.refreshBtnText}>
-                {showDbInspector ? "Hide SQLite Records" : "Inspect Stored SQLite Records"}
-              </Text>
-            </Pressable>
-
-            {showDbInspector && (
-              <View style={styles.dbDetails}>
-                <Text style={styles.subHeader}>Person Record (person_details SQLite table):</Text>
-                {profile?.personal ? (
-                  <View style={styles.codeBox}>
-                    <Text style={styles.codeText}>Name: {profile.personal.fullName} ({profile.personal.bloodGroup})</Text>
-                    <Text style={styles.codeText}>Email: {profile.personal.email}</Text>
-                    <Text style={styles.codeText}>Phone: {profile.personal.phoneNumber}</Text>
-                    <Text style={styles.codeText}>Details: {profile.personal.age} yrs • {profile.personal.height} • {profile.personal.weight}</Text>
-                    <Text style={styles.codeText}>Skills: {profile.personal.responderSkills?.join(', ')}</Text>
-                    <Text style={styles.codeText}>Sync Hash: {profile.personal.syncHash}</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.emptyText}>No person record in DB yet</Text>
-                )}
-
-                <View style={styles.divider} />
-
-                <Text style={styles.subHeader}>
-                  Location Records ({dbLocations.length}) (location_history SQLite table):
-                </Text>
-                {dbLocations.length > 0 ? (
-                  dbLocations.map((loc, i) => (
-                    <View key={i} style={styles.codeBox}>
-                      <Text style={styles.codeText}>
-                        #{i + 1} Lat: {loc.latitude.toFixed(4)}°, Lng: {loc.longitude.toFixed(4)}°
-                      </Text>
-                      <Text style={styles.codeText}>Time: {loc.timestamp}</Text>
-                    </View>
-                  ))
-                ) : (
-                  <Text style={styles.emptyText}>No location history in DB yet</Text>
-                )}
-
-                <Pressable 
-                  style={styles.addLocBtn}
-                  onPress={handleAddSampleLocation}
-                >
-                  <Text style={styles.addLocBtnText}>+ Record Current Location into SQLite DB</Text>
-                </Pressable>
-              </View>
-            )}
-          </View>
-        </View>
+        {/* Emergency Medical Vault & Management */}
 
         <Text style={styles.sectionTitle}>Application Intelligence Architecture</Text>
         <View style={styles.menuBox}>
