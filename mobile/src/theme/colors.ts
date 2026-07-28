@@ -15,6 +15,14 @@ export const Colors = {
 
   border: "#E5E7EB",
 
+  emergency: {
+    medical: "#E91E63",   // Crimson / Pink
+    fire: "#D32F2F",      // Red
+    flood: "#0288D1",     // Deep Blue
+    accident: "#F57C00",  // Orange / Amber
+    other: "#7B1FA2",     // Purple
+  },
+
   white: "#FFFFFF",
   black: "#000000",
 };

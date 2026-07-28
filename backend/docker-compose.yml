@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: resqnet_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: resqnet_admin
+      POSTGRES_PASSWORD: resqnet_secure_password_2026
+      POSTGRES_DB: resqnet_production
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_vault_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: resqnet_fastapi_backend
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://resqnet_admin:resqnet_secure_password_2026@db:5432/resqnet_production
+      JWT_SECRET: resqnet-super-secret-production-key-v3
+      ENV: PRODUCTION
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_vault_data:
+    driver: local
