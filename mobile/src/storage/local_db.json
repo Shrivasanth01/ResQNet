@@ -1,0 +1,22 @@
+{
+  "person_details": [
+    {
+      "id": 1,
+      "name": "GhostMesh User",
+      "email": "user@ghostmesh.org",
+      "phone": "+1-555-0192",
+      "bloodType": "O+",
+      "emergencyContact": "+1-555-0199",
+      "createdAt": "2026-07-28T11:50:00.000Z"
+    }
+  ],
+  "location_history": [
+    {
+      "id": 1,
+      "latitude": 12.9716,
+      "longitude": 77.5946,
+      "accuracy": 5.0,
+      "timestamp": "05:20:00 PM"
+    }
+  ]
+}
