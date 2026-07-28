@@ -182,6 +182,24 @@ export async function getCompleteProfile(): Promise<CompleteEmergencyProfile> {
   };
 }
 
+export async function getPersonDetails(): Promise<UserProfile> {
+  const profile = await getCompleteProfile();
+  return profile.personal;
+}
+
+export async function savePersonDetails(person: Partial<UserProfile>): Promise<void> {
+  const current = await getCompleteProfile();
+  const updated: CompleteEmergencyProfile = {
+    ...current,
+    personal: {
+      ...current.personal,
+      ...person,
+      lastUpdated: new Date().toISOString(),
+    },
+  };
+  await saveCompleteProfile(updated);
+}
+
 export async function saveLocationRecord(location: LocationRecord): Promise<void> {
   if (!db) await initDatabase();
   if (db) {
