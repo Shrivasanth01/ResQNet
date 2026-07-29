@@ -62,17 +62,28 @@ export default function LiveMapView() {
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={[styles.radarBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={styles.radarIconBox}>
-              <MaterialIcons name="radar" size={36} color={Colors.primary} />
+          <View style={[styles.radarBanner, { backgroundColor: colors.surface, borderColor: isDarkMode ? `${Colors.secondary}40` : colors.border }]}>
+            <View style={[styles.radarIconBox, { backgroundColor: `${Colors.secondary}15` }]}>
+              <MaterialIcons name="my-location" size={32} color={Colors.secondary} />
             </View>
             <View style={styles.radarTextBox}>
-              <Text style={[styles.radarTitle, { color: colors.text }]}>Tactical Command Radar</Text>
-              <Text style={[styles.radarSub, { color: colors.textSecondary }]}>
+              <View style={styles.gpsHeaderRow}>
+                <Text style={[styles.radarTitle, { color: colors.text }]}>Live GPS Telemetry</Text>
+                <View style={[styles.gpsBadge, { backgroundColor: `${Colors.success}18` }]}>
+                  <View style={styles.gpsPulseDot} />
+                  <Text style={styles.gpsBadgeText}>GPS LOCK ACTIVE</Text>
+                </View>
+              </View>
+              <Text style={[styles.radarSub, { color: colors.text }]}>
                 {userLocation 
-                  ? `Active Sector: ${userLocation.latitude.toFixed(4)}°, ${userLocation.longitude.toFixed(4)}°`
-                  : "Scanning Local P2P Mesh Range..."}
+                  ? `Lat: ${userLocation.latitude.toFixed(6)}° N  •  Long: ${userLocation.longitude.toFixed(6)}° E`
+                  : "Acquiring High-Precision GPS Lock..."}
               </Text>
+              {userLocation && (
+                <Text style={[styles.gpsMetaText, { color: colors.textSecondary }]}>
+                  Accuracy: ±{userLocation.accuracy ? Math.round(userLocation.accuracy) : 10}m  •  Tactical P2P Range: 2.5 km
+                </Text>
+              )}
             </View>
           </View>
 
@@ -199,14 +210,47 @@ const styles = StyleSheet.create({
   radarTextBox: {
     flex: 1,
   },
+  gpsHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 6,
+  },
   radarTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: Colors.text,
+    fontSize: 17,
+    fontWeight: "900",
+    letterSpacing: -0.2,
+  },
+  gpsBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    gap: 5,
+  },
+  gpsPulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.success,
+  },
+  gpsBadgeText: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: Colors.success,
+    letterSpacing: 0.6,
   },
   radarSub: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    fontWeight: "800",
+    marginTop: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  gpsMetaText: {
+    fontSize: 11,
+    fontWeight: "600",
     marginTop: 4,
   },
   sectionHeader: {
