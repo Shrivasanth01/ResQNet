@@ -9,6 +9,7 @@ import { useTheme } from "../../context/ThemeContext";
 import MapLegend from "./MapLegend";
 import BottomSheetCard from "./BottomSheetCard";
 import FloatingLocationButton from "./FloatingLocationButton";
+import { LocationService } from "../../services/hardware/LocationService";
 import { EmergencyIncident, getCategoryColor, getCategoryIcon } from "./types";
 
 export default function LiveMapView() {
