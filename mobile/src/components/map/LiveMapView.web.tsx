@@ -24,30 +24,30 @@ export default function LiveMapView() {
 
   const [copied, setCopied] = useState(false);
 
+  const fetchUserLocation = async () => {
+    setIsLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
+        setUserLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy || undefined,
+        });
+      }
+    } catch (err) {
+      // Ignore location error
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
   useEffect(() => {
     // High-frequency 1-second background location tracking
     let isMounted = true;
     
-    const startBackgroundTracking = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === "granted") {
-          const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
-          if (isMounted) {
-            setUserLocation({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              accuracy: position.coords.accuracy || undefined,
-            });
-            setIsLocating(false);
-          }
-        }
-      } catch (err) {
-        if (isMounted) setIsLocating(false);
-      }
-    };
-
-    startBackgroundTracking();
+    fetchUserLocation();
 
     // Subscribe to 1-second background LocationService updates
     const unsubscribe = LocationService.subscribe((telemetry) => {
