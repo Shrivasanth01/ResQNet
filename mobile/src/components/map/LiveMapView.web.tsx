@@ -1,4 +1,4 @@
-import { View, StyleSheet, SafeAreaView, Alert, Text, Pressable, ScrollView } from "react-native";
+import { View, StyleSheet, SafeAreaView, Alert, Text, Pressable, ScrollView, Platform } from "react-native";
 import { useEffect, useState, useMemo } from "react";
 import * as Location from "expo-location";
 import { MaterialIcons } from "@expo/vector-icons";
