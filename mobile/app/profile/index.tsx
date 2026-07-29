@@ -1,6 +1,6 @@
 import { View, StyleSheet, SafeAreaView, ScrollView, Alert, RefreshControl, Text, Pressable, Platform } from "react-native";
-import { useEffect, useState } from "react";
-import { router } from "expo-router";
+import { useEffect, useState, useCallback } from "react";
+import { router, useFocusEffect } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../src/theme/colors";
 import { useTheme } from "../../src/context/ThemeContext";
@@ -22,18 +22,20 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showExporter, setShowExporter] = useState(false);
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       const data = await DatabaseService.getEmergencyProfile();
       setProfileData(data);
     } catch (err) {
       Alert.alert("Database Notice", "Could not read local profile vault. Using emergency defaults.");
     }
-  };
-
-  useEffect(() => {
-    loadProfile();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [loadProfile])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);

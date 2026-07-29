@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../src/theme/colors";
+import { useTheme } from "../../src/context/ThemeContext";
 import { DatabaseService } from "../../src/services/db";
 import { MedicalInformation, UserProfile } from "../../src/types/profile";
 
@@ -11,6 +12,7 @@ import SectionHeader from "../../src/components/profile/SectionHeader";
 import PrimaryButton from "../../src/components/buttons/PrimaryButton";
 
 export default function MedicalInfoScreen() {
+  const { colors } = useTheme();
   const [medical, setMedical] = useState<Partial<MedicalInformation>>({});
   const [personal, setPersonal] = useState<Partial<UserProfile>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -50,19 +52,19 @@ export default function MedicalInfoScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.topHeader}>
-        <MaterialIcons name="arrow-back" size={26} color={Colors.text} onPress={() => router.back()} />
-        <Text style={styles.topTitle}>Encrypted Medical Vault</Text>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <View style={[styles.topHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <MaterialIcons name="arrow-back" size={26} color={colors.text} onPress={() => router.back()} />
+        <Text style={[styles.topTitle, { color: colors.text }]}>Encrypted Medical Vault</Text>
         <View style={{ width: 26 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.infoBanner}>
+        <View style={[styles.infoBanner, { backgroundColor: `${Colors.secondary}15`, borderColor: `${Colors.secondary}40` }]}>
           <MaterialIcons name="verified-user" size={28} color={Colors.secondary} />
           <View style={styles.infoBannerText}>
-            <Text style={styles.infoTitle}>Local Cryptographic Storage</Text>
-            <Text style={styles.infoSub}>Your clinical history is encrypted using DataVaultCipher and never broadcast without explicit consent.</Text>
+            <Text style={[styles.infoTitle, { color: colors.text }]}>Local Cryptographic Storage</Text>
+            <Text style={[styles.infoSub, { color: colors.textSecondary }]}>Your clinical history is encrypted using DataVaultCipher and never broadcast without explicit consent.</Text>
           </View>
         </View>
 
@@ -71,7 +73,7 @@ export default function MedicalInfoScreen() {
         <EditableField
           label="Medical Conditions"
           value={medical.medicalConditions || ""}
-          onChangeText={(val) => setMedical({ ...medical, medicalConditions: val })}
+          onChangeText={(val) => setMedical((prev) => ({ ...prev, medicalConditions: val }))}
           placeholder="e.g., Asthma, Insulin-dependent Diabetes, Hypertension"
           helperText="List chronic illnesses or conditions"
           multiline
@@ -82,7 +84,7 @@ export default function MedicalInfoScreen() {
         <EditableField
           label="Known Drug & Food Allergies (Critical)"
           value={medical.allergies || ""}
-          onChangeText={(val) => setMedical({ ...medical, allergies: val })}
+          onChangeText={(val) => setMedical((prev) => ({ ...prev, allergies: val }))}
           placeholder="e.g., Penicillin, Peanuts, Latex"
           helperText="Severe allergies will flash red on responder triage terminals"
           multiline
@@ -93,7 +95,7 @@ export default function MedicalInfoScreen() {
         <EditableField
           label="Current Active Medications & Dosages"
           value={medical.currentMedications || ""}
-          onChangeText={(val) => setMedical({ ...medical, currentMedications: val })}
+          onChangeText={(val) => setMedical((prev) => ({ ...prev, currentMedications: val }))}
           placeholder="e.g., Metformin 500mg daily, Albuterol emergency inhaler"
           helperText="Includes daily prescriptions and life-saving injectors"
           multiline
@@ -106,41 +108,41 @@ export default function MedicalInfoScreen() {
         <EditableField
           label="Disabilities or Mobility Constraints"
           value={medical.disabilities || ""}
-          onChangeText={(val) => setMedical({ ...medical, disabilities: val })}
+          onChangeText={(val) => setMedical((prev) => ({ ...prev, disabilities: val }))}
           placeholder="e.g., Wheelchair user, visually impaired, none"
         />
 
         <EditableField
           label="Pregnancy Status (Optional)"
           value={medical.pregnancyStatus || ""}
-          onChangeText={(val) => setMedical({ ...medical, pregnancyStatus: val })}
+          onChangeText={(val) => setMedical((prev) => ({ ...prev, pregnancyStatus: val }))}
           placeholder="e.g., Not Applicable / 2nd Trimester (24 weeks)"
         />
 
         <SectionHeader title="Consent & Directives" subtitle="Control SOS radio relay access" icon="share" />
 
-        <View style={styles.switchBox}>
+        <View style={[styles.switchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.switchText}>
-            <Text style={styles.switchTitle}>Emergency Medical Relay Consent</Text>
-            <Text style={styles.switchSub}>Allow tactical radio mesh nodes to transmit your blood type and allergies during confirmed SOS events.</Text>
+            <Text style={[styles.switchTitle, { color: colors.text }]}>Emergency Medical Relay Consent</Text>
+            <Text style={[styles.switchSub, { color: colors.textSecondary }]}>Allow tactical radio mesh nodes to transmit your blood type and allergies during confirmed SOS events.</Text>
           </View>
           <Switch
             value={personal.consentToShareMedical || false}
-            onValueChange={(v) => setPersonal({ ...personal, consentToShareMedical: v })}
-            trackColor={{ false: Colors.border, true: Colors.secondary }}
+            onValueChange={(v) => setPersonal((prev) => ({ ...prev, consentToShareMedical: v }))}
+            trackColor={{ false: colors.border, true: Colors.secondary }}
             thumbColor={Colors.white}
           />
         </View>
 
-        <View style={styles.switchBox}>
+        <View style={[styles.switchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.switchText}>
-            <Text style={styles.switchTitle}>Registered Organ Donor</Text>
-            <Text style={styles.switchSub}>Display standard organ donor symbol on responder identification profile.</Text>
+            <Text style={[styles.switchTitle, { color: colors.text }]}>Registered Organ Donor</Text>
+            <Text style={[styles.switchSub, { color: colors.textSecondary }]}>Display standard organ donor symbol on responder identification profile.</Text>
           </View>
           <Switch
             value={personal.organDonor || false}
-            onValueChange={(v) => setPersonal({ ...personal, organDonor: v })}
-            trackColor={{ false: Colors.border, true: Colors.danger }}
+            onValueChange={(v) => setPersonal((prev) => ({ ...prev, organDonor: v }))}
+            trackColor={{ false: colors.border, true: Colors.danger }}
             thumbColor={Colors.white}
           />
         </View>
