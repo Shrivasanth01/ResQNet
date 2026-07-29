@@ -12,7 +12,7 @@ import FloatingLocationButton from "./FloatingLocationButton";
 import { EmergencyIncident, getCategoryColor, getCategoryIcon } from "./types";
 
 export default function LiveMapView() {
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; accuracy?: number } | null>(null);
   const [isLocating, setIsLocating] = useState<boolean>(true);
   const [selectedIncident, setSelectedIncident] = useState<EmergencyIncident | null>(null);
