@@ -48,9 +48,9 @@ class LocationServiceClass {
       if (Platform.OS !== "web") {
         this.watchSubscription = await Location.watchPositionAsync(
           {
-            accuracy: highAccuracy ? Location.Accuracy.High : Location.Accuracy.Balanced,
-            timeInterval: highAccuracy ? 3000 : 10000,
-            distanceInterval: highAccuracy ? 2 : 15,
+            accuracy: Location.Accuracy.BestForNavigation,
+            timeInterval: 1000, // High-frequency 1 second interval
+            distanceInterval: 0.5,
           },
           (loc) => {
             this.processNewLocation(loc);
@@ -58,7 +58,26 @@ class LocationServiceClass {
         );
         this.isWatching = true;
       } else {
-        // Web simulation fallback interval
+        // Web high-frequency HTML5 Geolocation Watch (1 second interval)
+        if (typeof navigator !== "undefined" && "geolocation" in navigator) {
+          navigator.geolocation.watchPosition(
+            (pos) => {
+              this.processNewLocation({
+                coords: {
+                  latitude: pos.coords.latitude,
+                  longitude: pos.coords.longitude,
+                  altitude: pos.coords.altitude,
+                  accuracy: pos.coords.accuracy,
+                  speed: pos.coords.speed,
+                  heading: pos.coords.heading,
+                },
+                timestamp: pos.timestamp,
+              } as any);
+            },
+            () => {},
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+          );
+        }
         this.isWatching = true;
       }
       return true;

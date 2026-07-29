@@ -22,30 +22,66 @@ export default function LiveMapView() {
 
   const realIncidents: EmergencyIncident[] = [];
 
-  const fetchUserLocation = async () => {
-    setIsLocating(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        setUserLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy || undefined,
-        });
-      } else {
-        Alert.alert("Notice", "Location permission denied. Enabling passive command radar mode.");
-      }
-    } catch (err) {
-      // Ignore web geolocation errors and fallback gracefully
-    } finally {
-      setIsLocating(false);
-    }
-  };
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    fetchUserLocation();
+    // High-frequency 1-second background location tracking
+    let isMounted = true;
+    
+    const startBackgroundTracking = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === "granted") {
+          const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
+          if (isMounted) {
+            setUserLocation({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy || undefined,
+            });
+            setIsLocating(false);
+          }
+        }
+      } catch (err) {
+        if (isMounted) setIsLocating(false);
+      }
+    };
+
+    startBackgroundTracking();
+
+    // Subscribe to 1-second background LocationService updates
+    const unsubscribe = LocationService.subscribe((telemetry) => {
+      if (isMounted) {
+        setUserLocation({
+          latitude: telemetry.latitude,
+          longitude: telemetry.longitude,
+          accuracy: telemetry.accuracy,
+        });
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
+
+  const handleCopyCoords = async () => {
+    if (!userLocation) return;
+    const coordStr = `${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}`;
+    
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      await navigator.clipboard.writeText(coordStr);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+
+    if (Platform.OS === 'web') {
+      alert(`Copied coordinates to clipboard: ${coordStr}\nReady to paste directly into Google Maps or Navigation!`);
+    } else {
+      Alert.alert("Coordinates Copied", `${coordStr}\n\nReady to paste into maps or emergency messages.`);
+    }
+  };
 
   const handleNavigate = (incident: EmergencyIncident) => {
     Alert.alert(
@@ -71,7 +107,7 @@ export default function LiveMapView() {
                 <Text style={[styles.radarTitle, { color: colors.text }]}>Live GPS Telemetry</Text>
                 <View style={[styles.gpsBadge, { backgroundColor: `${Colors.success}18` }]}>
                   <View style={styles.gpsPulseDot} />
-                  <Text style={styles.gpsBadgeText}>GPS LOCK ACTIVE</Text>
+                  <Text style={styles.gpsBadgeText}>GPS LOCK ACTIVE (1s AUTO-SYNC)</Text>
                 </View>
               </View>
               <Text style={[styles.radarSub, { color: colors.text }]}>
@@ -79,11 +115,25 @@ export default function LiveMapView() {
                   ? `Lat: ${userLocation.latitude.toFixed(6)}° N  •  Long: ${userLocation.longitude.toFixed(6)}° E`
                   : "Acquiring High-Precision GPS Lock..."}
               </Text>
-              {userLocation && (
-                <Text style={[styles.gpsMetaText, { color: colors.textSecondary }]}>
-                  Accuracy: ±{userLocation.accuracy ? Math.round(userLocation.accuracy) : 10}m  •  Tactical P2P Range: 2.5 km
-                </Text>
-              )}
+              
+              <View style={styles.coordActionRow}>
+                {userLocation && (
+                  <Text style={[styles.gpsMetaText, { color: colors.textSecondary }]}>
+                    Accuracy: ±{userLocation.accuracy ? Math.round(userLocation.accuracy) : 5}m • Live 1s Refresh
+                  </Text>
+                )}
+                {userLocation && (
+                  <Pressable 
+                    style={[styles.copyBtn, { backgroundColor: copied ? Colors.success : `${Colors.secondary}20` }]}
+                    onPress={handleCopyCoords}
+                  >
+                    <MaterialIcons name={copied ? "check" : "content-copy"} size={14} color={copied ? Colors.white : Colors.secondary} />
+                    <Text style={[styles.copyBtnText, { color: copied ? Colors.white : Colors.secondary }]}>
+                      {copied ? "COPIED!" : "COPY COORDS"}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
             </View>
           </View>
 
@@ -251,7 +301,27 @@ const styles = StyleSheet.create({
   gpsMetaText: {
     fontSize: 11,
     fontWeight: "600",
-    marginTop: 4,
+  },
+  coordActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 6,
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  copyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    gap: 5,
+  },
+  copyBtnText: {
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 0.5,
   },
   sectionHeader: {
     fontSize: 20,
