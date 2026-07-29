@@ -1,5 +1,6 @@
 import { View, Text, TextInput, StyleSheet, TextInputProps } from "react-native";
 import { Colors } from "../../theme/colors";
+import { useTheme } from "../../context/ThemeContext";
 
 interface Props extends TextInputProps {
   label: string;
@@ -9,21 +10,28 @@ interface Props extends TextInputProps {
 }
 
 export default function EditableField({ label, error, required, helperText, style, ...props }: Props) {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.container}>
       <View style={styles.labelRow}>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
         {required && <Text style={styles.requiredStar}>*</Text>}
       </View>
 
       <TextInput
-        style={[styles.input, error ? styles.inputError : null, style]}
-        placeholderTextColor={Colors.textSecondary}
+        style={[
+          styles.input, 
+          { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text },
+          error ? styles.inputError : null, 
+          style
+        ]}
+        placeholderTextColor={colors.textSecondary}
         {...props}
       />
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      {!error && helperText ? <Text style={styles.helperText}>{helperText}</Text> : null}
+      {!error && helperText ? <Text style={[styles.helperText, { color: colors.textSecondary }]}>{helperText}</Text> : null}
     </View>
   );
 }

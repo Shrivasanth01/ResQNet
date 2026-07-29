@@ -11,6 +11,7 @@ import { validateRequiredFields } from "../../src/utils/validation";
 import EditableField from "../../src/components/profile/EditableField";
 import SectionHeader from "../../src/components/profile/SectionHeader";
 import PrimaryButton from "../../src/components/buttons/PrimaryButton";
+import DatePickerModal from "../../src/components/profile/DatePickerModal";
 
 const BLOOD_GROUPS: BloodGroup[] = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-", "Unknown"];
 const SKILLS_LIST = ["CPR Certified", "First Aid", "Volunteer Responder", "Doctor", "Nurse", "EMT / Paramedic", "Structural Engineer", "Amateur Radio Operator"];
@@ -20,6 +21,7 @@ export default function EditProfileScreen() {
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     DatabaseService.getEmergencyProfile().then((res) => {
@@ -32,6 +34,14 @@ export default function EditProfileScreen() {
     const exists = current.includes(skill);
     const next = exists ? current.filter((s) => s !== skill) : [...current, skill];
     setFormData((prev) => ({ ...prev, responderSkills: next }));
+  };
+
+  const handleSelectDate = (dateStr: string, calculatedAge: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      dateOfBirth: dateStr,
+      age: String(calculatedAge),
+    }));
   };
 
   const handleSave = async () => {
@@ -108,11 +118,29 @@ export default function EditProfileScreen() {
           </View>
         </View>
 
-        <EditableField
-          label="Date of Birth"
-          value={formData.dateOfBirth || ""}
-          onChangeText={(val) => setFormData((prev) => ({ ...prev, dateOfBirth: val }))}
-          placeholder="YYYY-MM-DD (e.g., 1997-04-12)"
+        {/* Date of Birth with Calendar Picker Button */}
+        <View style={styles.dobRow}>
+          <View style={{ flex: 1 }}>
+            <EditableField
+              label="Date of Birth"
+              value={formData.dateOfBirth || ""}
+              onChangeText={(val) => setFormData((prev) => ({ ...prev, dateOfBirth: val }))}
+              placeholder="YYYY-MM-DD (e.g., 2006-11-27)"
+            />
+          </View>
+          <Pressable 
+            style={[styles.calendarBtn, { backgroundColor: `${Colors.primary}15`, borderColor: Colors.primary }]}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <MaterialIcons name="calendar-month" size={24} color={Colors.primary} />
+          </Pressable>
+        </View>
+
+        <DatePickerModal
+          visible={showDatePicker}
+          value={formData.dateOfBirth}
+          onClose={() => setShowDatePicker(false)}
+          onSelectDate={handleSelectDate}
         />
 
         <Text style={[styles.label, { color: colors.text }]}>Blood Group *</Text>
@@ -246,6 +274,21 @@ const styles = StyleSheet.create({
   },
   col: {
     flex: 1,
+  },
+  dobRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 10,
+    marginBottom: 4,
+  },
+  calendarBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,
