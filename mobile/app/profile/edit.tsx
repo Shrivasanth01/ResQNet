@@ -14,7 +14,25 @@ import PrimaryButton from "../../src/components/buttons/PrimaryButton";
 import DatePickerModal from "../../src/components/profile/DatePickerModal";
 
 const BLOOD_GROUPS: BloodGroup[] = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-", "Unknown"];
+const GENDER_OPTIONS = [
+  { label: "Male", icon: "male" as const },
+  { label: "Female", icon: "female" as const },
+  { label: "Other", icon: "transgender" as const },
+];
 const SKILLS_LIST = ["CPR Certified", "First Aid", "Volunteer Responder", "Doctor", "Nurse", "EMT / Paramedic", "Structural Engineer", "Amateur Radio Operator"];
+
+const calculateAgeFromDob = (dobStr: string): string => {
+  if (!dobStr || !/^\d{4}-\d{2}-\d{2}$/.test(dobStr)) return "";
+  const parts = dobStr.split("-").map(Number);
+  const birthDate = new Date(parts[0], parts[1] - 1, parts[2]);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age >= 0 ? String(age) : "";
+};
 
 export default function EditProfileScreen() {
   const { colors } = useTheme();
@@ -34,6 +52,15 @@ export default function EditProfileScreen() {
     const exists = current.includes(skill);
     const next = exists ? current.filter((s) => s !== skill) : [...current, skill];
     setFormData((prev) => ({ ...prev, responderSkills: next }));
+  };
+
+  const handleDobChange = (dateStr: string) => {
+    const autoAge = calculateAgeFromDob(dateStr);
+    setFormData((prev) => ({
+      ...prev,
+      dateOfBirth: dateStr,
+      age: autoAge || prev.age,
+    }));
   };
 
   const handleSelectDate = (dateStr: string, calculatedAge: number) => {
@@ -98,34 +125,15 @@ export default function EditProfileScreen() {
           placeholder="e.g., Alex Mercer"
         />
 
-        <View style={styles.row}>
-          <View style={styles.col}>
-            <EditableField
-              label="Age (Years)"
-              value={formData.age || ""}
-              onChangeText={(val) => setFormData((prev) => ({ ...prev, age: val }))}
-              placeholder="29"
-              keyboardType="numeric"
-            />
-          </View>
-          <View style={styles.col}>
-            <EditableField
-              label="Gender"
-              value={formData.gender || ""}
-              onChangeText={(val) => setFormData((prev) => ({ ...prev, gender: val }))}
-              placeholder="e.g., Male/Female/Other"
-            />
-          </View>
-        </View>
-
         {/* Date of Birth with Calendar Picker Button */}
         <View style={styles.dobRow}>
           <View style={{ flex: 1 }}>
             <EditableField
               label="Date of Birth"
               value={formData.dateOfBirth || ""}
-              onChangeText={(val) => setFormData((prev) => ({ ...prev, dateOfBirth: val }))}
+              onChangeText={handleDobChange}
               placeholder="YYYY-MM-DD (e.g., 2006-11-27)"
+              helperText={formData.age ? `Auto-detected Age: ${formData.age} Years` : "Tap calendar to select"}
             />
           </View>
           <Pressable 
@@ -142,6 +150,47 @@ export default function EditProfileScreen() {
           onClose={() => setShowDatePicker(false)}
           onSelectDate={handleSelectDate}
         />
+
+        <View style={styles.row}>
+          <View style={styles.col}>
+            <EditableField
+              label="Age (Years)"
+              value={formData.age || ""}
+              onChangeText={(val) => setFormData((prev) => ({ ...prev, age: val }))}
+              placeholder="Auto-calculated"
+              keyboardType="numeric"
+              helperText="Calculated from Date of Birth"
+            />
+          </View>
+        </View>
+
+        {/* Gender Selection Chips */}
+        <Text style={[styles.label, { color: colors.text }]}>Gender *</Text>
+        <View style={styles.genderGrid}>
+          {GENDER_OPTIONS.map((g) => {
+            const selected = (formData.gender || "").toLowerCase() === g.label.toLowerCase();
+            return (
+              <Pressable
+                key={g.label}
+                style={[
+                  styles.genderChip,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  selected && styles.genderChipSelected,
+                ]}
+                onPress={() => setFormData((prev) => ({ ...prev, gender: g.label }))}
+              >
+                <MaterialIcons
+                  name={g.icon}
+                  size={20}
+                  color={selected ? Colors.white : Colors.secondary}
+                />
+                <Text style={[styles.genderText, { color: colors.text }, selected && styles.genderTextSelected]}>
+                  {g.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
         <Text style={[styles.label, { color: colors.text }]}>Blood Group *</Text>
         <View style={styles.bloodGrid}>
@@ -295,6 +344,34 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.text,
     marginBottom: 8,
+  },
+  genderGrid: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 20,
+  },
+  genderChip: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    gap: 8,
+  },
+  genderChipSelected: {
+    backgroundColor: Colors.secondary,
+    borderColor: Colors.secondary,
+  },
+  genderText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  genderTextSelected: {
+    color: Colors.white,
+    fontWeight: "900",
   },
   bloodGrid: {
     flexDirection: "row",
