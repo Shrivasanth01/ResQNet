@@ -1,26 +1,27 @@
 export const Colors = {
-  primary: "#D32F2F",
-  primaryDark: "#B71C1C",
-  secondary: "#1976D2",
+  primary: "#E11D48",        // Neon Emergency Crimson
+  primaryDark: "#BE123C",    // Deep Crimson
+  secondary: "#0EA5E9",      // Tactical Cyan Blue
+  secondaryLight: "#38BDF8", // Electric Sky Blue
 
-  success: "#2E7D32",
-  warning: "#F9A825",
-  danger: "#D32F2F",
+  success: "#10B981",        // Neon Emerald
+  warning: "#F59E0B",        // Flame Gold
+  danger: "#F43F5E",         // Crimson Distress
 
-  background: "#F8FAFC",
-  surface: "#FFFFFF",
+  background: "#F1F5F9",     // Frost White Background
+  surface: "#FFFFFF",        // Pure White Surface
 
-  text: "#1F2937",
-  textSecondary: "#6B7280",
+  text: "#0F172A",           // Dark Slate Text
+  textSecondary: "#64748B",  // Muted Slate Text
 
-  border: "#E5E7EB",
+  border: "#E2E8F0",         // Subtle Border
 
   emergency: {
-    medical: "#E91E63",   // Crimson / Pink
-    fire: "#D32F2F",      // Red
-    flood: "#0288D1",     // Deep Blue
-    accident: "#F57C00",  // Orange / Amber
-    other: "#7B1FA2",     // Purple
+    medical: "#F43F5E",      // Crimson
+    fire: "#FF5722",         // Intense Blaze Orange
+    flood: "#0288D1",        // Deep Hydro Blue
+    accident: "#F59E0B",     // Amber Hazard
+    other: "#8B5CF6",        // Purple Signal
   },
 
   white: "#FFFFFF",

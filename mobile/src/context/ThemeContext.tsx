@@ -21,20 +21,20 @@ export interface ThemeColors {
 
 export const LightColors: ThemeColors = {
   ...DefaultColors,
-  background: "#F8FAFC",
+  background: "#F1F5F9",
   surface: "#FFFFFF",
-  text: "#1F2937",
-  textSecondary: "#6B7280",
-  border: "#E5E7EB",
+  text: "#0F172A",
+  textSecondary: "#64748B",
+  border: "#E2E8F0",
 };
 
 export const DarkColors: ThemeColors = {
   ...DefaultColors,
-  background: "#0F172A",
-  surface: "#1E293B",
+  background: "#080C14",
+  surface: "#0F172A",
   text: "#F8FAFC",
   textSecondary: "#94A3B8",
-  border: "#334155",
+  border: "#1E293B",
 };
 
 interface ThemeContextValue {

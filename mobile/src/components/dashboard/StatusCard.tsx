@@ -18,30 +18,38 @@ export default function StatusCard({
   status = "neutral",
   isLoading = false 
 }: Props) {
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   
   const getStatusColor = () => {
     switch (status) {
       case "success": return Colors.success;
       case "warning": return Colors.warning;
       case "danger": return Colors.danger;
-      default: return Colors.primary;
+      default: return Colors.secondary;
     }
   };
 
+  const statusColor = getStatusColor();
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <View style={[styles.iconContainer, { backgroundColor: `${getStatusColor()}15` }]}>
-        <MaterialIcons name={iconName} size={24} color={getStatusColor()} />
+    <View style={[
+      styles.container, 
+      { backgroundColor: colors.surface, borderColor: isDarkMode ? `${statusColor}30` : colors.border }
+    ]}>
+      <View style={[styles.iconContainer, { backgroundColor: `${statusColor}18` }]}>
+        <MaterialIcons name={iconName} size={24} color={statusColor} />
       </View>
       <View style={styles.textContainer}>
         <Text style={[styles.title, { color: colors.textSecondary }]} numberOfLines={1}>{title}</Text>
         {isLoading ? (
-          <ActivityIndicator size="small" color={getStatusColor()} style={styles.loader} />
+          <ActivityIndicator size="small" color={statusColor} style={styles.loader} />
         ) : (
-          <Text style={[styles.value, { color: getStatusColor() }]} numberOfLines={1}>
-            {value}
-          </Text>
+          <View style={styles.valRow}>
+            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+            <Text style={[styles.value, { color: colors.text }]} numberOfLines={1}>
+              {value}
+            </Text>
+          </View>
         )}
       </View>
     </View>
@@ -50,26 +58,20 @@ export default function StatusCard({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 18,
+    padding: 14,
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1.5,
     flex: 1,
     minWidth: "45%",
-    margin: 6,
+    margin: 5,
+    boxShadow: "0px 4px 14px rgba(0,0,0,0.06)" as any,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -79,14 +81,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.2,
     marginBottom: 4,
+    textTransform: "uppercase",
+  },
+  valRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   value: {
     fontSize: 15,
-    fontWeight: "bold",
+    fontWeight: "900",
+    letterSpacing: -0.2,
   },
   loader: {
     alignSelf: "flex-start",

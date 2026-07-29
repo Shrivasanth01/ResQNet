@@ -4,7 +4,7 @@ import { Colors } from "../../src/theme/colors";
 import { useTheme } from "../../src/context/ThemeContext";
 
 export default function TabLayout() {
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
 
   return (
     <Tabs
@@ -12,20 +12,30 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "700",
+          marginBottom: 4,
+        },
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
+          borderTopWidth: 1,
+          height: 64,
+          paddingBottom: 6,
+          paddingTop: 6,
+          boxShadow: isDarkMode ? "0px -4px 20px rgba(0,0,0,0.5)" : "0px -4px 16px rgba(0,0,0,0.06)",
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: "Command",
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons
-              name="home"
-              size={size}
+              name="grid-view"
+              size={size + 2}
               color={color}
             />
           ),
@@ -35,11 +45,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="map"
         options={{
-          title: "Live Map",
+          title: "Radar Map",
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons
-              name="map"
-              size={size}
+              name="radar"
+              size={size + 2}
               color={color}
             />
           ),
@@ -49,11 +59,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="reports"
         options={{
-          title: "Reports",
+          title: "Incident Log",
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons
-              name="description"
-              size={size}
+              name="assignment-turned-in"
+              size={size + 2}
               color={color}
             />
           ),
@@ -63,11 +73,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="guide"
         options={{
-          title: "Guide",
+          title: "Survival Manual",
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons
               name="menu-book"
-              size={size}
+              size={size + 2}
               color={color}
             />
           ),
@@ -77,11 +87,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
+          title: "Settings & DB",
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons
-              name="settings"
-              size={size}
+              name="admin-panel-settings"
+              size={size + 2}
               color={color}
             />
           ),

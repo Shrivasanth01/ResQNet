@@ -7,7 +7,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 
 export default function DashboardHeader() {
   const { user } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   const [currentDate, setCurrentDate] = useState("");
 
   useEffect(() => {
@@ -24,19 +24,24 @@ export default function DashboardHeader() {
     };
 
     updateDate();
-    const interval = setInterval(updateDate, 60000); // Update every minute
+    const interval = setInterval(updateDate, 60000);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <View style={styles.container}>
       <View style={styles.leftContent}>
-        <Text style={[styles.greeting, { color: colors.text }]}>Ready, {user?.name?.split(' ')[0] || "User"}</Text>
-        <Text style={[styles.date, { color: colors.textSecondary }]}>{currentDate}</Text>
+        <View style={styles.badgeRow}>
+          <View style={styles.livePulseDot} />
+          <Text style={styles.nodeBadge}>RESQNET MESH NODE #784</Text>
+        </View>
+        <Text style={[styles.greeting, { color: colors.text }]}>Welcome, {user?.name?.split(' ')[0] || "Operator"}</Text>
+        <Text style={[styles.date, { color: colors.textSecondary }]}>{currentDate} • Local Vault Online</Text>
       </View>
+
       <View style={styles.rightContent}>
-        <View style={[styles.iconContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <MaterialIcons name="security" size={28} color={Colors.primary} />
+        <View style={[styles.iconContainer, { backgroundColor: colors.surface, borderColor: isDarkMode ? `${Colors.secondary}40` : colors.border }]}>
+          <MaterialIcons name="shield" size={26} color={Colors.secondary} />
         </View>
       </View>
     </View>
@@ -48,38 +53,52 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    marginBottom: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    marginBottom: 6,
   },
   leftContent: {
     flex: 1,
   },
-  greeting: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: Colors.text,
+  badgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     marginBottom: 4,
   },
+  livePulseDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: Colors.success,
+  },
+  nodeBadge: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: Colors.success,
+    letterSpacing: 0.8,
+  },
+  greeting: {
+    fontSize: 23,
+    fontWeight: "900",
+    letterSpacing: -0.3,
+  },
   date: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    fontWeight: "500",
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 2,
   },
   rightContent: {
     justifyContent: "center",
     alignItems: "flex-end",
   },
   iconContainer: {
-    backgroundColor: Colors.surface,
-    padding: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    boxShadow: "0px 4px 12px rgba(0,0,0,0.08)" as any,
   },
 });
