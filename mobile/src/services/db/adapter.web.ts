@@ -2,14 +2,26 @@ import { UserProfile, MedicalInformation, EmergencyContact, CompleteEmergencyPro
 import { DataVaultCipher } from "./cipher";
 import { DatabaseAdapterContract } from "./types";
 import { getCompleteProfile, saveCompleteProfile } from "../../storage/database";
+import { authStorage } from "../../storage/authStorage";
+
+async function getActiveUserEmail(): Promise<string | undefined> {
+  try {
+    const user = await authStorage.getUser();
+    return user?.email;
+  } catch {
+    return undefined;
+  }
+}
 
 export const DatabaseAdapter: DatabaseAdapterContract = {
   getEmergencyProfile: async (): Promise<CompleteEmergencyProfile> => {
-    return await getCompleteProfile();
+    const email = await getActiveUserEmail();
+    return await getCompleteProfile(email);
   },
 
   saveUserProfile: async (profile: UserProfile): Promise<boolean> => {
-    const current = await getCompleteProfile();
+    const email = profile.email || (await getActiveUserEmail());
+    const current = await getCompleteProfile(email);
     const updated: CompleteEmergencyProfile = {
       ...current,
       personal: {
@@ -19,37 +31,40 @@ export const DatabaseAdapter: DatabaseAdapterContract = {
         lastUpdated: new Date().toISOString(),
       },
     };
-    await saveCompleteProfile(updated);
+    await saveCompleteProfile(updated, email);
     return true;
   },
 
   saveMedicalInformation: async (med: MedicalInformation): Promise<boolean> => {
-    const current = await getCompleteProfile();
+    const email = await getActiveUserEmail();
+    const current = await getCompleteProfile(email);
     const updated: CompleteEmergencyProfile = {
       ...current,
       medical: { ...med, updatedAt: new Date().toISOString() },
     };
-    await saveCompleteProfile(updated);
+    await saveCompleteProfile(updated, email);
     return true;
   },
 
   saveEmergencyContacts: async (contacts: EmergencyContact[]): Promise<boolean> => {
-    const current = await getCompleteProfile();
+    const email = await getActiveUserEmail();
+    const current = await getCompleteProfile(email);
     const updated: CompleteEmergencyProfile = {
       ...current,
       contacts,
     };
-    await saveCompleteProfile(updated);
+    await saveCompleteProfile(updated, email);
     return true;
   },
 
   saveAppSetting: async (key: string, value: string): Promise<boolean> => {
-    const current = await getCompleteProfile();
+    const email = await getActiveUserEmail();
+    const current = await getCompleteProfile(email);
     const updated: CompleteEmergencyProfile = {
       ...current,
       settings: { ...current.settings, [key]: value },
     };
-    await saveCompleteProfile(updated);
+    await saveCompleteProfile(updated, email);
     return true;
   },
 };

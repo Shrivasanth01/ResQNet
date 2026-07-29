@@ -53,34 +53,107 @@ export const DEFAULT_ALEX_MERCER_PROFILE: CompleteEmergencyProfile = {
   },
 };
 
-export async function initDatabase(): Promise<void> {
-  const raw = await AsyncStorage.getItem(STORAGE_KEYS.PROFILE);
+function getStorageKeyForUser(email?: string): string {
+  if (email && email.trim()) {
+    const clean = email.trim().toLowerCase().replace(/[^a-z0-9_@.-]/g, '_');
+    return `${STORAGE_KEYS.PROFILE}_${clean}`;
+  }
+  return STORAGE_KEYS.PROFILE;
+}
+
+export function createNewUserProfile(name?: string, email?: string): CompleteEmergencyProfile {
+  const cleanName = name || (email ? email.split('@')[0] : "New User");
+  const cleanEmail = email || "user@resqnet.org";
+
+  return {
+    personal: {
+      id: `usr_${Date.now()}`,
+      fullName: cleanName,
+      age: "24",
+      gender: "Male",
+      dateOfBirth: "2002-01-01",
+      bloodGroup: "O+",
+      height: "175 cm",
+      weight: "70 kg",
+      photographUrl: "",
+      phoneNumber: "+91 9876543210",
+      email: cleanEmail,
+      languagesSpoken: "English",
+      responderSkills: ["First Aid"],
+      consentToShareMedical: true,
+      organDonor: false,
+      syncHash: `RQ-HASH-${Date.now()}`,
+      lastUpdated: new Date().toISOString(),
+    },
+    medical: {
+      medicalConditions: "None reported",
+      allergies: "None reported",
+      currentMedications: "None",
+      disabilities: "None",
+      pregnancyStatus: "Not Applicable",
+      updatedAt: new Date().toISOString(),
+    },
+    contacts: [
+      { id: "c1", name: "Primary Emergency Contact", relationship: "Family", phoneNumber: "+91 9900011122", priorityOrder: 1 }
+    ],
+    settings: {
+      mesh_mode: "bluetooth_wifi_direct",
+      auto_sos: "enabled",
+    },
+  };
+}
+
+export async function initDatabase(email?: string): Promise<void> {
+  const key = getStorageKeyForUser(email);
+  const raw = await AsyncStorage.getItem(key);
   if (!raw) {
-    await AsyncStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(DEFAULT_ALEX_MERCER_PROFILE));
+    const defaultProf = email ? createNewUserProfile(undefined, email) : DEFAULT_ALEX_MERCER_PROFILE;
+    await AsyncStorage.setItem(key, JSON.stringify(defaultProf));
   }
 }
 
-export async function saveCompleteProfile(profile: CompleteEmergencyProfile): Promise<void> {
+export async function saveCompleteProfile(profile: CompleteEmergencyProfile, email?: string): Promise<void> {
+  const targetEmail = email || profile.personal.email;
+  const key = getStorageKeyForUser(targetEmail);
+  await AsyncStorage.setItem(key, JSON.stringify(profile));
+  // Also keep default key synced for fallback
   await AsyncStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
 }
 
-export async function getCompleteProfile(): Promise<CompleteEmergencyProfile> {
-  const raw = await AsyncStorage.getItem(STORAGE_KEYS.PROFILE);
-  if (!raw) return DEFAULT_ALEX_MERCER_PROFILE;
+export async function getCompleteProfile(email?: string): Promise<CompleteEmergencyProfile> {
+  const key = getStorageKeyForUser(email);
+  let raw = await AsyncStorage.getItem(key);
+  
+  if (!raw && email) {
+    // Try fallback to general profile
+    raw = await AsyncStorage.getItem(STORAGE_KEYS.PROFILE);
+  }
+
+  if (!raw) {
+    const fresh = email ? createNewUserProfile(undefined, email) : DEFAULT_ALEX_MERCER_PROFILE;
+    await saveCompleteProfile(fresh, email);
+    return fresh;
+  }
+
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (email && parsed.personal && !parsed.personal.email) {
+      parsed.personal.email = email;
+    }
+    return parsed;
   } catch {
-    return DEFAULT_ALEX_MERCER_PROFILE;
+    return email ? createNewUserProfile(undefined, email) : DEFAULT_ALEX_MERCER_PROFILE;
   }
 }
 
-export async function getPersonDetails(): Promise<UserProfile> {
-  const profile = await getCompleteProfile();
+export async function getPersonDetails(email?: string): Promise<UserProfile> {
+  const profile = await getCompleteProfile(email);
   return profile.personal;
 }
 
-export async function savePersonDetails(person: Partial<UserProfile>): Promise<void> {
-  const current = await getCompleteProfile();
+export async function savePersonDetails(person: Partial<UserProfile>, email?: string): Promise<void> {
+  const targetEmail = email || person.email;
+  const current = await getCompleteProfile(targetEmail);
   const updated: CompleteEmergencyProfile = {
     ...current,
     personal: {
@@ -89,7 +162,7 @@ export async function savePersonDetails(person: Partial<UserProfile>): Promise<v
       lastUpdated: new Date().toISOString(),
     },
   };
-  await saveCompleteProfile(updated);
+  await saveCompleteProfile(updated, targetEmail);
 }
 
 export async function saveLocationRecord(location: LocationRecord): Promise<void> {
