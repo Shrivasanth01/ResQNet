@@ -12,6 +12,7 @@ import { router } from 'expo-router';
 import { useState, useRef } from 'react';
 import { Colors } from '../../src/theme/colors';
 import { sendOTP } from '../../src/services/firebaseAuth';
+import { isFirebaseConfigured } from '../../src/firebase';
 import PrimaryButton from '../../src/components/buttons/PrimaryButton';
 
 const COUNTRY_CODES = [
@@ -30,6 +31,7 @@ export default function PhoneLoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const phoneInputRef = useRef<TextInput>(null);
+  const isConfigured = isFirebaseConfigured();
 
   function formatPhoneDisplay(num: string): string {
     const digits = num.replace(/\D/g, '');
@@ -98,6 +100,16 @@ export default function PhoneLoginScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {/* Demo Mode / Environment Notice */}
+        {!isConfigured && (
+          <View style={styles.demoBanner}>
+            <Text style={styles.demoBannerTitle}>💡 Dev / Demo Mode Enabled</Text>
+            <Text style={styles.demoBannerText}>
+              Firebase credentials are not set in `.env`. You can test immediately using any 10-digit phone number (Use test OTP: <Text style={styles.demoBold}>123456</Text>).
+            </Text>
+          </View>
+        )}
+
         {/* Brand Header */}
         <View style={styles.brandSection}>
           <Text style={styles.logo}>🛡️</Text>
@@ -208,11 +220,34 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     justifyContent: 'center',
   },
+  demoBanner: {
+    backgroundColor: `${Colors.warning}15`,
+    borderColor: Colors.warning,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 24,
+  },
+  demoBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.warning,
+    marginBottom: 4,
+  },
+  demoBannerText: {
+    fontSize: 13,
+    color: Colors.text,
+    lineHeight: 18,
+  },
+  demoBold: {
+    fontWeight: '800',
+    color: Colors.primary,
+  },
 
   // Brand
   brandSection: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
   logo: {
     fontSize: 64,
