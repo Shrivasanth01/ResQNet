@@ -12,18 +12,26 @@ export default function SectionHeader({ title }: Props) {
   return (
     <View style={styles.container}>
       <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 16,
-    paddingHorizontal: 4,
+    paddingTop: 22,
+    paddingBottom: 12,
+    paddingHorizontal: 2,
   },
   title: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: Colors.text,
+    fontSize: 16,
+    fontWeight: "900",
+    letterSpacing: -0.3,
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+  divider: {
+    height: 1,
+    width: "100%",
   },
 });

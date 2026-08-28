@@ -1,29 +1,29 @@
 export const Colors = {
-  primary: "#E11D48",        // Neon Emergency Crimson
-  primaryDark: "#BE123C",    // Deep Crimson
-  secondary: "#0EA5E9",      // Tactical Cyan Blue
-  secondaryLight: "#38BDF8", // Electric Sky Blue
+  primary: "#C8372D",        // Terracotta Earth / Editorial Crimson
+  primaryDark: "#A42B23",    // Deep Terracotta
+  secondary: "#2D3748",      // Muted Charcoal Steel
+  secondaryLight: "#4A5568", // Warm Slate Steel
 
-  success: "#10B981",        // Neon Emerald
-  warning: "#F59E0B",        // Flame Gold
-  danger: "#F43F5E",         // Crimson Distress
+  success: "#2B8A6E",        // Forest Emerald
+  warning: "#D97706",        // Amber Clay
+  danger: "#C8372D",         // Terracotta Emergency
 
-  background: "#F1F5F9",     // Frost White Background
-  surface: "#FFFFFF",        // Pure White Surface
+  background: "#F9F8F6",     // Warm Soft Ivory
+  surface: "#FFFFFF",        // Crisp White Surface
 
-  text: "#0F172A",           // Dark Slate Text
-  textSecondary: "#64748B",  // Muted Slate Text
+  text: "#1C1D21",           // Deep Charcoal Text
+  textSecondary: "#6E717C",  // Muted Warm Slate Text
 
-  border: "#E2E8F0",         // Subtle Border
+  border: "#E6E4E0",         // Soft Neutral Warm Gray Border
 
   emergency: {
-    medical: "#F43F5E",      // Crimson
-    fire: "#FF5722",         // Intense Blaze Orange
-    flood: "#0288D1",        // Deep Hydro Blue
-    accident: "#F59E0B",     // Amber Hazard
-    other: "#8B5CF6",        // Purple Signal
+    medical: "#C8372D",      // Terracotta Red
+    fire: "#D97706",         // Amber Blaze
+    flood: "#2B6CB0",        // Muted Indigo Hydro
+    accident: "#D97706",     // Amber Clay
+    other: "#4A5568",        // Steel Slate
   },
 
   white: "#FFFFFF",
-  black: "#000000",
+  black: "#1C1D21",
 };

@@ -55,9 +55,9 @@ export default function HeroSOSButton() {
           onPress={() => router.push("/sos")}
         >
           <View style={styles.innerGlow}>
-            <MaterialIcons name="warning" size={44} color={Colors.white} />
+            <MaterialIcons name="warning" size={38} color={Colors.white} />
             <Text style={styles.buttonText}>SOS</Text>
-            <Text style={styles.subLabel}>BROADCAST</Text>
+            <Text style={styles.subLabel}>PRESS FOR AID</Text>
           </View>
         </Pressable>
       </View>
@@ -69,7 +69,7 @@ export default function HeroSOSButton() {
         </View>
 
         <Pressable style={styles.powerBadge} onPress={handlePowerTapSim}>
-          <MaterialIcons name="power-settings-new" size={13} color={Colors.danger} />
+          <MaterialIcons name="power-settings-new" size={13} color={Colors.primary} />
           <Text style={styles.powerBadgeText}>{tapHint}</Text>
         </Pressable>
       </View>
@@ -81,11 +81,11 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 24,
+    marginVertical: 20,
   },
   buttonWrapper: {
-    width: 148,
-    height: 148,
+    width: 144,
+    height: 144,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
@@ -94,30 +94,30 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     left: 0,
-    width: 148,
-    height: 148,
-    borderRadius: 74,
-    backgroundColor: `${Colors.primary}35`,
-    borderWidth: 1.5,
-    borderColor: `${Colors.primary}60`,
+    width: 144,
+    height: 144,
+    borderRadius: 72,
+    backgroundColor: `${Colors.primary}18`,
+    borderWidth: 1,
+    borderColor: `${Colors.primary}35`,
   },
   button: {
-    width: 148,
-    height: 148,
-    borderRadius: 74,
+    width: 136,
+    height: 136,
+    borderRadius: 68,
     backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    elevation: 12,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    borderWidth: 4,
-    borderColor: "rgba(255, 255, 255, 0.35)",
+    elevation: 8,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    borderWidth: 3,
+    borderColor: "rgba(255, 255, 255, 0.4)",
   },
   buttonPressed: {
-    transform: [{ scale: 0.94 }],
+    transform: [{ scale: 0.96 }],
     backgroundColor: Colors.primaryDark,
   },
   innerGlow: {
@@ -126,16 +126,16 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: Colors.white,
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "900",
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     marginTop: 2,
   },
   subLabel: {
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 9,
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 8.5,
     fontWeight: "800",
-    letterSpacing: 1.2,
+    letterSpacing: 1.1,
     marginTop: 1,
   },
   tagRow: {
@@ -144,18 +144,18 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "center",
     gap: 10,
-    marginTop: 24,
+    marginTop: 20,
   },
   tacticalTag: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(225, 29, 72, 0.12)",
+    backgroundColor: `${Colors.primary}10`,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "rgba(225, 29, 72, 0.25)",
+    borderColor: `${Colors.primary}25`,
   },
   liveDot: {
     width: 6,
@@ -173,17 +173,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    backgroundColor: `${Colors.primary}08`,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "rgba(239, 68, 68, 0.3)",
+    borderColor: `${Colors.primary}20`,
   },
   powerBadgeText: {
     fontSize: 10,
     fontWeight: "800",
-    color: Colors.danger,
+    color: Colors.primary,
     letterSpacing: 0.8,
   },
 });

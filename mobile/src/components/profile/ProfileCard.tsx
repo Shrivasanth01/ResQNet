@@ -11,18 +11,18 @@ interface Props {
 }
 
 export default function ProfileCard({ user, onEdit }: Props) {
-  const { colors, isDarkMode } = useTheme();
+  const { colors } = useTheme();
 
   return (
     <View style={[
       styles.card, 
-      { backgroundColor: colors.surface, borderColor: isDarkMode ? `${Colors.secondary}30` : colors.border }
+      { backgroundColor: colors.surface, borderColor: colors.border }
     ]}>
       <View style={styles.header}>
         <View style={styles.infoBox}>
           <View style={styles.nameRow}>
             <Text style={[styles.name, { color: colors.text }]}>{user.fullName}</Text>
-            <View style={[styles.bloodBadge, { backgroundColor: `${Colors.primary}18`, borderColor: `${Colors.primary}40` }]}>
+            <View style={[styles.bloodBadge, { backgroundColor: `${Colors.primary}12`, borderColor: `${Colors.primary}30` }]}>
               <MaterialIcons name="bloodtype" size={14} color={Colors.primary} />
               <Text style={[styles.bloodText, { color: Colors.primary }]}>
                 {user.bloodGroup || "O+"}
@@ -35,29 +35,29 @@ export default function ProfileCard({ user, onEdit }: Props) {
         </View>
 
         {onEdit && (
-          <Pressable style={styles.editButton} onPress={onEdit}>
-            <MaterialIcons name="edit" size={18} color={Colors.secondary} />
+          <Pressable style={[styles.editButton, { backgroundColor: `${Colors.primary}12` }]} onPress={onEdit}>
+            <MaterialIcons name="edit" size={16} color={Colors.primary} />
           </Pressable>
         )}
       </View>
 
       <View style={styles.grid}>
-        <View style={[styles.gridItem, { backgroundColor: `${colors.textSecondary}10`, borderColor: colors.border }]}>
-          <MaterialIcons name="straighten" size={16} color={Colors.secondary} />
+        <View style={[styles.gridItem, { backgroundColor: `${colors.textSecondary}08`, borderColor: colors.border }]}>
+          <MaterialIcons name="straighten" size={15} color={colors.textSecondary} />
           <Text style={[styles.gridLabel, { color: colors.textSecondary }]}>Height:</Text>
           <Text style={[styles.gridValue, { color: colors.text }]}>{user.height}</Text>
         </View>
-        <View style={[styles.gridItem, { backgroundColor: `${colors.textSecondary}10`, borderColor: colors.border }]}>
-          <MaterialIcons name="monitor-weight" size={16} color={Colors.secondary} />
+        <View style={[styles.gridItem, { backgroundColor: `${colors.textSecondary}08`, borderColor: colors.border }]}>
+          <MaterialIcons name="monitor-weight" size={15} color={colors.textSecondary} />
           <Text style={[styles.gridLabel, { color: colors.textSecondary }]}>Weight:</Text>
           <Text style={[styles.gridValue, { color: colors.text }]}>{user.weight}</Text>
         </View>
-        <View style={[styles.gridItem, { backgroundColor: `${colors.textSecondary}10`, borderColor: colors.border }]}>
-          <MaterialIcons name="phone" size={16} color={Colors.secondary} />
+        <View style={[styles.gridItem, { backgroundColor: `${colors.textSecondary}08`, borderColor: colors.border }]}>
+          <MaterialIcons name="phone" size={15} color={colors.textSecondary} />
           <Text style={[styles.gridValue, { color: colors.text }]}>{user.phoneNumber}</Text>
         </View>
-        <View style={[styles.gridItem, { backgroundColor: `${colors.textSecondary}10`, borderColor: colors.border }]}>
-          <MaterialIcons name="email" size={16} color={Colors.secondary} />
+        <View style={[styles.gridItem, { backgroundColor: `${colors.textSecondary}08`, borderColor: colors.border }]}>
+          <MaterialIcons name="email" size={15} color={colors.textSecondary} />
           <Text style={[styles.gridValue, { color: colors.text }]} numberOfLines={1}>{user.email}</Text>
         </View>
       </View>
@@ -67,8 +67,8 @@ export default function ProfileCard({ user, onEdit }: Props) {
       <Text style={[styles.skillsHeading, { color: colors.text }]}>Responder Skills & Competencies:</Text>
       <View style={styles.skillChipRow}>
         {user.responderSkills && user.responderSkills.map((skill, index) => (
-          <View key={index} style={[styles.skillChip, { backgroundColor: `${Colors.secondary}15`, borderColor: `${Colors.secondary}35` }]}>
-            <MaterialIcons name="health-and-safety" size={14} color={Colors.secondary} />
+          <View key={index} style={[styles.skillChip, { backgroundColor: `${Colors.primary}08`, borderColor: `${Colors.primary}20` }]}>
+            <MaterialIcons name="health-and-safety" size={14} color={Colors.primary} />
             <Text style={[styles.skillText, { color: colors.text }]}>{skill}</Text>
           </View>
         ))}
@@ -84,11 +84,10 @@ export default function ProfileCard({ user, onEdit }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 22,
+    borderRadius: 16,
     padding: 18,
-    borderWidth: 1.5,
+    borderWidth: 1,
     marginVertical: 8,
-    boxShadow: "0px 4px 16px rgba(0,0,0,0.06)" as any,
   },
   header: {
     flexDirection: "row",
@@ -106,22 +105,22 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   name: {
-    fontSize: 21,
+    fontSize: 22,
     fontWeight: "900",
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
   bloodBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 10,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 8,
     borderWidth: 1,
     gap: 4,
   },
   bloodText: {
     fontWeight: "900",
-    fontSize: 13,
+    fontSize: 12,
   },
   subText: {
     fontSize: 12,
@@ -129,10 +128,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   editButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: `${Colors.secondary}15`,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -147,7 +145,7 @@ const styles = StyleSheet.create({
     width: "48%",
     paddingVertical: 8,
     paddingHorizontal: 10,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     gap: 6,
   },
@@ -165,9 +163,11 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   skillsHeading: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "800",
     marginBottom: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   skillChipRow: {
     flexDirection: "row",
@@ -178,8 +178,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 14,
+    paddingHorizontal: 10,
+    borderRadius: 10,
     gap: 6,
     borderWidth: 1,
   },

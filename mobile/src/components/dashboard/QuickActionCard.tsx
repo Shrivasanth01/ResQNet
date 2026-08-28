@@ -16,23 +16,23 @@ export default function QuickActionCard({
   onPress, 
   primary = false 
 }: Props) {
-  const { colors, isDarkMode } = useTheme();
+  const { colors } = useTheme();
 
   return (
     <Pressable 
       style={({ pressed }) => [
         styles.container,
-        !primary && { backgroundColor: colors.surface, borderColor: isDarkMode ? `${Colors.secondary}25` : colors.border },
+        !primary && { backgroundColor: colors.surface, borderColor: colors.border },
         primary && styles.primaryContainer,
         pressed && styles.pressed
       ]}
       onPress={onPress}
     >
-      <View style={[styles.iconWrapper, primary ? styles.primaryIconWrapper : { backgroundColor: `${Colors.secondary}15` }]}>
+      <View style={[styles.iconWrapper, primary ? styles.primaryIconWrapper : { backgroundColor: `${Colors.primary}10` }]}>
         <MaterialIcons 
           name={iconName} 
-          size={26} 
-          color={primary ? Colors.white : Colors.secondary} 
+          size={22} 
+          color={primary ? Colors.white : Colors.primary} 
         />
       </View>
       <Text style={[styles.title, !primary && { color: colors.text }, primary && styles.primaryTitle]} numberOfLines={2}>
@@ -44,41 +44,40 @@ export default function QuickActionCard({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 18,
+    borderRadius: 14,
     padding: 16,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.5,
+    borderWidth: 1,
     flex: 1,
     minWidth: "45%",
     margin: 5,
-    minHeight: 112,
-    boxShadow: "0px 4px 14px rgba(0,0,0,0.06)" as any,
+    minHeight: 104,
   },
   primaryContainer: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primaryDark,
   },
   pressed: {
-    transform: [{ scale: 0.96 }],
-    opacity: 0.92,
+    transform: [{ scale: 0.97 }],
+    opacity: 0.94,
   },
   iconWrapper: {
     marginBottom: 10,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
   primaryIconWrapper: {
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   title: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: "800",
     textAlign: "center",
-    letterSpacing: -0.1,
+    letterSpacing: -0.2,
   },
   primaryTitle: {
     color: Colors.white,

@@ -34,10 +34,10 @@ export default function StatusCard({
   return (
     <View style={[
       styles.container, 
-      { backgroundColor: colors.surface, borderColor: isDarkMode ? `${statusColor}30` : colors.border }
+      { backgroundColor: colors.surface, borderColor: colors.border }
     ]}>
-      <View style={[styles.iconContainer, { backgroundColor: `${statusColor}18` }]}>
-        <MaterialIcons name={iconName} size={24} color={statusColor} />
+      <View style={[styles.iconContainer, { backgroundColor: `${statusColor}12` }]}>
+        <MaterialIcons name={iconName} size={20} color={statusColor} />
       </View>
       <View style={styles.textContainer}>
         <Text style={[styles.title, { color: colors.textSecondary }]} numberOfLines={1}>{title}</Text>
@@ -58,20 +58,19 @@ export default function StatusCard({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 18,
+    borderRadius: 14,
     padding: 14,
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1.5,
+    borderWidth: 1,
     flex: 1,
     minWidth: "45%",
     margin: 5,
-    boxShadow: "0px 4px 14px rgba(0,0,0,0.06)" as any,
   },
   iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -81,9 +80,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.2,
+    fontSize: 10.5,
+    fontWeight: "800",
+    letterSpacing: 0.8,
     marginBottom: 4,
     textTransform: "uppercase",
   },
@@ -98,9 +97,9 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   value: {
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: "900",
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
   loader: {
     alignSelf: "flex-start",

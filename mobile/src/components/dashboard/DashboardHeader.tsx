@@ -32,16 +32,16 @@ export default function DashboardHeader() {
     <View style={styles.container}>
       <View style={styles.leftContent}>
         <View style={styles.badgeRow}>
-          <View style={styles.livePulseDot} />
-          <Text style={styles.nodeBadge}>RESQNET MESH NODE #784</Text>
+          <View style={[styles.livePulseDot, { backgroundColor: Colors.success }]} />
+          <Text style={[styles.nodeBadge, { color: colors.textSecondary }]}>RESQNET MESH • NODE #784 ONLINE</Text>
         </View>
         <Text style={[styles.greeting, { color: colors.text }]}>Welcome, {user?.name?.split(' ')[0] || "Operator"}</Text>
-        <Text style={[styles.date, { color: colors.textSecondary }]}>{currentDate} • Local Vault Online</Text>
+        <Text style={[styles.date, { color: colors.textSecondary }]}>{currentDate} — Local Cryptographic Vault Ready</Text>
       </View>
 
       <View style={styles.rightContent}>
-        <View style={[styles.iconContainer, { backgroundColor: colors.surface, borderColor: isDarkMode ? `${Colors.secondary}40` : colors.border }]}>
-          <MaterialIcons name="shield" size={26} color={Colors.secondary} />
+        <View style={[styles.iconContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <MaterialIcons name="shield" size={24} color={Colors.primary} />
         </View>
       </View>
     </View>
@@ -53,9 +53,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-    marginBottom: 6,
+    paddingVertical: 18,
+    paddingHorizontal: 2,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
   leftContent: {
     flex: 1,
@@ -64,41 +66,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   livePulseDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: Colors.success,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   nodeBadge: {
     fontSize: 10,
-    fontWeight: "900",
-    color: Colors.success,
-    letterSpacing: 0.8,
+    fontWeight: "800",
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
   },
   greeting: {
-    fontSize: 23,
+    fontSize: 26,
     fontWeight: "900",
-    letterSpacing: -0.3,
+    letterSpacing: -0.6,
+    lineHeight: 32,
   },
   date: {
     fontSize: 12,
-    fontWeight: "600",
-    marginTop: 2,
+    fontWeight: "500",
+    marginTop: 4,
   },
   rightContent: {
     justifyContent: "center",
     alignItems: "flex-end",
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 46,
+    height: 46,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1.5,
-    boxShadow: "0px 4px 12px rgba(0,0,0,0.08)" as any,
+    borderWidth: 1,
   },
 });
