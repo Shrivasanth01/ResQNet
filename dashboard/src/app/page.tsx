@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useIncidents } from "@/context/IncidentContext";
 import { InteractiveMap } from "@/components/map/InteractiveMap";
 import { 
@@ -10,158 +10,196 @@ import {
   Radio, 
   TrendingDown, 
   ShieldCheck, 
-  ExternalLink 
+  ExternalLink,
+  Bot,
+  Radar,
+  RadioTower,
+  Cpu
 } from "lucide-react";
 import Link from "next/link";
 
 export default function DashboardPage() {
   const { incidents, responders, gateways, analytics, isConnected, isBackendOffline } = useIncidents();
+  const [timeStr, setTimeStr] = useState<string>("");
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setTimeStr(now.toISOString().replace('T', ' ').slice(0, 19) + ' UTC');
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const activeIncidents = incidents.filter((i) => i.status === "OPEN" || i.status === "DISPATCHED");
   const criticalIncidents = incidents.filter((i) => i.severity === "CRITICAL" && (i.status === "OPEN" || i.status === "DISPATCHED"));
-  const resolvedCount = incidents.filter((i) => i.status === "RESOLVED").length + (analytics?.dailyIncidents.reduce((acc, curr) => acc + curr.count, 0) || 180);
 
   return (
     <div className="space-y-8">
-      {/* Top Welcome Title */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">Disaster Operations Command Center</h1>
-          <p className="text-xs text-slate-400 mt-1">Real-Time Triage Intake & Decentralized Communication Mesh Monitoring</p>
+      {/* Tactical HUD Header Banner */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 p-6 rounded-2xl bg-gradient-to-r from-slate-900/90 via-slate-900/80 to-slate-900/90 border border-slate-800 shadow-2xl backdrop-blur-xl">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-600 to-rose-900 flex items-center justify-center shadow-[0_0_20px_rgba(244,63,94,0.4)] shrink-0">
+            <Radar className="w-7 h-7 text-white animate-spin-slow" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-black text-white tracking-tight uppercase">Disaster Operations Command Center</h1>
+              <span className="px-2.5 py-0.5 rounded-md bg-rose-500/20 text-rose-400 border border-rose-500/40 text-[10px] font-mono font-extrabold tracking-wider">
+                LIVE HUD TACTICAL
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+              <span>Real-Time Mesh Triage & Geospatial Distress Matrix</span>
+              <span className="text-slate-600">•</span>
+              <span className="font-mono text-cyan-400">{timeStr}</span>
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="px-3 py-1.5 rounded-xl bg-surface border border-border text-xs font-mono font-bold text-slate-300">
-            Sector Uptime: <span className="text-emerald-400">99.98%</span>
-          </span>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="px-3.5 py-2 rounded-xl bg-slate-950/80 border border-slate-800 text-xs font-mono font-extrabold flex items-center gap-2">
+            <Cpu className="w-4 h-4 text-cyan-400" />
+            <span>Telemetry engine:</span>
+            <span className="text-emerald-400">ACTIVE</span>
+          </div>
+          <div className="px-3.5 py-2 rounded-xl bg-slate-950/80 border border-slate-800 text-xs font-mono font-extrabold flex items-center gap-2">
+            <RadioTower className="w-4 h-4 text-cyan-400" />
+            <span>Mesh Uptime:</span>
+            <span className="text-cyan-400">99.98%</span>
+          </div>
           <Link
             href="/queue"
-            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-border flex items-center gap-2 transition-all"
+            className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs border border-rose-500/50 flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(244,63,94,0.3)]"
           >
-            Manage Triage Queue
-            <ExternalLink className="w-4 h-4 text-rose-400" />
+            Triage Queue
+            <ExternalLink className="w-4 h-4" />
           </Link>
         </div>
       </div>
 
-      {/* Wall-Display Friendly Metric Cards Grid */}
+      {/* Tactical HUD Telemetry Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Card 1: Active Emergency Incidents */}
-        <div className="card-surface bg-gradient-to-br from-surface to-rose-950/20 border-rose-500/30">
+        {/* Card 1: Active Field Distress Alerts */}
+        <div className="card-tactical-critical">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Active Field Alerts</span>
+            <span className="text-[11px] font-mono font-extrabold uppercase tracking-widest text-slate-400">Active Field Distress Alerts</span>
             <AlertTriangle className="w-6 h-6 text-rose-500 animate-pulse" />
           </div>
           <div className="mt-4 flex items-baseline justify-between">
-            <span className="text-4xl font-black text-white font-mono">{activeIncidents.length}</span>
-            <span className="badge-critical">{criticalIncidents.length} CRITICAL THREATS</span>
+            <span className="text-4xl font-black text-white font-mono tracking-tight">{activeIncidents.length}</span>
+            <span className="badge-critical">{criticalIncidents.length} CRITICAL</span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5">
-            <Activity className="w-3.5 h-3.5 text-rose-400" />
-            Sorted by Emergency Confidence Score (ECS)
+          <p className="text-[11px] text-slate-400 mt-3 flex items-center gap-1.5 font-mono">
+            <Activity className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+            Emergency Confidence Score (ECS) Live Triage
           </p>
         </div>
 
-        {/* Card 2: Average Response Time */}
-        <div className="card-surface bg-gradient-to-br from-surface to-amber-950/20 border-amber-500/30">
+        {/* Card 2: Average Response Dispatch Time */}
+        <div className="card-tactical-amber">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Average Triage Dispatch</span>
+            <span className="text-[11px] font-mono font-extrabold uppercase tracking-widest text-slate-400">Avg Triage Dispatch Time</span>
             <Clock className="w-6 h-6 text-amber-400" />
           </div>
           <div className="mt-4 flex items-baseline justify-between">
-            <span className="text-4xl font-black text-white font-mono">3.9 min</span>
-            <span className="text-xs text-emerald-400 font-extrabold flex items-center gap-0.5">
-              <TrendingDown className="w-4 h-4" /> -18.4% faster
+            <span className="text-4xl font-black text-white font-mono tracking-tight">3.9 <span className="text-xl text-slate-400">min</span></span>
+            <span className="text-xs text-emerald-400 font-mono font-extrabold flex items-center gap-0.5">
+              <TrendingDown className="w-4 h-4" /> -18.4%
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-2">Automated countdown alarms cutting radio lag</p>
+          <p className="text-[11px] text-slate-400 mt-3 font-mono">Automated countdown alarm cutting radio latency</p>
         </div>
 
-        {/* Card 3: Online Responder Fleet */}
-        <div className="card-surface bg-gradient-to-br from-surface to-emerald-950/20 border-emerald-500/30">
+        {/* Card 3: Tactical Responder Fleet */}
+        <div className="card-tactical-emerald">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Tactical Responder Fleet</span>
+            <span className="text-[11px] font-mono font-extrabold uppercase tracking-widest text-slate-400">Tactical Responder Fleet</span>
             <Users className="w-6 h-6 text-emerald-400" />
           </div>
           <div className="mt-4 flex items-baseline justify-between">
-            <span className="text-4xl font-black text-white font-mono">{responders.length} Units</span>
-            <span className="badge-info">{responders.filter(r => r.status === "AVAILABLE").length} AVAILABLE NOW</span>
+            <span className="text-4xl font-black text-white font-mono tracking-tight">{responders.length}</span>
+            <span className="badge-info">{responders.filter(r => r.status === "AVAILABLE").length} AVAILABLE</span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-2">Ambulances, Heavy Rescue, and Medevac Air Squads</p>
+          <p className="text-[11px] text-slate-400 mt-3 font-mono">Ambulance, SAR Heavy Rescue & Medevac Units</p>
         </div>
 
-        {/* Card 4: Gateway Relays & Throughput */}
-        <div className="card-surface bg-gradient-to-br from-surface to-cyan-950/20 border-cyan-500/30">
+        {/* Card 4: Mesh Gateway Relays */}
+        <div className="card-tactical-cyan">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Active Mesh Gateways</span>
+            <span className="text-[11px] font-mono font-extrabold uppercase tracking-widest text-slate-400">Active Mesh Relays</span>
             <Radio className="w-6 h-6 text-cyan-400 animate-pulse" />
           </div>
           <div className="mt-4 flex items-baseline justify-between">
-            <span className="text-4xl font-black text-white font-mono">{gateways.length} Nodes</span>
-            <span className="text-xs text-cyan-300 font-bold">98.2% Success Rate</span>
+            <span className="text-4xl font-black text-white font-mono tracking-tight">{gateways.length} <span className="text-xl text-slate-400">Nodes</span></span>
+            <span className="text-xs text-cyan-300 font-mono font-extrabold">98.2% ACK</span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-2">P2P Bluetooth Mesh and Wi-Fi Direct uplinks</p>
+          <p className="text-[11px] text-slate-400 mt-3 font-mono">Bluetooth & Wi-Fi Direct P2P Mesh Uplinks</p>
         </div>
       </div>
 
-      {/* Main Centerpiece: Live Tactical Map */}
+      {/* Centerpiece: Live Tactical Map HUD */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-black text-white flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
-            Live Tactical Geospatial Grid
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-lg font-black text-white flex items-center gap-2.5 uppercase tracking-wide">
+            <span className="w-3 h-3 rounded-full bg-rose-500 animate-ping" />
+            Live Geospatial Radar Grid
           </h2>
-          <Link href="/map" className="text-xs font-extrabold text-rose-400 hover:text-rose-300 flex items-center gap-1 transition-all">
-            Open Full Screen Map Control <ExternalLink className="w-3.5 h-3.5" />
+          <Link href="/map" className="text-xs font-extrabold text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5 transition-all font-mono">
+            Full Screen Map HUD <ExternalLink className="w-3.5 h-3.5" />
           </Link>
         </div>
-        <InteractiveMap heightClass="h-[520px]" />
+        <div className="rounded-2xl overflow-hidden border border-slate-800 shadow-2xl">
+          <InteractiveMap heightClass="h-[520px]" />
+        </div>
       </div>
 
-      {/* Bottom Row: Active Triage Table & Recent Timeline Events */}
+      {/* Bottom Grid: Triage Stream & System Telemetry */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Triage Table (2 Cols) */}
+        {/* Triage Ingestion Stream (2 Cols) */}
         <div className="lg:col-span-2 card-surface space-y-4">
-          <div className="flex items-center justify-between border-b border-border/80 pb-3">
-            <h3 className="font-extrabold text-white text-sm tracking-wide uppercase flex items-center gap-2">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 className="font-extrabold text-white text-xs tracking-widest uppercase flex items-center gap-2 font-mono">
               <AlertTriangle className="w-4 h-4 text-rose-500" />
-              High Priority Distress Ingestion Stream
+              High Priority Emergency Triage Stream
             </h3>
-            <Link href="/queue" className="text-xs font-extrabold text-cyan-400 hover:underline">
-              View Complete Queue ({activeIncidents.length})
+            <Link href="/queue" className="text-xs font-extrabold text-cyan-400 hover:underline font-mono">
+              Complete Queue ({activeIncidents.length})
             </Link>
           </div>
 
           <div className="space-y-3">
             {isBackendOffline ? (
-              <div className="p-6 rounded-xl bg-rose-950/40 border border-rose-500/50 text-center space-y-2">
+              <div className="p-6 rounded-2xl bg-rose-950/30 border border-rose-500/40 text-center space-y-2">
                 <AlertTriangle className="w-8 h-8 text-rose-500 mx-auto animate-pulse" />
-                <h4 className="text-base font-black text-rose-300">Backend Offline</h4>
-                <p className="text-xs text-slate-400">Unable to reach FastAPI server at {process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1"}. Verify server status.</p>
+                <h4 className="text-base font-black text-rose-300">FastAPI Gateway Offline</h4>
+                <p className="text-xs text-slate-400 font-mono">Operating in local Standalone Offline Vault mode. REST endpoints standby.</p>
               </div>
             ) : activeIncidents.length === 0 ? (
-              <div className="p-8 rounded-xl bg-slate-900/60 border border-border text-center space-y-2">
+              <div className="p-8 rounded-2xl bg-slate-950/60 border border-slate-800 text-center space-y-2">
                 <ShieldCheck className="w-8 h-8 text-emerald-400 mx-auto" />
-                <h4 className="text-base font-black text-white">No Active Emergency Incidents</h4>
-                <p className="text-xs text-slate-400">All sectors clear. Standing by for real-time distress intake.</p>
+                <h4 className="text-base font-black text-white">Sector Clear & Protected</h4>
+                <p className="text-xs text-slate-400">No active emergency distress signals detected in current mesh perimeter.</p>
               </div>
             ) : (
               activeIncidents.slice(0, 4).map((inc) => (
-                <div key={inc.incident_id} className="p-4 rounded-xl bg-slate-900/80 border border-border flex items-center justify-between hover:border-slate-600 transition-all">
-                  <div className="space-y-1">
+                <div key={inc.incident_id} className="p-4 rounded-xl bg-slate-950/80 border border-slate-800/90 flex items-center justify-between hover:border-slate-700 transition-all">
+                  <div className="space-y-1.5">
                     <div className="flex items-center gap-2.5">
                       <span className={inc.severity === "CRITICAL" ? "badge-critical" : inc.severity === "HIGH" ? "badge-high" : "badge-moderate"}>
                         {inc.severity}
                       </span>
-                      <span className="font-mono text-xs text-rose-400 font-extrabold">ECS: {inc.emergency_confidence_score}/100</span>
-                      <span className="text-xs text-slate-400 font-mono">[ID: {inc.incident_id}]</span>
+                      <span className="font-mono text-xs text-rose-400 font-black">ECS: {inc.emergency_confidence_score}/100</span>
+                      <span className="text-[11px] text-slate-500 font-mono">[ID: {inc.incident_id}]</span>
                     </div>
                     <h4 className="text-sm font-extrabold text-white">{inc.emergency_type}</h4>
-                    <p className="text-[11px] text-slate-400">Assigned Unit: <span className="text-emerald-400 font-semibold">{inc.assigned_responder_id || "AWAITING DISPATCH ASSIGNMENT"}</span> | Gateway: {inc.gatewayId || "Direct REST"}</p>
+                    <p className="text-[11px] text-slate-400 font-mono">Assigned Unit: <span className="text-emerald-400 font-bold">{inc.assigned_responder_id || "PENDING DISPATCH"}</span> | Gateway: {inc.gatewayId || "P2P Mesh"}</p>
                   </div>
 
                   <Link
                     href={`/incidents/${inc.incident_id}`}
-                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-border shadow-sm transition-all"
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition-all font-mono"
                   >
                     Inspect Vault
                   </Link>
@@ -171,39 +209,43 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* System & Mesh Status Quick-View (1 Col) */}
+        {/* System & AI Intelligence Status (1 Col) */}
         <div className="card-surface space-y-4 flex flex-col justify-between">
           <div>
-            <h3 className="font-extrabold text-white text-sm tracking-wide uppercase border-b border-border/80 pb-3 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              Engine Health & Telemetry
+            <h3 className="font-extrabold text-white text-xs tracking-widest uppercase border-b border-slate-800 pb-3 flex items-center gap-2 font-mono">
+              <Bot className="w-4 h-4 text-cyan-400" />
+              Engine Intelligence & Security
             </h3>
             
-            <div className="mt-4 space-y-4">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-border/60">
-                <span className="text-xs text-slate-300 font-bold">FastAPI Phase 3 Server</span>
-                <span className="badge-info">ONLINE (PORT 8000)</span>
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/70 border border-slate-800">
+                <span className="text-xs text-slate-300 font-extrabold">FastAPI Routing API</span>
+                <span className="badge-info">ONLINE</span>
               </div>
 
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-border/60">
-                <span className="text-xs text-slate-300 font-bold">PostgreSQL Vault Sync</span>
-                <span className="text-xs font-mono font-extrabold text-emerald-400">ACID VERIFIED</span>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/70 border border-slate-800">
+                <span className="text-xs text-slate-300 font-extrabold">PostgreSQL ACID Vault</span>
+                <span className="text-xs font-mono font-extrabold text-emerald-400">SYNCHRONIZED</span>
               </div>
 
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-border/60">
-                <span className="text-xs text-slate-300 font-bold">Ed25519 Cryptographic Envelope</span>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/70 border border-slate-800">
+                <span className="text-xs text-slate-300 font-extrabold">Ed25519 Cryptographic Envelope</span>
                 <span className="text-xs font-mono font-extrabold text-cyan-400">ACTIVE & SIGNING</span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-gradient-to-br from-slate-900 to-rose-950/30 border border-rose-500/40 text-rose-200 text-xs">
-                <span className="font-extrabold block mb-1">Phase 2A Intelligence Alert:</span>
-                Sensor Fusion automatic alarm countdowns are preventing 92% of transient civilian falls from cluttering radio frequency channels.
+              <div className="p-4 rounded-xl bg-gradient-to-br from-slate-950 via-slate-900 to-rose-950/40 border border-rose-500/40 text-rose-200 text-xs space-y-1">
+                <span className="font-extrabold flex items-center gap-1 text-rose-400 font-mono">
+                  <Bot className="w-3.5 h-3.5" /> AI Triage Classifier:
+                </span>
+                <p className="text-slate-300 text-[11px] leading-relaxed">
+                  Real-time sensor fusion filtering out non-emergency civilian motion artifacts and ranking distress priority.
+                </p>
               </div>
             </div>
           </div>
 
-          <Link href="/analytics" className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-center font-bold text-xs border border-border block transition-all">
-            Open Full Disaster Analytics & Heatmaps
+          <Link href="/analytics" className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-center font-bold text-xs border border-slate-700 block transition-all font-mono uppercase tracking-wider">
+            Disaster Analytics & Heatmaps
           </Link>
         </div>
       </div>
