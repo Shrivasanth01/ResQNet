@@ -3,6 +3,8 @@ export interface User {
   name: string;
   email: string;
   createdAt: string;
+  phoneNumber?: string;
+  firebaseUid?: string;
 }
 
 export interface AuthTokens {
@@ -18,7 +20,7 @@ export interface LoginCredentials {
 export interface RegisterData {
   name: string;
   email: string;
-  password: string;
+  password?: string;
   phoneNumber?: string;
   age?: string;
   gender?: string;
@@ -39,4 +41,5 @@ export interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  profileCompleted: boolean;
 }

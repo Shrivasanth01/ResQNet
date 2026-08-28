@@ -6,7 +6,7 @@ import { APP_CONFIG } from '../../src/constants/app';
 import { useAuth } from '../../src/context/AuthContext';
 
 export default function SplashScreen() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, profileCompleted } = useAuth();
   const [timerDone, setTimerDone] = useState(false);
   const hasNavigated = useRef(false);
 
@@ -18,13 +18,23 @@ export default function SplashScreen() {
 
   // Navigate only when BOTH conditions are met:
   // 1. The splash timer has finished
-  // 2. The AsyncStorage auth check has resolved (isLoading === false)
+  // 2. The Firebase auth check has resolved (isLoading === false)
   useEffect(() => {
     if (timerDone && !isLoading && !hasNavigated.current) {
       hasNavigated.current = true;
-      router.replace(isAuthenticated ? '/(tabs)' : '/(auth)/login');
+
+      if (isAuthenticated && profileCompleted) {
+        // Returning user with completed profile → Dashboard
+        router.replace('/(tabs)');
+      } else if (isAuthenticated && !profileCompleted) {
+        // Authenticated but profile incomplete → Complete Profile
+        router.replace('/(auth)/complete-profile' as any);
+      } else {
+        // Not authenticated → Phone Login
+        router.replace('/(auth)/phone-login' as any);
+      }
     }
-  }, [timerDone, isLoading, isAuthenticated]);
+  }, [timerDone, isLoading, isAuthenticated, profileCompleted]);
 
   return (
     <View style={styles.container}>

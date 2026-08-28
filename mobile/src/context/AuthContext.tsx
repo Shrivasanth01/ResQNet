@@ -5,21 +5,19 @@ import React, {
   useEffect,
   useState,
 } from 'react';
-import { authApi } from '../api/authApi';
+import { onAuthChange, signOut as firebaseSignOut, getCurrentUser } from '../services/firebaseAuth';
+import { checkUserStatus } from '../services/firestoreUser';
 import { authStorage } from '../storage/authStorage';
-import { savePersonDetails, saveCompleteProfile, createNewUserProfile } from '../storage/database';
 import type {
   AuthState,
-  LoginCredentials,
-  RegisterData,
+  User,
 } from '../types/auth';
 
 // ─── Context Shape ────────────────────────────────────────────────────────────
 
 interface AuthContextValue extends AuthState {
-  login: (credentials: LoginCredentials) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
+  refreshAuthState: () => Promise<void>;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -33,79 +31,122 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user: null,
     token: null,
     isAuthenticated: false,
-    isLoading: true, // true until the AsyncStorage check resolves
+    isLoading: true,
+    profileCompleted: false,
   });
 
   /**
-   * On mount: restore any persisted session.
-   * Sets isLoading → false when done, regardless of outcome.
+   * Resolve auth state from Firebase + Firestore.
+   * Called on mount via onAuthStateChanged and also manually via refreshAuthState().
+   */
+  const resolveAuthState = useCallback(async (): Promise<void> => {
+    try {
+      const firebaseUser = getCurrentUser();
+
+      if (!firebaseUser) {
+        // Not authenticated
+        await authStorage.clear();
+        setState({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isLoading: false,
+          profileCompleted: false,
+        });
+        return;
+      }
+
+      // Firebase user exists — build our User object
+      const token = await firebaseUser.getIdToken();
+      const user: User = {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || '',
+        email: firebaseUser.email || '',
+        phoneNumber: firebaseUser.phoneNumber || '',
+        firebaseUid: firebaseUser.uid,
+        createdAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
+      };
+
+      // Check Firestore for profile completion status
+      let profileCompleted = false;
+      try {
+        const status = await checkUserStatus(firebaseUser.uid);
+        profileCompleted = status.profileCompleted;
+      } catch {
+        // Firestore may fail offline — default to false
+        profileCompleted = false;
+      }
+
+      // Persist to storage for backward compatibility
+      await Promise.all([
+        authStorage.saveToken(token),
+        authStorage.saveUser(user),
+      ]);
+
+      setState({
+        user,
+        token,
+        isAuthenticated: true,
+        isLoading: false,
+        profileCompleted,
+      });
+    } catch {
+      // Auth check failed — treat as logged out
+      setState({
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        isLoading: false,
+        profileCompleted: false,
+      });
+    }
+  }, []);
+
+  /**
+   * On mount: listen to Firebase auth state changes.
+   * This handles initial session restoration and subsequent sign-in/out events.
    */
   useEffect(() => {
-    async function restoreSession(): Promise<void> {
-      try {
-        const [token, user] = await Promise.all([
-          authStorage.getToken(),
-          authStorage.getUser(),
-        ]);
-
-        if (token && user) {
-          const isValid = await authApi.validateToken(token);
-          if (isValid) {
-            await savePersonDetails({ name: user.name, email: user.email, createdAt: user.createdAt });
-            setState({
-              user,
-              token,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-            return;
-          }
-        }
-
-        // No valid session found — clear stale data
+    const unsubscribe = onAuthChange(async (firebaseUser) => {
+      if (firebaseUser) {
+        await resolveAuthState();
+      } else {
         await authStorage.clear();
-        setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
-      } catch {
-        // Storage read failed — treat as logged out
-        setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
+        setState({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isLoading: false,
+          profileCompleted: false,
+        });
       }
-    }
+    });
 
-    restoreSession();
-  }, []);
+    return () => unsubscribe();
+  }, [resolveAuthState]);
 
   // ─── Auth Actions ───────────────────────────────────────────────────────────
 
-  const login = useCallback(async (credentials: LoginCredentials): Promise<void> => {
-    const { user, tokens } = await authApi.login(credentials);
-    await Promise.all([
-      authStorage.saveToken(tokens.accessToken),
-      authStorage.saveUser(user),
-      savePersonDetails({ name: user.name, email: user.email, createdAt: user.createdAt }),
-    ]);
-    setState({ user, token: tokens.accessToken, isAuthenticated: true, isLoading: false });
-  }, []);
-
-  const register = useCallback(async (data: RegisterData): Promise<void> => {
-    const { user, tokens } = await authApi.register(data);
-    const profile = createNewUserProfile(user.name, user.email, data);
-    await Promise.all([
-      authStorage.saveToken(tokens.accessToken),
-      authStorage.saveUser(user),
-      saveCompleteProfile(profile, user.email),
-    ]);
-    setState({ user, token: tokens.accessToken, isAuthenticated: true, isLoading: false });
-  }, []);
-
   const logout = useCallback(async (): Promise<void> => {
+    await firebaseSignOut();
     await authStorage.clear();
-    setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
+    setState({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      isLoading: false,
+      profileCompleted: false,
+    });
   }, []);
+
+  const refreshAuthState = useCallback(async (): Promise<void> => {
+    await resolveAuthState();
+  }, [resolveAuthState]);
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout }}>
+    <AuthContext.Provider value={{ ...state, logout, refreshAuthState }}>
       {children}
     </AuthContext.Provider>
   );

@@ -49,7 +49,7 @@ export default function SettingsScreen() {
 
   async function handleLogout() {
     await logout();
-    router.replace("/(auth)/login");
+    router.replace("/(auth)/phone-login" as any);
   }
 
   return (
