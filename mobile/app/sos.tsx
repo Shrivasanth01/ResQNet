@@ -5,20 +5,69 @@ import * as Haptics from "expo-haptics";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../src/theme/colors";
 import PrimaryButton from "../src/components/buttons/PrimaryButton";
+import { EmergencyMediaRecorder } from "../src/services/hardware/EmergencyMediaRecorder";
+import EmergencyCameraView from "../src/components/hardware/EmergencyCameraView";
+import { PacketBuilder } from "../src/services/packet/PacketBuilder";
+import { PacketQueue } from "../src/services/packet/PacketQueue";
+import { CommunicationEngine } from "../src/services/communication/CommunicationEngine";
+import { LocationService } from "../src/services/hardware/LocationService";
 
 type SOSState = "IDLE" | "COUNTING" | "ACTIVE";
 
 export default function SOSScreen() {
-  const [sosState, setSosState] = useState<SOSState>("IDLE");
+  const [sosState, setSosState] = useState<SOSState>("ACTIVE");
   const [countdown, setCountdown] = useState(3);
+  const [deliveryStatusText, setDeliveryStatusText] = useState<string>("Sending emergency alert...");
+  const [ackReceived, setAckReceived] = useState<boolean>(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  const executeSOSDelivery = async () => {
+    setDeliveryStatusText("Sending emergency alert...");
+    setAckReceived(false);
+    try {
+      const loc = LocationService.getLatestLocation();
+      const packet = await PacketBuilder.buildEmergencyPacket({
+        emergencyType: "Manual SOS Distress Broadcast",
+        severity: "CRITICAL",
+        ecs: 100,
+        isAutomatic: false,
+        triggerSource: "MANUAL_SOS_BUTTON",
+        latitude: loc?.latitude,
+        longitude: loc?.longitude,
+        accuracy: loc?.accuracy,
+        locationSource: loc ? "LIVE" : "CACHED",
+      });
+
+      await PacketQueue.enqueue(packet);
+
+      const result = await CommunicationEngine.deliverPacket(packet);
+      if (result.success) {
+        if (result.method === "INTERNET") {
+          setDeliveryStatusText("Emergency alert delivered to ResQNet server.");
+          setAckReceived(true);
+        } else {
+          setDeliveryStatusText(`Emergency alert relayed via ${result.method}.`);
+        }
+      } else {
+        setDeliveryStatusText("No connection available. Emergency alert stored and will retry automatically.");
+      }
+    } catch (err: any) {
+      setDeliveryStatusText("Emergency alert stored in offline queue. Retrying...");
+    }
+  };
+
   useEffect(() => {
+    if (sosState === "ACTIVE") {
+      EmergencyMediaRecorder.startRecording();
+      executeSOSDelivery();
+    }
+
     return () => {
       clearTimers();
+      EmergencyMediaRecorder.stopRecording();
     };
-  }, []);
+  }, [sosState]);
 
   const clearTimers = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -32,7 +81,6 @@ export default function SOSScreen() {
     setSosState("COUNTING");
     setCountdown(3);
 
-    // Haptic tick every second
     intervalRef.current = setInterval(() => {
       setCountdown((prev) => {
         if (prev > 1) {
@@ -43,12 +91,12 @@ export default function SOSScreen() {
       });
     }, 1000);
 
-    // Activate after 3 seconds
     timerRef.current = setTimeout(() => {
       clearTimers();
       setSosState("ACTIVE");
+      EmergencyMediaRecorder.startRecording();
+      executeSOSDelivery();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      // TODO: Connect to backend to broadcast SOS and location
     }, 3000);
   };
 
@@ -62,7 +110,7 @@ export default function SOSScreen() {
   };
 
   const handleCancelSOS = () => {
-    // TODO: Connect to backend to cancel active SOS
+    EmergencyMediaRecorder.stopRecording();
     setSosState("IDLE");
     setCountdown(3);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -70,20 +118,30 @@ export default function SOSScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: "Emergency", headerStyle: { backgroundColor: Colors.danger }, headerTintColor: Colors.white }} />
+      <Stack.Screen options={{ title: "Emergency SOS Active", headerStyle: { backgroundColor: Colors.danger }, headerTintColor: Colors.white }} />
       
       <View style={styles.content}>
         {sosState === "ACTIVE" ? (
           <View style={styles.activeContainer}>
-            <MaterialIcons name="warning" size={80} color={Colors.danger} />
-            <Text style={styles.activeTitle}>SOS ACTIVE</Text>
+            <MaterialIcons name="warning" size={64} color={Colors.danger} />
+            <Text style={styles.activeTitle}>SOS BROADCAST ACTIVE</Text>
+            
+            {/* Real Delivery Status Banner */}
+            <View style={[styles.statusBanner, ackReceived && styles.statusBannerAck]}>
+              <MaterialIcons name={ackReceived ? "check-circle" : "sync"} size={18} color={Colors.white} />
+              <Text style={styles.statusBannerText}>{deliveryStatusText}</Text>
+            </View>
+
             <Text style={styles.activeSubtitle}>
-              Emergency alert has been broadcasted to nearby devices and the network.
+              Live distress telemetry, coordinates, and emergency audio/video stream are being captured and broadcasted.
             </Text>
+
+            {/* Live Audio & Video Recording View */}
+            <EmergencyCameraView />
             
             <View style={styles.cancelContainer}>
               <PrimaryButton 
-                title="Cancel Emergency" 
+                title="Cancel Emergency & Stop Recording" 
                 onPress={handleCancelSOS} 
               />
             </View>
@@ -182,17 +240,36 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   activeTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "bold",
     color: Colors.danger,
-    marginTop: 20,
-    marginBottom: 10,
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  statusBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(225, 29, 72, 0.95)",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginVertical: 10,
+  },
+  statusBannerAck: {
+    backgroundColor: "#16a34a",
+  },
+  statusBannerText: {
+    color: Colors.white,
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 0.3,
   },
   activeSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.text,
     textAlign: "center",
-    marginBottom: 60,
+    marginBottom: 20,
   },
   cancelContainer: {
     width: "100%",

@@ -43,8 +43,8 @@ export interface IncidentReport {
   emergency_type: string;
   severity: "CRITICAL" | "HIGH" | "MODERATE" | "LOW" | "INFO";
   emergency_confidence_score: number; // 0 to 100
-  latitude: float | number;
-  longitude: float | number;
+  latitude: number;
+  longitude: number;
   altitude?: number;
   status: "OPEN" | "DISPATCHED" | "RESOLVED" | "FALSE_ALARM";
   created_at: string;

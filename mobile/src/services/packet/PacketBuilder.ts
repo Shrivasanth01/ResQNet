@@ -14,6 +14,7 @@ export interface BuildPacketOptions {
   accuracy?: number;
   speed?: number;
   heading?: number;
+  locationSource?: "LIVE" | "CACHED" | "UNAVAILABLE";
   additionalDescription?: string;
 }
 
@@ -34,11 +35,30 @@ export const PacketBuilder = {
     const now = new Date().toISOString();
     const profile = await DatabaseService.getEmergencyProfile();
     
+    // Respect medical privacy consent setting
+    const consentToShare = profile.personal.consentToShareMedical !== false;
+    const medicalInfo = consentToShare
+      ? `${profile.medical.medicalConditions || 'None reported'} | Allergies: ${profile.medical.allergies || 'None reported'}`
+      : "REDACTED_BY_USER_CONSENT";
+
+    const emergencyContacts = consentToShare
+      ? profile.contacts.map((c) => ({
+          name: c.name,
+          phoneNumber: c.phoneNumber,
+          relationship: c.relationship,
+          priorityOrder: c.priorityOrder,
+        }))
+      : [];
+
     // Calculate intelligent default severity based on Emergency Confidence Score (ECS)
-    const ecs = options.ecs !== undefined ? Math.max(0, Math.min(100, options.ecs)) : 90;
-    let computedSeverity: IncidentSeverity = "CRITICAL";
-    if (ecs < 50) computedSeverity = "MODERATE";
-    else if (ecs < 75) computedSeverity = "HIGH";
+    const ecs = options.ecs !== undefined ? Math.max(0, Math.min(100, options.ecs)) : 100; // Manual SOS gets max ECS (100)
+    let computedSeverity: IncidentSeverity = options.severity || "CRITICAL";
+
+    // Location Source determination
+    let locSource = options.locationSource;
+    if (!locSource) {
+      locSource = options.latitude !== undefined ? "LIVE" : "CACHED";
+    }
 
     const packet: EmergencyPacket = {
       header: {
@@ -51,21 +71,16 @@ export const PacketBuilder = {
         encryptionVersion: "NONE", // Updated by PacketEncryption during transmission stage
       },
       user: {
-        userId: profile.personal.id || "usr_active_001",
-        name: profile.personal.fullName || "Anonymous Responder",
+        userId: profile.personal.id || `usr_${Date.now()}`,
+        name: profile.personal.fullName || "Field Survivor",
         age: profile.personal.age || "Unknown",
         bloodGroup: profile.personal.bloodGroup || "O+",
-        medicalConditions: `${profile.medical.medicalConditions} | Allergies: ${profile.medical.allergies}`,
-        emergencyContacts: profile.contacts.map((c) => ({
-          name: c.name,
-          phoneNumber: c.phoneNumber,
-          relationship: c.relationship,
-          priorityOrder: c.priorityOrder,
-        })),
+        medicalConditions: medicalInfo,
+        emergencyContacts: emergencyContacts,
       },
       location: {
-        latitude: options.latitude || 37.7749, // Simulated fallback GPS coordinates
-        longitude: options.longitude || -122.4194,
+        latitude: options.latitude !== undefined ? options.latitude : 37.7749,
+        longitude: options.longitude !== undefined ? options.longitude : -122.4194,
         altitude: options.altitude || 15,
         accuracy: options.accuracy || 4,
         speed: options.speed || 0,
@@ -74,18 +89,18 @@ export const PacketBuilder = {
       },
       incident: {
         emergencyType: options.emergencyType,
-        severity: options.severity || computedSeverity,
+        severity: computedSeverity,
         emergencyConfidenceScore: ecs,
         isAutomatic: options.isAutomatic || false,
         triggerSource: options.triggerSource || "MANUAL_SOS_BUTTON",
-        additionalDescription: options.additionalDescription || "Urgent rescue dispatch requested via ResQNet.",
+        additionalDescription: options.additionalDescription || `Urgent rescue requested via ResQNet. Location Source: ${locSource}`,
       },
       device: {
-        batteryPercentage: 85, // Simulated telemetry; replaceable by expo-battery sensor in Phase 2
+        batteryPercentage: 85,
         isCharging: false,
         networkStatus: "OFFLINE_MESH_ONLY",
         bluetoothStatus: "ENABLED",
-        gpsStatus: options.latitude !== undefined ? "LOCKED" : "SEARCHING",
+        gpsStatus: locSource === "LIVE" ? "LOCKED" : (locSource === "CACHED" ? "CACHED" : "SEARCHING"),
       },
       mesh: {
         relayHistory: [profile.personal.id || "usr_active_001"], // Origin node ID starts the hop chain

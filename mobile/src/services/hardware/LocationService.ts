@@ -1,6 +1,7 @@
 import * as Location from "expo-location";
 import { Platform } from "react-native";
 import { PermissionManager } from "./PermissionManager";
+import { saveLocationRecord } from "../../storage/database";
 
 export interface HardwareLocationTelemetry {
   latitude: number;
@@ -18,11 +19,12 @@ type LocationCallback = (location: HardwareLocationTelemetry) => void;
 /**
  * Hardware Location & GPS Service
  * 
- * Samples satellite GPS coordinates, altitude in meters, velocity speed, and heading via expo-location.
- * Implements cached last-known fallback coordinates when underground or inside severe urban concrete ruins.
+ * Enforces "Always Allowed" high-accuracy location tracking.
+ * Refreshes every 5 seconds (5000ms) and saves exact coordinates to local database history.
  */
 class LocationServiceClass {
   private watchSubscription: any = null;
+  private pollingTimer: any = null;
   private listeners: LocationCallback[] = [];
   private isWatching: boolean = false;
   private lastLocation: HardwareLocationTelemetry = {
@@ -49,16 +51,15 @@ class LocationServiceClass {
         this.watchSubscription = await Location.watchPositionAsync(
           {
             accuracy: Location.Accuracy.BestForNavigation,
-            timeInterval: 1000, // High-frequency 1 second interval
-            distanceInterval: 0.5,
+            timeInterval: 5000, // Enforce 5-second refresh interval
+            distanceInterval: 0.1,
           },
           (loc) => {
             this.processNewLocation(loc);
           }
         );
-        this.isWatching = true;
       } else {
-        // Web high-frequency HTML5 Geolocation Watch (1 second interval)
+        // Web HTML5 Geolocation Watch (5-second refresh interval)
         if (typeof navigator !== "undefined" && "geolocation" in navigator) {
           navigator.geolocation.watchPosition(
             (pos) => {
@@ -78,8 +79,16 @@ class LocationServiceClass {
             { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
           );
         }
-        this.isWatching = true;
       }
+
+      // Enforce 5-second polling timer for guaranteed exact 5sec coordinate refreshes
+      if (!this.pollingTimer) {
+        this.pollingTimer = setInterval(() => {
+          this.refreshCurrentLocation();
+        }, 5000);
+      }
+
+      this.isWatching = true;
       return true;
     } catch (e) {
       console.warn("[LocationService] GPS hardware watch error. Using cached location fallback:", e);
@@ -92,6 +101,10 @@ class LocationServiceClass {
       this.watchSubscription.remove();
       this.watchSubscription = null;
     }
+    if (this.pollingTimer) {
+      clearInterval(this.pollingTimer);
+      this.pollingTimer = null;
+    }
     this.isWatching = false;
   }
 
@@ -100,28 +113,60 @@ class LocationServiceClass {
       latitude: loc.coords.latitude,
       longitude: loc.coords.longitude,
       altitude: loc.coords.altitude || 0.0,
-      accuracy: loc.coords.accuracy || 10.0,
+      accuracy: loc.coords.accuracy || 5.0,
       speed: Math.max(0.0, loc.coords.speed || 0.0),
       heading: loc.coords.heading || 0.0,
-      timestamp: new Date(loc.timestamp).toISOString(),
+      timestamp: new Date(loc.timestamp || Date.now()).toISOString(),
       isSimulatedFallback: false
     };
 
     this.lastLocation = data;
+
+    // Automatically store exact coordinates into local database history every 5 seconds
+    saveLocationRecord({
+      latitude: data.latitude,
+      longitude: data.longitude,
+      accuracy: data.accuracy,
+      timestamp: data.timestamp,
+    }).catch(() => {});
+
     for (const listener of this.listeners) {
       listener(data);
     }
   }
 
-  public async getLatestLocation(): Promise<HardwareLocationTelemetry> {
+  public async refreshCurrentLocation(): Promise<HardwareLocationTelemetry> {
     try {
       if (Platform.OS !== "web" && PermissionManager.getStatus().locationForeground) {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.BestForNavigation });
         this.processNewLocation(loc);
+      } else if (typeof navigator !== "undefined" && "geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            this.processNewLocation({
+              coords: {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                altitude: pos.coords.altitude,
+                accuracy: pos.coords.accuracy,
+                speed: pos.coords.speed,
+                heading: pos.coords.heading,
+              },
+              timestamp: pos.timestamp,
+            } as any);
+          },
+          () => {},
+          { enableHighAccuracy: true, maximumAge: 0, timeout: 4000 }
+        );
       }
     } catch (e) {
-      // Revert to last known good coordinates without throwing UI exception
+      // Keep last known good coordinates
     }
+    return { ...this.lastLocation };
+  }
+
+  public async getLatestLocation(): Promise<HardwareLocationTelemetry> {
+    await this.refreshCurrentLocation();
     return { ...this.lastLocation };
   }
 
@@ -153,6 +198,14 @@ class LocationServiceClass {
       isSimulatedFallback: true
     };
     this.lastLocation = data;
+
+    saveLocationRecord({
+      latitude: data.latitude,
+      longitude: data.longitude,
+      accuracy: data.accuracy,
+      timestamp: data.timestamp,
+    }).catch(() => {});
+
     for (const listener of this.listeners) {
       listener(data);
     }

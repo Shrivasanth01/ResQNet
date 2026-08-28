@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -11,9 +11,11 @@ import Animated, {
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Colors } from "../../theme/colors";
+import { HardwareButtonDetector } from "../../services/hardware/HardwareButtonDetector";
 
 export default function HeroSOSButton() {
   const pulse = useSharedValue(0);
+  const [tapHint, setTapHint] = useState<string>("POWER BUTTON TAP READY (3X)");
 
   useEffect(() => {
     pulse.value = withRepeat(
@@ -33,25 +35,43 @@ export default function HeroSOSButton() {
     opacity: interpolate(pulse.value, [0, 1], [0.35, 0]),
   }));
 
+  const handlePowerTapSim = () => {
+    HardwareButtonDetector.registerPowerButtonTap();
+    const count = HardwareButtonDetector.getTapCount();
+    setTapHint(`TAP REGISTERED (${count}/3)`);
+    setTimeout(() => {
+      setTapHint("POWER BUTTON TAP READY (3X)");
+    }, 2500);
+  };
+
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.pulseCircle, animatedStyle2]} />
-      <Animated.View style={[styles.pulseCircle, animatedStyle1]} />
+      <View style={styles.buttonWrapper}>
+        <Animated.View style={[styles.pulseCircle, animatedStyle2]} />
+        <Animated.View style={[styles.pulseCircle, animatedStyle1]} />
 
-      <Pressable 
-        style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-        onPress={() => router.push("/sos")}
-      >
-        <View style={styles.innerGlow}>
-          <MaterialIcons name="warning" size={44} color={Colors.white} />
-          <Text style={styles.buttonText}>SOS</Text>
-          <Text style={styles.subLabel}>BROADCAST</Text>
+        <Pressable 
+          style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+          onPress={() => router.push("/sos")}
+        >
+          <View style={styles.innerGlow}>
+            <MaterialIcons name="warning" size={44} color={Colors.white} />
+            <Text style={styles.buttonText}>SOS</Text>
+            <Text style={styles.subLabel}>BROADCAST</Text>
+          </View>
+        </Pressable>
+      </View>
+
+      <View style={styles.tagRow}>
+        <View style={styles.tacticalTag}>
+          <View style={styles.liveDot} />
+          <Text style={styles.tacticalText}>P2P MESH DISPATCH READY</Text>
         </View>
-      </Pressable>
 
-      <View style={styles.tacticalTag}>
-        <View style={styles.liveDot} />
-        <Text style={styles.tacticalText}>P2P MESH DISPATCH READY</Text>
+        <Pressable style={styles.powerBadge} onPress={handlePowerTapSim}>
+          <MaterialIcons name="power-settings-new" size={13} color={Colors.danger} />
+          <Text style={styles.powerBadgeText}>{tapHint}</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -62,10 +82,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginVertical: 24,
-    height: 220,
+  },
+  buttonWrapper: {
+    width: 148,
+    height: 148,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
   },
   pulseCircle: {
     position: "absolute",
+    top: 0,
+    left: 0,
     width: 148,
     height: 148,
     borderRadius: 74,
@@ -110,17 +138,24 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     marginTop: 1,
   },
+  tagRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 24,
+  },
   tacticalTag: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     backgroundColor: "rgba(225, 29, 72, 0.12)",
-    paddingVertical: 5,
+    paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(225, 29, 72, 0.25)",
-    marginTop: 22,
   },
   liveDot: {
     width: 6,
@@ -132,6 +167,23 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     color: Colors.primary,
+    letterSpacing: 0.8,
+  },
+  powerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.3)",
+  },
+  powerBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: Colors.danger,
     letterSpacing: 0.8,
   },
 });

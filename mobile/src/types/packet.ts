@@ -53,7 +53,7 @@ export interface PacketDevice {
   isCharging: boolean;
   networkStatus: "ONLINE" | "OFFLINE_MESH_ONLY" | "NO_SIGNAL";
   bluetoothStatus: "ENABLED" | "DISABLED" | "UNAVAILABLE";
-  gpsStatus: "LOCKED" | "SEARCHING" | "UNAVAILABLE";
+  gpsStatus: "LOCKED" | "SEARCHING" | "UNAVAILABLE" | "CACHED";
 }
 
 export interface PacketMesh {

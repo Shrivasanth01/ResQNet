@@ -1,23 +1,53 @@
 import { EmergencyPacket } from "../../types/packet";
 import { IDispatcher, CommunicationMethod, NetworkState } from "./CommunicationTypes";
+import { PacketEncryption } from "../packet/PacketEncryption";
 
 /**
- * Functional Placeholder: Internet Dispatcher
- * Directly simulates sending encrypted distress payloads over HTTP POST to future FastAPI Server
+ * Production REST Internet Dispatcher
+ * Sends Ed25519-signed & AES-256-encrypted distress payloads over HTTP POST to FastAPI Cloud Server
  */
 export class InternetDispatcher implements IDispatcher {
+  private get cloudIngestUrl(): string {
+    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || "http://172.20.10.2:8000/api/v1";
+    return `${baseUrl}/incidents/ingest`;
+  }
+
   public getMethodName(): CommunicationMethod {
     return "INTERNET";
   }
 
   public isAvailable(network: NetworkState): boolean {
-    return network.internetAvailable && network.networkQualityScore >= 40;
+    return network.internetAvailable;
   }
 
   public async dispatch(packet: EmergencyPacket, gatewayId?: string): Promise<boolean> {
-    // Simulate lightweight network latency & successful ACK return from cloud server
-    await new Promise((res) => setTimeout(res, 30));
-    return true;
+    try {
+      const encryptedPacket = PacketEncryption.encryptPacket(packet);
+      const packetId = encryptedPacket.header.packetId;
+      const gwId = gatewayId || "DIRECT_INTERNET_NODE";
+
+      const response = await fetch(this.cloudIngestUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Gateway-ID": gwId,
+          "X-Packet-ID": packetId,
+        },
+        body: JSON.stringify(encryptedPacket),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`[InternetDispatcher] FastAPI Ingest ACK Received for ${packetId}:`, data.ack_id || data);
+        return true;
+      } else {
+        console.warn(`[InternetDispatcher] Ingest returned HTTP status ${response.status}`);
+        return false;
+      }
+    } catch (e) {
+      console.warn("[InternetDispatcher] Network dispatch error connecting to FastAPI:", e);
+      return false;
+    }
   }
 }
 

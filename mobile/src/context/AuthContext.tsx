@@ -7,7 +7,7 @@ import React, {
 } from 'react';
 import { authApi } from '../api/authApi';
 import { authStorage } from '../storage/authStorage';
-import { savePersonDetails } from '../storage/database';
+import { savePersonDetails, saveCompleteProfile, createNewUserProfile } from '../storage/database';
 import type {
   AuthState,
   LoginCredentials,
@@ -88,10 +88,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = useCallback(async (data: RegisterData): Promise<void> => {
     const { user, tokens } = await authApi.register(data);
+    const profile = createNewUserProfile(user.name, user.email, data);
     await Promise.all([
       authStorage.saveToken(tokens.accessToken),
       authStorage.saveUser(user),
-      savePersonDetails({ name: user.name, email: user.email, createdAt: user.createdAt }),
+      saveCompleteProfile(profile, user.email),
     ]);
     setState({ user, token: tokens.accessToken, isAuthenticated: true, isLoading: false });
   }, []);

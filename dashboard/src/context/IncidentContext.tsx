@@ -10,6 +10,7 @@ interface IncidentContextType {
   facilities: FacilityMarker[];
   analytics: AnalyticsSummary | null;
   isConnected: boolean;
+  isBackendOffline: boolean;
   activeAlertsCount: number;
   criticalCount: number;
   refreshData: () => Promise<void>;
@@ -26,34 +27,44 @@ export const IncidentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [facilities, setFacilities] = useState<FacilityMarker[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [isBackendOffline, setIsBackendOffline] = useState<boolean>(false);
 
   const socketRef = useRef<WebSocket | null>(null);
 
   const refreshData = useCallback(async () => {
-    const [incData, respData, gwData, facData, anlData] = await Promise.all([
-      ApiService.getIncidents(),
-      ApiService.getResponders(),
-      ApiService.getGateways(),
-      ApiService.getFacilities(),
-      ApiService.getAnalytics(),
-    ]);
-    setIncidents([...incData]);
-    setResponders([...respData]);
-    setGateways([...gwData]);
-    setFacilities([...facData]);
-    setAnalytics({ ...anlData });
+    try {
+      const [incData, respData, gwData, facData, anlData] = await Promise.all([
+        ApiService.getIncidents(),
+        ApiService.getResponders(),
+        ApiService.getGateways(),
+        ApiService.getFacilities(),
+        ApiService.getAnalytics(),
+      ]);
+      setIncidents([...incData]);
+      setResponders([...respData]);
+      setGateways([...gwData]);
+      setFacilities([...facData]);
+      setAnalytics({ ...anlData });
+      setIsBackendOffline(false);
+    } catch (e) {
+      console.warn("[IncidentContext] Backend API unreachable. Marking isBackendOffline = true.");
+      setIsBackendOffline(true);
+      setIncidents([]);
+    }
   }, []);
 
   useEffect(() => {
     refreshData();
-    // Attempt real-time WebSocket connection to Phase 3 FastAPI server
+    // Attempt real-time WebSocket connection to FastAPI server
     const connectWebSocket = () => {
       try {
-        const ws = new WebSocket("ws://localhost:8000/api/v1/ws/incidents");
+        const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/api/v1/ws/incidents";
+        const ws = new WebSocket(wsUrl);
         
         ws.onopen = () => {
           setIsConnected(true);
-          console.log("WebSocket connected to ResQNet Cloud Streaming Hub.");
+          setIsBackendOffline(false);
+          console.log(`[IncidentContext] WebSocket connected to ${wsUrl}`);
         };
 
         ws.onmessage = (event) => {
@@ -61,36 +72,48 @@ export const IncidentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             const payload = JSON.parse(event.data);
             if (payload.event === "NEW_EMERGENCY_INCIDENT") {
               const newInc = payload.data;
-              setIncidents((prev) => [
-                {
-                  incident_id: newInc.incident_id,
-                  packet_id: newInc.packet_id,
-                  user_id: newInc.user_id,
-                  emergency_type: newInc.emergency_type,
-                  severity: newInc.severity,
-                  emergency_confidence_score: newInc.emergency_confidence_score,
-                  latitude: newInc.latitude,
-                  longitude: newInc.longitude,
-                  altitude: newInc.altitude || 0.0,
-                  status: newInc.status || "OPEN",
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                  assigned_responder_id: newInc.assigned_responder_id,
-                  meshRoute: newInc.meshRoute || [],
-                  gatewayId: newInc.gatewayId,
-                  ackId: newInc.ackId,
-                  medicalVault: newInc.medicalVault,
-                  timeline: [{ timeline_id: `TML-${Date.now()}`, timestamp: new Date().toISOString(), event_type: "WEBSOCKET_ALERT", summary: "Real-time stream incoming from field gateway.", ecs_snapshot: newInc.emergency_confidence_score }]
-                },
-                ...prev,
-              ]);
+              setIncidents((prev) => {
+                // Deduplicate incoming WebSocket alerts against REST state
+                const exists = prev.some(
+                  (item) => item.incident_id === newInc.incident_id || item.packet_id === newInc.packet_id
+                );
+                if (exists) {
+                  return prev.map((item) =>
+                    item.incident_id === newInc.incident_id || item.packet_id === newInc.packet_id
+                      ? { ...item, ...newInc }
+                      : item
+                  );
+                }
+                return [
+                  {
+                    incident_id: newInc.incident_id,
+                    packet_id: newInc.packet_id,
+                    user_id: newInc.user_id,
+                    emergency_type: newInc.emergency_type,
+                    severity: newInc.severity,
+                    emergency_confidence_score: newInc.emergency_confidence_score,
+                    latitude: newInc.latitude,
+                    longitude: newInc.longitude,
+                    altitude: newInc.altitude || 0.0,
+                    status: newInc.status || "OPEN",
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    assigned_responder_id: newInc.assigned_responder_id,
+                    meshRoute: newInc.meshRoute || [],
+                    gatewayId: newInc.gatewayId,
+                    ackId: newInc.ackId,
+                    medicalVault: newInc.medicalVault,
+                    timeline: [{ timeline_id: `TML-${Date.now()}`, timestamp: new Date().toISOString(), event_type: "WEBSOCKET_ALERT", summary: "Real-time stream incoming from field gateway.", ecs_snapshot: newInc.emergency_confidence_score }]
+                  },
+                  ...prev,
+                ];
+              });
             }
           } catch (e) {}
         };
 
         ws.onclose = () => {
           setIsConnected(false);
-          // Auto reconnect after 5 seconds in operational environments
           setTimeout(connectWebSocket, 5000);
         };
 
@@ -166,6 +189,7 @@ export const IncidentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         facilities,
         analytics,
         isConnected,
+        isBackendOffline,
         activeAlertsCount,
         criticalCount,
         refreshData,

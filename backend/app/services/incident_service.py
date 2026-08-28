@@ -83,3 +83,24 @@ class IncidentService:
     @staticmethod
     def list_incidents(db: Session, limit: int = 50) -> List[IncidentReport]:
         return db.query(IncidentReport).order_by(IncidentReport.created_at.desc()).limit(limit).all()
+
+    @staticmethod
+    def update_status(db: Session, incident_id: str, status: str, responder_id: Optional[str] = None) -> Optional[IncidentReport]:
+        inc = db.query(IncidentReport).filter(IncidentReport.incident_id == incident_id).first()
+        if not inc:
+            return None
+        inc.status = status
+        if responder_id:
+            inc.assigned_responder_id = responder_id
+        inc.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(inc)
+
+        TimelineService.log_milestone(
+            db,
+            incident_id,
+            "STATUS_UPDATED",
+            f"Command operations changed status to {status}.{f' Assigned Unit: {responder_id}' if responder_id else ''}",
+            inc.emergency_confidence_score
+        )
+        return inc

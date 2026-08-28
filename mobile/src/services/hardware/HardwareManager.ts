@@ -40,9 +40,10 @@ class HardwareManagerService {
     // 1. Authorize hardware permissions
     await PermissionManager.checkAllPermissions();
 
-    // 2. Hydrate diagnostic hardware services
+    // 2. Hydrate diagnostic hardware services and start 5-second location tracking
     await BatteryService.initialize();
     await NetworkService.initialize();
+    await LocationService.startTracking(true);
     await LocationService.getLatestLocation();
 
     // 3. Register OS background location tracking

@@ -15,7 +15,7 @@ import {
 import Link from "next/link";
 
 export default function DashboardPage() {
-  const { incidents, responders, gateways, analytics, isConnected } = useIncidents();
+  const { incidents, responders, gateways, analytics, isConnected, isBackendOffline } = useIncidents();
 
   const activeIncidents = incidents.filter((i) => i.status === "OPEN" || i.status === "DISPATCHED");
   const criticalIncidents = incidents.filter((i) => i.severity === "CRITICAL" && (i.status === "OPEN" || i.status === "DISPATCHED"));
@@ -132,28 +132,42 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-3">
-            {activeIncidents.slice(0, 4).map((inc) => (
-              <div key={inc.incident_id} className="p-4 rounded-xl bg-slate-900/80 border border-border flex items-center justify-between hover:border-slate-600 transition-all">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2.5">
-                    <span className={inc.severity === "CRITICAL" ? "badge-critical" : inc.severity === "HIGH" ? "badge-high" : "badge-moderate"}>
-                      {inc.severity}
-                    </span>
-                    <span className="font-mono text-xs text-rose-400 font-extrabold">ECS: {inc.emergency_confidence_score}/100</span>
-                    <span className="text-xs text-slate-400 font-mono">[ID: {inc.incident_id}]</span>
-                  </div>
-                  <h4 className="text-sm font-extrabold text-white">{inc.emergency_type}</h4>
-                  <p className="text-[11px] text-slate-400">Assigned Unit: <span className="text-emerald-400 font-semibold">{inc.assigned_responder_id || "AWAITING DISPATCH ASSIGNMENT"}</span> | Gateway: {inc.gatewayId || "Direct REST"}</p>
-                </div>
-
-                <Link
-                  href={`/incidents/${inc.incident_id}`}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-border shadow-sm transition-all"
-                >
-                  Inspect Vault
-                </Link>
+            {isBackendOffline ? (
+              <div className="p-6 rounded-xl bg-rose-950/40 border border-rose-500/50 text-center space-y-2">
+                <AlertTriangle className="w-8 h-8 text-rose-500 mx-auto animate-pulse" />
+                <h4 className="text-base font-black text-rose-300">Backend Offline</h4>
+                <p className="text-xs text-slate-400">Unable to reach FastAPI server at {process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1"}. Verify server status.</p>
               </div>
-            ))}
+            ) : activeIncidents.length === 0 ? (
+              <div className="p-8 rounded-xl bg-slate-900/60 border border-border text-center space-y-2">
+                <ShieldCheck className="w-8 h-8 text-emerald-400 mx-auto" />
+                <h4 className="text-base font-black text-white">No Active Emergency Incidents</h4>
+                <p className="text-xs text-slate-400">All sectors clear. Standing by for real-time distress intake.</p>
+              </div>
+            ) : (
+              activeIncidents.slice(0, 4).map((inc) => (
+                <div key={inc.incident_id} className="p-4 rounded-xl bg-slate-900/80 border border-border flex items-center justify-between hover:border-slate-600 transition-all">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2.5">
+                      <span className={inc.severity === "CRITICAL" ? "badge-critical" : inc.severity === "HIGH" ? "badge-high" : "badge-moderate"}>
+                        {inc.severity}
+                      </span>
+                      <span className="font-mono text-xs text-rose-400 font-extrabold">ECS: {inc.emergency_confidence_score}/100</span>
+                      <span className="text-xs text-slate-400 font-mono">[ID: {inc.incident_id}]</span>
+                    </div>
+                    <h4 className="text-sm font-extrabold text-white">{inc.emergency_type}</h4>
+                    <p className="text-[11px] text-slate-400">Assigned Unit: <span className="text-emerald-400 font-semibold">{inc.assigned_responder_id || "AWAITING DISPATCH ASSIGNMENT"}</span> | Gateway: {inc.gatewayId || "Direct REST"}</p>
+                  </div>
+
+                  <Link
+                    href={`/incidents/${inc.incident_id}`}
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-border shadow-sm transition-all"
+                  >
+                    Inspect Vault
+                  </Link>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

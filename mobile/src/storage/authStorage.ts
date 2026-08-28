@@ -1,6 +1,27 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../constants/app';
 import type { User } from '../types/auth';
+
+let AsyncStorage: any = null;
+try {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    AsyncStorage = {
+      getItem: async (key: string) => window.localStorage.getItem(key),
+      setItem: async (key: string, val: string) => window.localStorage.setItem(key, val),
+      removeItem: async (key: string) => window.localStorage.removeItem(key),
+      multiRemove: async (keys: string[]) => { keys.forEach(k => window.localStorage.removeItem(k)); }
+    };
+  } else {
+    AsyncStorage = require('@react-native-async-storage/async-storage').default;
+  }
+} catch {
+  const memoryStore: Record<string, string> = {};
+  AsyncStorage = {
+    getItem: async (key: string) => memoryStore[key] || null,
+    setItem: async (key: string, val: string) => { memoryStore[key] = val; },
+    removeItem: async (key: string) => { delete memoryStore[key]; },
+    multiRemove: async (keys: string[]) => { keys.forEach(k => delete memoryStore[k]); }
+  };
+}
 
 /**
  * authStorage

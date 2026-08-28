@@ -1,5 +1,3 @@
-import { Platform } from "react-native";
-
 export interface MeshLogRecord {
   timestamp: string;
   level: "INFO" | "WARN" | "ERROR" | "DEBUG";

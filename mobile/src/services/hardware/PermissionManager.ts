@@ -28,18 +28,23 @@ class PermissionManagerService {
 
   public async checkAllPermissions(): Promise<PermissionStatusSummary> {
     try {
-      // 1. Check Foreground GPS
-      const fgLoc = await Location.getForegroundPermissionsAsync();
-      this.currentStatus.locationForeground = fgLoc.status === "granted";
-
-      // 2. Check Background GPS
       if (Platform.OS !== "web") {
+        // 1. Check Foreground GPS
+        const fgLoc = await Location.getForegroundPermissionsAsync();
+        this.currentStatus.locationForeground = fgLoc.status === "granted";
+
+        // 2. Check Background GPS ("Always Allow")
         try {
           const bgLoc = await Location.getBackgroundPermissionsAsync();
           this.currentStatus.locationBackground = bgLoc.status === "granted";
         } catch {
           this.currentStatus.locationBackground = false;
         }
+      } else {
+        // Web Environment HTML5 Geolocation Check
+        const isGeoAvailable = typeof navigator !== "undefined" && "geolocation" in navigator;
+        this.currentStatus.locationForeground = isGeoAvailable;
+        this.currentStatus.locationBackground = isGeoAvailable;
       }
 
       this.evaluateEssential();
@@ -51,17 +56,38 @@ class PermissionManagerService {
 
   public async requestEssentialPermissions(): Promise<PermissionStatusSummary> {
     try {
-      // 1. Request Foreground Location
-      const fgReq = await Location.requestForegroundPermissionsAsync();
-      this.currentStatus.locationForeground = fgReq.status === "granted";
+      if (Platform.OS !== "web") {
+        // 1. Request Foreground Location
+        const fgReq = await Location.requestForegroundPermissionsAsync();
+        this.currentStatus.locationForeground = fgReq.status === "granted";
 
-      // 2. Request Background Location if Foreground granted
-      if (this.currentStatus.locationForeground && Platform.OS !== "web") {
-        try {
-          const bgReq = await Location.requestBackgroundPermissionsAsync();
-          this.currentStatus.locationBackground = bgReq.status === "granted";
-        } catch (e) {
-          console.warn("[PermissionManager] Background location request deferred or unsupported on this device profile.");
+        // 2. Request Always Allow (Background Location)
+        if (this.currentStatus.locationForeground) {
+          try {
+            const bgReq = await Location.requestBackgroundPermissionsAsync();
+            this.currentStatus.locationBackground = bgReq.status === "granted";
+          } catch (e) {
+            console.warn("[PermissionManager] Background location request deferred or unsupported on this device profile.");
+          }
+        }
+      } else {
+        // Prompt Web Geolocation Permission
+        if (typeof navigator !== "undefined" && "geolocation" in navigator) {
+          await new Promise<void>((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+              () => {
+                this.currentStatus.locationForeground = true;
+                this.currentStatus.locationBackground = true;
+                resolve();
+              },
+              () => {
+                this.currentStatus.locationForeground = false;
+                this.currentStatus.locationBackground = false;
+                resolve();
+              },
+              { timeout: 3000 }
+            );
+          });
         }
       }
 
@@ -73,7 +99,7 @@ class PermissionManagerService {
   }
 
   private evaluateEssential(): void {
-    // We require foreground location and notifications as core minimum operational criteria
+    // Requires foreground location for core minimum operational criteria
     this.currentStatus.allEssentialGranted = 
       this.currentStatus.locationForeground && this.currentStatus.notifications;
   }

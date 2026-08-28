@@ -13,10 +13,10 @@ export interface PacketEncryptionContract {
  * Builds canonical string representation of an EmergencyPacket for deterministic Ed25519 signing & verification.
  */
 export function buildCanonicalPacketString(packet: EmergencyPacket): string {
-  const h = packet.header || {};
-  const u = packet.user || {};
-  const l = packet.location || {};
-  const i = packet.incident || {};
+  const h = (packet.header || {}) as any;
+  const u = (packet.user || {}) as any;
+  const l = (packet.location || {}) as any;
+  const i = (packet.incident || {}) as any;
 
   return [
     h.packetId || "",

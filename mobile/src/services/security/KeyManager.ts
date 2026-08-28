@@ -1,5 +1,11 @@
-import * as SecureStore from "expo-secure-store";
 import nacl from "tweetnacl";
+
+let SecureStore: any = null;
+try {
+  SecureStore = require("expo-secure-store");
+} catch {
+  SecureStore = null;
+}
 
 const SECURE_KEY_PREFIX = "RESQNET_SECURE_VAULT_";
 const ED25519_PRIVATE_KEY_ALIAS = `${SECURE_KEY_PREFIX}ED25519_PRIV_KEY`;
@@ -10,7 +16,7 @@ const MASTER_MESH_KEY_ALIAS = `${SECURE_KEY_PREFIX}MASTER_MESH_KEY`;
 let cachedKeyPair: { publicKey: string; privateKey: string } | null = null;
 let cachedMasterMeshKey: string | null = null;
 
-// Fallback in-memory/async storage when SecureStore native module is unavailable (e.g. web/Expo Go mock)
+// Fallback in-memory/async storage when SecureStore native module is unavailable
 const localFallbackVault: Record<string, string> = {};
 
 function hexToBytes(hex: string): Uint8Array {

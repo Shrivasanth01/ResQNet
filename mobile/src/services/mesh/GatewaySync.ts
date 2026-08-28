@@ -15,7 +15,10 @@ import { MeshLogger } from "./MeshLogger";
  */
 class GatewaySyncService {
   private isGatewayActive: boolean = false;
-  private cloudIngestUrl: string = "http://localhost:8000/api/v1/incidents/ingest";
+  private get cloudIngestUrl(): string {
+    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || "http://172.20.10.2:8000/api/v1";
+    return `${baseUrl}/incidents/ingest`;
+  }
   private ackBroadcastHistory: Set<string> = new Set();
   private lastSyncTime: string = new Date().toISOString();
 

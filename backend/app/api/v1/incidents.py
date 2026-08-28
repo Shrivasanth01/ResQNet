@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.database.session import get_db
 from app.schemas.all_schemas import EmergencyPacketIngestSchema, PacketAckResponse, IncidentDetailResponse, TimelineItemSchema
 from app.services.packet_processing import PacketProcessingService
@@ -113,3 +113,13 @@ def get_incident_detail(id: str, db: Session = Depends(get_db)):
     ]
     
     return IncidentDetailResponse(**_build_canonical_incident(db, inc, timeline_items))
+
+@router.patch("/{id}/status")
+def patch_incident_status(id: str, status_val: str = Query(..., alias="status"), responder_id: Optional[str] = Query(None), db: Session = Depends(get_db)):
+    """
+    Allows command operations dashboard to persist status changes & responder assignments to SQLite.
+    """
+    updated = IncidentService.update_status(db, id, status_val, responder_id)
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Incident {id} not found")
+    return {"success": True, "incident_id": id, "status": updated.status, "assigned_responder_id": updated.assigned_responder_id}

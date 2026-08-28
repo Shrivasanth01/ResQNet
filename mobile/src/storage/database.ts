@@ -1,10 +1,19 @@
-import { Platform } from 'react-native';
-import * as nativeDb from './database.native';
 import * as webDb from './database.web';
 
-export type LocationRecord = nativeDb.LocationRecord;
+export type LocationRecord = webDb.LocationRecord;
 
-const activeDb = Platform.OS === 'web' ? webDb : nativeDb;
+let activeDb: any = webDb;
+try {
+  const isNative = typeof window === 'undefined' && typeof process !== 'undefined' && process.release?.name === 'node';
+  if (!isNative) {
+    const { Platform } = require('react-native');
+    if (Platform.OS !== 'web') {
+      activeDb = require('./database.native');
+    }
+  }
+} catch {
+  activeDb = webDb;
+}
 
 export const initDatabase = activeDb.initDatabase;
 export const saveCompleteProfile = activeDb.saveCompleteProfile;

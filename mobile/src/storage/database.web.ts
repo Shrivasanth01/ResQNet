@@ -1,5 +1,25 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CompleteEmergencyProfile, UserProfile, MedicalInformation, EmergencyContact } from '../types/profile';
+import { RegisterData } from '../types/auth';
+
+let AsyncStorage: any = null;
+try {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    AsyncStorage = {
+      getItem: async (key: string) => window.localStorage.getItem(key),
+      setItem: async (key: string, val: string) => window.localStorage.setItem(key, val),
+      removeItem: async (key: string) => window.localStorage.removeItem(key),
+    };
+  } else {
+    AsyncStorage = require('@react-native-async-storage/async-storage').default;
+  }
+} catch {
+  const memoryStore: Record<string, string> = {};
+  AsyncStorage = {
+    getItem: async (key: string) => memoryStore[key] || null,
+    setItem: async (key: string, val: string) => { memoryStore[key] = val; },
+    removeItem: async (key: string) => { delete memoryStore[key]; },
+  };
+}
 
 export interface LocationRecord {
   id?: number;
@@ -61,22 +81,22 @@ function getStorageKeyForUser(email?: string): string {
   return STORAGE_KEYS.PROFILE;
 }
 
-export function createNewUserProfile(name?: string, email?: string): CompleteEmergencyProfile {
-  const cleanName = name || (email ? email.split('@')[0] : "New User");
-  const cleanEmail = email || "user@resqnet.org";
+export function createNewUserProfile(name?: string, email?: string, extraData?: Partial<RegisterData>): CompleteEmergencyProfile {
+  const cleanName = name || extraData?.name || (email ? email.split('@')[0] : "New User");
+  const cleanEmail = email || extraData?.email || "user@resqnet.org";
 
   return {
     personal: {
       id: `usr_${Date.now()}`,
       fullName: cleanName,
-      age: "24",
-      gender: "Male",
-      dateOfBirth: "2002-01-01",
-      bloodGroup: "O+",
-      height: "175 cm",
-      weight: "70 kg",
+      age: extraData?.age || "25",
+      gender: extraData?.gender || "Male",
+      dateOfBirth: "2000-01-01",
+      bloodGroup: (extraData?.bloodGroup as any) || "O+",
+      height: extraData?.height ? (extraData.height.toLowerCase().includes('cm') ? extraData.height : `${extraData.height} cm`) : "175 cm",
+      weight: extraData?.weight ? (extraData.weight.toLowerCase().includes('kg') ? extraData.weight : `${extraData.weight} kg`) : "70 kg",
       photographUrl: "",
-      phoneNumber: "+91 9876543210",
+      phoneNumber: extraData?.phoneNumber || "+91 9876543210",
       email: cleanEmail,
       languagesSpoken: "English",
       responderSkills: ["First Aid"],
@@ -86,15 +106,21 @@ export function createNewUserProfile(name?: string, email?: string): CompleteEme
       lastUpdated: new Date().toISOString(),
     },
     medical: {
-      medicalConditions: "None reported",
-      allergies: "None reported",
-      currentMedications: "None",
-      disabilities: "None",
+      medicalConditions: extraData?.medicalConditions || "None reported",
+      allergies: extraData?.allergies || "None reported",
+      currentMedications: extraData?.currentMedications || "None",
+      disabilities: extraData?.disabilities || "None",
       pregnancyStatus: "Not Applicable",
       updatedAt: new Date().toISOString(),
     },
     contacts: [
-      { id: "c1", name: "Primary Emergency Contact", relationship: "Family", phoneNumber: "+91 9900011122", priorityOrder: 1 }
+      {
+        id: "c1",
+        name: extraData?.emergencyContactName || "Primary Emergency Contact",
+        relationship: extraData?.emergencyContactRelation || "Family",
+        phoneNumber: extraData?.emergencyContactPhone || "+91 9900011122",
+        priorityOrder: 1
+      }
     ],
     settings: {
       mesh_mode: "bluetooth_wifi_direct",
@@ -107,7 +133,7 @@ export async function initDatabase(email?: string): Promise<void> {
   const key = getStorageKeyForUser(email);
   const raw = await AsyncStorage.getItem(key);
   if (!raw) {
-    const defaultProf = email ? createNewUserProfile(undefined, email) : DEFAULT_ALEX_MERCER_PROFILE;
+    const defaultProf = createNewUserProfile(undefined, email);
     await AsyncStorage.setItem(key, JSON.stringify(defaultProf));
   }
 }
@@ -130,7 +156,7 @@ export async function getCompleteProfile(email?: string): Promise<CompleteEmerge
   }
 
   if (!raw) {
-    const fresh = email ? createNewUserProfile(undefined, email) : DEFAULT_ALEX_MERCER_PROFILE;
+    const fresh = createNewUserProfile(undefined, email);
     await saveCompleteProfile(fresh, email);
     return fresh;
   }
