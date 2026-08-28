@@ -12,6 +12,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useRef, useEffect } from 'react';
 import { Colors } from '../../src/theme/colors';
 import { verifyOTP, sendOTP, clearPendingOTP } from '../../src/services/firebaseAuth';
+import { isFirebaseConfigured } from '../../src/firebase';
 import { checkUserStatus, createUserDoc } from '../../src/services/firestoreUser';
 import { useAuth } from '../../src/context/AuthContext';
 import PrimaryButton from '../../src/components/buttons/PrimaryButton';
@@ -25,6 +26,7 @@ export default function VerifyOTPScreen() {
     maskedNumber: string;
   }>();
   const { refreshAuthState } = useAuth();
+  const isConfigured = isFirebaseConfigured();
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [isVerifying, setIsVerifying] = useState(false);
@@ -186,6 +188,14 @@ export default function VerifyOTPScreen() {
             We sent a 6-digit verification code to
           </Text>
           <Text style={styles.phoneDisplay}>{maskedNumber || phoneNumber}</Text>
+
+          {!isConfigured && (
+            <View style={styles.demoHintBox}>
+              <Text style={styles.demoHintText}>
+                💡 <Text style={styles.demoHintBold}>Demo Mode:</Text> Enter test OTP <Text style={styles.demoHintCode}>123456</Text> (or any 6 digits)
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* OTP Input Grid */}
@@ -300,6 +310,28 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     marginTop: 6,
     letterSpacing: 0.5,
+  },
+  demoHintBox: {
+    marginTop: 14,
+    backgroundColor: `${Colors.primary}12`,
+    borderColor: Colors.primary,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  demoHintText: {
+    fontSize: 13,
+    color: Colors.text,
+  },
+  demoHintBold: {
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  demoHintCode: {
+    fontWeight: '900',
+    color: Colors.primary,
+    letterSpacing: 1,
   },
 
   // OTP Grid
