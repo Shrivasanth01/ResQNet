@@ -128,7 +128,7 @@ export default function HeroSOSButton() {
           <Animated.View style={[styles.innerGlow, holdProgressStyle]}>
             <MaterialIcons 
               name={isHolding ? "emergency-share" : "warning"} 
-              size={36} 
+              size={44} 
               color={Colors.white} 
             />
             <Text style={styles.buttonText}>
@@ -160,11 +160,11 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 12,
+    marginVertical: 16,
   },
   buttonWrapper: {
-    width: 144,
-    height: 144,
+    width: 196,
+    height: 196,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
@@ -173,26 +173,26 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     left: 0,
-    width: 144,
-    height: 144,
-    borderRadius: 72,
+    width: 196,
+    height: 196,
+    borderRadius: 98,
     backgroundColor: `${Colors.primary}18`,
     borderWidth: 1,
     borderColor: `${Colors.primary}35`,
   },
   button: {
-    width: 136,
-    height: 136,
-    borderRadius: 68,
+    width: 184,
+    height: 184,
+    borderRadius: 92,
     backgroundColor: Colors.danger,
     alignItems: "center",
     justifyContent: "center",
-    elevation: 8,
+    elevation: 10,
     shadowColor: Colors.danger,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
-    shadowRadius: 18,
-    borderWidth: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 22,
+    borderWidth: 4,
     borderColor: "rgba(255, 255, 255, 0.4)",
   },
   buttonPressed: {
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   buttonHolding: {
     backgroundColor: "#b91c1c",
     borderColor: "#f87171",
-    borderWidth: 4,
+    borderWidth: 5,
   },
   innerGlow: {
     alignItems: "center",
@@ -210,17 +210,17 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: Colors.white,
-    fontSize: 26,
+    fontSize: 34,
     fontWeight: "900",
-    letterSpacing: 1.5,
+    letterSpacing: 1.8,
     marginTop: 2,
   },
   subLabel: {
     color: "rgba(255,255,255,0.9)",
-    fontSize: 9,
+    fontSize: 10.5,
     fontWeight: "800",
     letterSpacing: 1.1,
-    marginTop: 1,
+    marginTop: 2,
   },
   tagRow: {
     flexDirection: "row",
