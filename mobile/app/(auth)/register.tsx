@@ -13,9 +13,14 @@ import { Colors } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
 import PrimaryButton from '../../src/components/buttons/PrimaryButton';
 import TextInputField from '../../src/components/inputs/TextInputField';
+import MedicalDropdown from '../../src/components/inputs/MedicalDropdown';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 const GENDER_OPTIONS = ['Male', 'Female', 'Other'];
+
+const MEDICAL_CONDITIONS_OPTIONS = ['NILL', 'Asthma', 'Diabetes', 'Hypertension', 'Heart Disease', 'Epilepsy', 'Other (Type custom...)'];
+const ALLERGIES_OPTIONS = ['NILL', 'Penicillin', 'Peanuts', 'Sulfa Drugs', 'Aspirin', 'Latex', 'Other (Type custom...)'];
+const MEDICATIONS_OPTIONS = ['NILL', 'Albuterol Inhaler', 'Insulin', 'Metformin', 'Amlodipine', 'Beta Blockers', 'Other (Type custom...)'];
 
 export default function RegisterScreen() {
   const { register } = useAuth();
@@ -28,6 +33,7 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   // Step 2: Physical Vitals & Medical Details
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('Male');
   const [height, setHeight] = useState('');
@@ -46,14 +52,29 @@ export default function RegisterScreen() {
   const [error, setError] = useState<string | null>(null);
 
   function validate(): string | null {
+    // Section 1 — Personal & Account
     if (!name.trim()) return 'Full name is required.';
     if (!email.trim()) return 'Email is required.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return 'Enter a valid email address.';
+    if (!phoneNumber.trim()) return 'Phone number is required.';
     if (!password) return 'Password is required.';
     if (password.length < 6) return 'Password must be at least 6 characters.';
     if (password !== confirmPassword) return 'Passwords do not match.';
+
+    // Section 2 — Vitals & Medical
+    if (!dateOfBirth.trim()) return 'Date of birth is required.';
     if (!age.trim()) return 'Age is required.';
+    if (!height.trim()) return 'Height is required.';
+    if (!weight.trim()) return 'Weight is required.';
+    if (!medicalConditions.trim()) return 'Medical conditions are required (enter "None" if not applicable).';
+    if (!allergies.trim()) return 'Allergies field is required (enter "None" if not applicable).';
+    if (!currentMedications.trim()) return 'Current medications field is required (enter "None" if not applicable).';
+
+    // Section 3 — Emergency Contact
+    if (!emergencyContactName.trim()) return 'Emergency contact name is required.';
+    if (!emergencyContactRelation.trim()) return 'Emergency contact relationship is required.';
     if (!emergencyContactPhone.trim()) return 'Emergency contact phone number is required.';
+
     return null;
   }
 
@@ -72,16 +93,17 @@ export default function RegisterScreen() {
         email: email.trim(),
         password,
         phoneNumber: phoneNumber.trim(),
+        dateOfBirth: dateOfBirth.trim(),
         age: age.trim(),
         gender,
         height: height.trim(),
         weight: weight.trim(),
         bloodGroup,
-        medicalConditions: medicalConditions.trim() || 'None reported',
-        allergies: allergies.trim() || 'None reported',
-        currentMedications: currentMedications.trim() || 'None',
-        emergencyContactName: emergencyContactName.trim() || 'Primary Emergency Contact',
-        emergencyContactRelation: emergencyContactRelation.trim() || 'Family',
+        medicalConditions: medicalConditions.trim(),
+        allergies: allergies.trim(),
+        currentMedications: currentMedications.trim(),
+        emergencyContactName: emergencyContactName.trim(),
+        emergencyContactRelation: emergencyContactRelation.trim(),
         emergencyContactPhone: emergencyContactPhone.trim(),
       });
       router.replace('/(tabs)');
@@ -106,7 +128,7 @@ export default function RegisterScreen() {
           <Text style={styles.badge}>RESQNET PATIENT & MEDICAL INTAKE</Text>
           <Text style={styles.title}>Create Account Profile</Text>
           <Text style={styles.subtitle}>
-            Please fill in your basic personal details and medical vault for emergency triage readiness.
+            All fields marked with * are mandatory. Your medical vault ensures emergency triage readiness.
           </Text>
         </View>
 
@@ -133,7 +155,7 @@ export default function RegisterScreen() {
             />
 
             <TextInputField
-              label="Phone Number"
+              label="Phone Number *"
               placeholder="+91 9876543210"
               value={phoneNumber}
               onChangeText={setPhoneNumber}
@@ -166,6 +188,14 @@ export default function RegisterScreen() {
           <View style={styles.cardSection}>
             <Text style={styles.sectionHeader}>🩺 Physical Vitals & Medical Info</Text>
 
+            <TextInputField
+              label="Date of Birth *"
+              placeholder="DD/MM/YYYY"
+              value={dateOfBirth}
+              onChangeText={setDateOfBirth}
+              keyboardType="numeric"
+            />
+
             <View style={styles.row}>
               <View style={styles.thirdCol}>
                 <TextInputField
@@ -178,7 +208,7 @@ export default function RegisterScreen() {
               </View>
               <View style={styles.thirdCol}>
                 <TextInputField
-                  label="Height (cm)"
+                  label="Height (cm) *"
                   placeholder="e.g. 175"
                   value={height}
                   onChangeText={setHeight}
@@ -187,7 +217,7 @@ export default function RegisterScreen() {
               </View>
               <View style={styles.thirdCol}>
                 <TextInputField
-                  label="Weight (kg)"
+                  label="Weight (kg) *"
                   placeholder="e.g. 70"
                   value={weight}
                   onChangeText={setWeight}
@@ -197,7 +227,7 @@ export default function RegisterScreen() {
             </View>
 
             {/* Gender Selection */}
-            <Text style={styles.inputLabel}>Gender</Text>
+            <Text style={styles.inputLabel}>Gender *</Text>
             <View style={styles.chipRow}>
               {GENDER_OPTIONS.map((g) => (
                 <Pressable
@@ -213,7 +243,7 @@ export default function RegisterScreen() {
             </View>
 
             {/* Blood Group Selection */}
-            <Text style={styles.inputLabel}>Blood Group</Text>
+            <Text style={styles.inputLabel}>Blood Group *</Text>
             <View style={styles.chipRow}>
               {BLOOD_GROUPS.map((bg) => (
                 <Pressable
@@ -228,23 +258,29 @@ export default function RegisterScreen() {
               ))}
             </View>
 
-            <TextInputField
+            <MedicalDropdown
               label="Medical Conditions"
-              placeholder="e.g. Asthma, Diabetes, Hypertension, or None"
+              required
+              options={MEDICAL_CONDITIONS_OPTIONS}
+              placeholder="Select condition or type custom..."
               value={medicalConditions}
               onChangeText={setMedicalConditions}
             />
 
-            <TextInputField
+            <MedicalDropdown
               label="Known Allergies"
-              placeholder="e.g. Penicillin, Peanuts, Latex, or None"
+              required
+              options={ALLERGIES_OPTIONS}
+              placeholder="Select allergy or type custom..."
               value={allergies}
               onChangeText={setAllergies}
             />
 
-            <TextInputField
+            <MedicalDropdown
               label="Current Medications"
-              placeholder="e.g. Albuterol Inhaler, Insulin, or None"
+              required
+              options={MEDICATIONS_OPTIONS}
+              placeholder="Select medication or type custom..."
               value={currentMedications}
               onChangeText={setCurrentMedications}
             />
@@ -255,14 +291,14 @@ export default function RegisterScreen() {
             <Text style={styles.sectionHeader}>🚨 Primary Emergency Contact</Text>
 
             <TextInputField
-              label="Contact Full Name"
+              label="Contact Full Name *"
               placeholder="e.g. Jane Doe"
               value={emergencyContactName}
               onChangeText={setEmergencyContactName}
             />
 
             <TextInputField
-              label="Relationship"
+              label="Relationship *"
               placeholder="e.g. Parent / Spouse / Sibling"
               value={emergencyContactRelation}
               onChangeText={setEmergencyContactRelation}
@@ -318,7 +354,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     color: Colors.primary,
-    backgroundColor: 'rgba(225, 29, 72, 0.1)',
+    backgroundColor: 'rgba(39, 212, 199, 0.1)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,

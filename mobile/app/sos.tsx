@@ -147,32 +147,46 @@ export default function SOSScreen() {
             </View>
           </View>
         ) : (
-          <>
-            <Text style={styles.instruction}>
-              {sosState === "IDLE" 
-                ? "HOLD to activate Emergency SOS" 
-                : `Release to cancel... ${countdown}`}
-            </Text>
-            
-            <Pressable
-              onPressIn={handlePressIn}
-              onPressOut={handlePressOut}
-              style={({ pressed }) => [
-                styles.sosButton,
-                pressed && styles.sosButtonPressed
-              ]}
-            >
-              <View style={styles.sosButtonInner}>
-                <Text style={styles.sosText}>SOS</Text>
+          <View style={styles.idleWrapper}>
+            <View style={styles.topInfo}>
+              <View style={styles.emergencyPill}>
+                <View style={styles.emergencyDot} />
+                <Text style={styles.emergencyPillText}>TACTICAL MESH READY</Text>
               </View>
-            </Pressable>
-            
-            {sosState === "IDLE" && (
-              <Text style={styles.warning}>
-                Use only in genuine emergencies. Misuse may result in account suspension.
+              
+              <Text style={styles.instruction}>
+                {sosState === "IDLE" 
+                  ? "Emergency Distress Trigger" 
+                  : `Dispatching in ${countdown}...`}
               </Text>
-            )}
-          </>
+              
+              <Text style={styles.warning}>
+                {sosState === "IDLE" 
+                  ? "Press and hold the SOS button below to transmit encrypted telemetry and GPS coordinates to all nearby mesh gateways."
+                  : "Keep holding until countdown finishes, or release immediately to cancel."}
+              </Text>
+            </View>
+            
+            <View style={styles.thumbReachZone}>
+              <Pressable
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                style={({ pressed }) => [
+                  styles.sosButton,
+                  pressed && styles.sosButtonPressed
+                ]}
+              >
+                <View style={styles.sosButtonInner}>
+                  <Text style={styles.sosText}>SOS</Text>
+                  <Text style={styles.sosSubHint}>{sosState === "IDLE" ? "HOLD 3 SEC" : `${countdown}S`}</Text>
+                </View>
+              </Pressable>
+              
+              <Text style={styles.tapInstruction}>
+                {sosState === "IDLE" ? "• Touch & hold thumb to broadcast •" : `Release anytime to cancel`}
+              </Text>
+            </View>
+          </View>
         )}
       </View>
     </View>
@@ -186,54 +200,114 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: "center",
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 12,
+  },
+  idleWrapper: {
+    flex: 1,
+    justifyContent: "space-between",
     alignItems: "center",
-    padding: 24,
+    paddingBottom: 14,
+  },
+  topInfo: {
+    alignItems: "center",
+    paddingTop: 10,
+    maxWidth: 380,
+  },
+  emergencyPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(200, 55, 45, 0.1)",
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(200, 55, 45, 0.25)",
+    marginBottom: 16,
+  },
+  emergencyDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.danger,
+  },
+  emergencyPillText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: Colors.danger,
+    letterSpacing: 0.9,
   },
   instruction: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "800",
     color: Colors.text,
-    marginBottom: 40,
+    marginBottom: 12,
     textAlign: "center",
+    letterSpacing: 0.2,
+  },
+  warning: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    paddingHorizontal: 12,
+  },
+  thumbReachZone: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    paddingBottom: 20,
   },
   sosButton: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    width: 176,
+    height: 176,
+    borderRadius: 88,
     backgroundColor: Colors.danger,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 8,
+    elevation: 10,
     shadowColor: Colors.danger,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    borderWidth: 4,
+    borderColor: "rgba(255, 255, 255, 0.4)",
   },
   sosButtonPressed: {
-    transform: [{ scale: 0.95 }],
+    transform: [{ scale: 0.94 }],
     backgroundColor: Colors.primaryDark,
   },
   sosButtonInner: {
-    width: 170,
-    height: 170,
-    borderRadius: 85,
-    borderWidth: 4,
-    borderColor: "rgba(255,255,255,0.3)",
+    width: 148,
+    height: 148,
+    borderRadius: 74,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.4)",
+    borderStyle: "dashed",
     justifyContent: "center",
     alignItems: "center",
   },
   sosText: {
     color: Colors.white,
-    fontSize: 48,
+    fontSize: 40,
     fontWeight: "900",
+    letterSpacing: 1.5,
   },
-  warning: {
-    marginTop: 40,
-    fontSize: 14,
+  sosSubHint: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  tapInstruction: {
+    marginTop: 18,
+    fontSize: 11.5,
+    fontWeight: "700",
     color: Colors.textSecondary,
-    textAlign: "center",
-    paddingHorizontal: 20,
+    letterSpacing: 0.5,
   },
   activeContainer: {
     alignItems: "center",

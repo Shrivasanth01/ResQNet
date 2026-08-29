@@ -29,18 +29,18 @@ export default function DashboardHeader() {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { borderBottomColor: colors.border }]}>
       <View style={styles.leftContent}>
         <View style={styles.badgeRow}>
-          <View style={[styles.livePulseDot, { backgroundColor: Colors.success }]} />
-          <Text style={[styles.nodeBadge, { color: colors.textSecondary }]}>RESQNET MESH • NODE #784 ONLINE</Text>
+          <View style={[styles.livePulseDot, { backgroundColor: Colors.accentEmerald }]} />
+          <Text style={[styles.nodeBadge, { color: Colors.accentCyan }]}>RESQNET MESH • NODE #784 ONLINE</Text>
         </View>
         <Text style={[styles.greeting, { color: colors.text }]}>Welcome, {user?.name?.split(' ')[0] || "Operator"}</Text>
-        <Text style={[styles.date, { color: colors.textSecondary }]}>{currentDate} — Local Cryptographic Vault Ready</Text>
+        <Text style={[styles.date, { color: colors.textSecondary }]}>{currentDate} — Ed25519 Vault Active</Text>
       </View>
 
       <View style={styles.rightContent}>
-        <View style={[styles.iconContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.iconContainer, { backgroundColor: colors.surface, borderColor: Colors.borderBright }]}>
           <MaterialIcons name="shield" size={24} color={Colors.primary} />
         </View>
       </View>

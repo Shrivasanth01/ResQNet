@@ -16,10 +16,10 @@ export default function RootLayout() {
       <AuthProvider>
         <PowerButtonSOSListener>
           <StatusBar style="auto" />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="sos" />
+          <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
+            <Stack.Screen name="(auth)" options={{ animation: "fade" }} />
+            <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
+            <Stack.Screen name="sos" options={{ animation: "fade_from_bottom" }} />
           </Stack>
         </PowerButtonSOSListener>
       </AuthProvider>
