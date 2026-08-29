@@ -131,7 +131,7 @@ async function postJSON<T>(path: string, body: any): Promise<T> {
       // Network failure (CORS, offline, bad URL)
       throw new Error(
         `Could not reach the auth server at ${API_CONFIG.BASE_URL}. ` +
-          'Make sure the backend is running on port 8000.'
+          'Make sure the backend is running (port 8001).'
       );
     }
     throw e;
