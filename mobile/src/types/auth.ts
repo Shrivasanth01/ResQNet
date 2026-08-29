@@ -22,6 +22,7 @@ export interface RegisterData {
   email: string;
   password?: string;
   phoneNumber?: string;
+  dateOfBirth?: string;
   age?: string;
   gender?: string;
   height?: string;
@@ -31,9 +32,9 @@ export interface RegisterData {
   allergies?: string;
   currentMedications?: string;
   disabilities?: string;
-  emergencyContactName?: string;
-  emergencyContactRelation?: string;
-  emergencyContactPhone?: string;
+  emergencyContactName: string;
+  emergencyContactRelation: string;
+  emergencyContactPhone: string;
 }
 
 export interface AuthState {

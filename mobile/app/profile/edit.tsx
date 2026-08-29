@@ -13,7 +13,7 @@ import SectionHeader from "../../src/components/profile/SectionHeader";
 import PrimaryButton from "../../src/components/buttons/PrimaryButton";
 import DatePickerModal from "../../src/components/profile/DatePickerModal";
 
-const BLOOD_GROUPS: BloodGroup[] = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-", "Unknown"];
+const BLOOD_GROUPS: BloodGroup[] = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"];
 const GENDER_OPTIONS = [
   { label: "Male", icon: "male" as const },
   { label: "Female", icon: "female" as const },
@@ -130,6 +130,7 @@ export default function EditProfileScreen() {
           <View style={{ flex: 1 }}>
             <EditableField
               label="Date of Birth"
+              required
               value={formData.dateOfBirth || ""}
               onChangeText={handleDobChange}
               placeholder="YYYY-MM-DD (e.g., 2006-11-27)"
@@ -155,6 +156,7 @@ export default function EditProfileScreen() {
           <View style={styles.col}>
             <EditableField
               label="Age (Years)"
+              required
               value={formData.age || ""}
               onChangeText={(val) => setFormData((prev) => ({ ...prev, age: val }))}
               placeholder="Auto-calculated"
@@ -216,6 +218,7 @@ export default function EditProfileScreen() {
           <View style={styles.col}>
             <EditableField
               label="Height"
+              required
               value={formData.height || ""}
               onChangeText={(val) => setFormData({ ...formData, height: val })}
               placeholder="e.g., 178 cm"
@@ -224,6 +227,7 @@ export default function EditProfileScreen() {
           <View style={styles.col}>
             <EditableField
               label="Weight"
+              required
               value={formData.weight || ""}
               onChangeText={(val) => setFormData({ ...formData, weight: val })}
               placeholder="e.g., 74 kg"
@@ -244,6 +248,7 @@ export default function EditProfileScreen() {
 
         <EditableField
           label="Email Address"
+          required
           value={formData.email || ""}
           onChangeText={(val) => setFormData({ ...formData, email: val })}
           placeholder="user@resqnet.org"

@@ -21,20 +21,20 @@ export interface ThemeColors {
 
 export const LightColors: ThemeColors = {
   ...DefaultColors,
-  background: "#F9F8F6",     // Soft Ivory
-  surface: "#FFFFFF",        // White
-  text: "#1C1D21",           // Deep Charcoal
-  textSecondary: "#6E717C",  // Muted Warm Slate
-  border: "#E6E4E0",         // Soft Warm Border
+  background: "#071014",     // Deep Tactical Obsidian
+  surface: "#0B181D",        // Glassmorphic Obsidian Card
+  text: "#E7F0F1",           // Crisp Glowing White-Cyan
+  textSecondary: "#7E989D",  // Muted Slate Cyan
+  border: "#173036",         // Cyber Teal Border
 };
 
 export const DarkColors: ThemeColors = {
   ...DefaultColors,
-  background: "#141517",     // Deep Charcoal Dark
-  surface: "#1E2024",        // Warm Dark Obsidian Surface
-  text: "#F3F2F0",           // Soft Off-White
-  textSecondary: "#9E9EA7",  // Muted Gray Text
-  border: "#2D2E33",         // Subtle Dark Neutral Border
+  background: "#04090C",     // Ultra Dark Tactical Abyss
+  surface: "#081419",        // Deep Obsidian Card
+  text: "#F1FCFA",           // Electric Pure White-Mint
+  textSecondary: "#6E8C91",  // Dim Cyan Slate
+  border: "#122A2F",         // Subtle Cyber Teal Border
 };
 
 interface ThemeContextValue {

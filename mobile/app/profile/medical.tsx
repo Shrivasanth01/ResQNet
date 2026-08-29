@@ -10,6 +10,11 @@ import { MedicalInformation, UserProfile } from "../../src/types/profile";
 import EditableField from "../../src/components/profile/EditableField";
 import SectionHeader from "../../src/components/profile/SectionHeader";
 import PrimaryButton from "../../src/components/buttons/PrimaryButton";
+import MedicalDropdown from "../../src/components/inputs/MedicalDropdown";
+
+const MEDICAL_CONDITIONS_OPTIONS = ["NILL", "Asthma", "Diabetes", "Hypertension", "Heart Disease", "Epilepsy", "Other (Type custom...)"];
+const ALLERGIES_OPTIONS = ["NILL", "Penicillin", "Peanuts", "Sulfa Drugs", "Aspirin", "Latex", "Other (Type custom...)"];
+const MEDICATIONS_OPTIONS = ["NILL", "Albuterol Inhaler", "Insulin", "Metformin", "Amlodipine", "Beta Blockers", "Other (Type custom...)"];
 
 export default function MedicalInfoScreen() {
   const { colors } = useTheme();
@@ -25,6 +30,23 @@ export default function MedicalInfoScreen() {
   }, []);
 
   const handleSave = async () => {
+    // Mandatory field validation
+    if (!medical.medicalConditions || !medical.medicalConditions.trim()) {
+      const msg = 'Medical Conditions is required (enter "None" if not applicable).';
+      if (Platform.OS === 'web') { alert(msg); } else { Alert.alert("Validation Error", msg); }
+      return;
+    }
+    if (!medical.allergies || !medical.allergies.trim()) {
+      const msg = 'Known Allergies is required (enter "None" if not applicable).';
+      if (Platform.OS === 'web') { alert(msg); } else { Alert.alert("Validation Error", msg); }
+      return;
+    }
+    if (!medical.currentMedications || !medical.currentMedications.trim()) {
+      const msg = 'Current Medications is required (enter "None" if not applicable).';
+      if (Platform.OS === 'web') { alert(msg); } else { Alert.alert("Validation Error", msg); }
+      return;
+    }
+
     setIsSaving(true);
     try {
       await DatabaseService.saveMedicalInformation(medical as MedicalInformation);
@@ -70,37 +92,31 @@ export default function MedicalInfoScreen() {
 
         <SectionHeader title="Clinical History & Allergies" subtitle="Vital data for attending emergency physicians" icon="local-hospital" />
         
-        <EditableField
+        <MedicalDropdown
           label="Medical Conditions"
+          required
+          options={MEDICAL_CONDITIONS_OPTIONS}
+          placeholder="Select condition or type custom..."
           value={medical.medicalConditions || ""}
           onChangeText={(val) => setMedical((prev) => ({ ...prev, medicalConditions: val }))}
-          placeholder="e.g., Asthma, Insulin-dependent Diabetes, Hypertension"
-          helperText="List chronic illnesses or conditions"
-          multiline
-          numberOfLines={3}
-          style={{ minHeight: 70 }}
         />
 
-        <EditableField
+        <MedicalDropdown
           label="Known Drug & Food Allergies (Critical)"
+          required
+          options={ALLERGIES_OPTIONS}
+          placeholder="Select allergy or type custom..."
           value={medical.allergies || ""}
           onChangeText={(val) => setMedical((prev) => ({ ...prev, allergies: val }))}
-          placeholder="e.g., Penicillin, Peanuts, Latex"
-          helperText="Severe allergies will flash red on responder triage terminals"
-          multiline
-          numberOfLines={2}
-          style={{ minHeight: 60 }}
         />
 
-        <EditableField
+        <MedicalDropdown
           label="Current Active Medications & Dosages"
+          required
+          options={MEDICATIONS_OPTIONS}
+          placeholder="Select medication or type custom..."
           value={medical.currentMedications || ""}
           onChangeText={(val) => setMedical((prev) => ({ ...prev, currentMedications: val }))}
-          placeholder="e.g., Metformin 500mg daily, Albuterol emergency inhaler"
-          helperText="Includes daily prescriptions and life-saving injectors"
-          multiline
-          numberOfLines={3}
-          style={{ minHeight: 70 }}
         />
 
         <SectionHeader title="Physical Considerations" subtitle="Helps Search & Rescue plan extraction equipment" icon="accessible" />

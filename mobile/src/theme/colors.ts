@@ -1,29 +1,35 @@
 export const Colors = {
-  primary: "#C8372D",        // Terracotta Earth / Editorial Crimson
-  primaryDark: "#A42B23",    // Deep Terracotta
-  secondary: "#2D3748",      // Muted Charcoal Steel
-  secondaryLight: "#4A5568", // Warm Slate Steel
+  primary: "#27D4C7",        // Neon Cyber Mint / Cyan
+  primaryDark: "#103A40",    // Deep Tactical Cyber Teal
+  secondary: "#162D33",      // Tactical Slate Cyan
+  secondaryLight: "#7E989D", // Muted Slate Cyan
+  accentCyan: "#39DDD0",     // Bright Cyan Highlight
+  accentEmerald: "#52E1B0",  // Tactical Emerald Pulse
 
-  success: "#2B8A6E",        // Forest Emerald
-  warning: "#D97706",        // Amber Clay
-  danger: "#C8372D",         // Terracotta Emergency
+  success: "#52E1B0",        // Emerald Green
+  warning: "#FFB35E",        // Tactical Amber
+  danger: "#FF5F59",         // Crimson Tactical Emergency
+  dangerDark: "#C8372D",     // Deep Emergency Crimson
 
-  background: "#F9F8F6",     // Warm Soft Ivory
-  surface: "#FFFFFF",        // Crisp White Surface
+  background: "#071014",     // Deep Tactical Obsidian
+  surface: "#0B181D",        // Glassmorphic Obsidian Card
+  surfaceElevated: "#0F2228",// Elevated Cyber Slate
 
-  text: "#1C1D21",           // Deep Charcoal Text
-  textSecondary: "#6E717C",  // Muted Warm Slate Text
+  text: "#E7F0F1",           // Crisp Glowing White-Cyan Text
+  textSecondary: "#7E989D",  // Muted Tactical Slate
+  textMuted: "#4F686D",      // Dim Tactical Monospace
 
-  border: "#E6E4E0",         // Soft Neutral Warm Gray Border
+  border: "#173036",         // Cyber Teal Border
+  borderBright: "rgba(39, 212, 199, 0.35)", // Neon Highlight Border
 
   emergency: {
-    medical: "#C8372D",      // Terracotta Red
-    fire: "#D97706",         // Amber Blaze
-    flood: "#2B6CB0",        // Muted Indigo Hydro
-    accident: "#D97706",     // Amber Clay
-    other: "#4A5568",        // Steel Slate
+    medical: "#FF5F59",      // Crimson Red
+    fire: "#FFB35E",         // Amber Blaze
+    flood: "#38BDF8",        // Hydro Cyan
+    accident: "#FF8C42",     // Hazard Orange
+    other: "#7E989D",        // Steel Slate
   },
 
   white: "#FFFFFF",
-  black: "#1C1D21",
+  black: "#020608",
 };

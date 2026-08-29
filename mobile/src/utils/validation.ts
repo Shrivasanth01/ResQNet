@@ -56,20 +56,37 @@ export function validateRequiredFields(profile: Partial<UserProfile>): Validatio
   if (!profile.fullName || !profile.fullName.trim()) {
     return { isValid: false, error: "Full Name is required." };
   }
-  if (!profile.phoneNumber) {
+  if (!profile.email || !profile.email.trim()) {
+    return { isValid: false, error: "Email Address is required." };
+  }
+  if (!profile.phoneNumber || !profile.phoneNumber.trim()) {
     return { isValid: false, error: "Phone number is required." };
   }
   const phoneVal = validatePhone(profile.phoneNumber);
   if (!phoneVal.isValid) {
     return phoneVal;
   }
-  if (profile.age) {
-    const ageVal = validateAge(profile.age);
-    if (!ageVal.isValid) return ageVal;
+  if (!profile.dateOfBirth || !profile.dateOfBirth.trim()) {
+    return { isValid: false, error: "Date of Birth is required." };
   }
-  if (profile.bloodGroup && profile.bloodGroup !== "Unknown") {
-    const bgVal = validateBloodGroup(profile.bloodGroup);
-    if (!bgVal.isValid) return bgVal;
+  if (!profile.age || !String(profile.age).trim()) {
+    return { isValid: false, error: "Age is required." };
   }
+  const ageVal = validateAge(profile.age);
+  if (!ageVal.isValid) return ageVal;
+  if (!profile.gender || !profile.gender.trim()) {
+    return { isValid: false, error: "Gender is required." };
+  }
+  if (!profile.height || !profile.height.trim()) {
+    return { isValid: false, error: "Height is required." };
+  }
+  if (!profile.weight || !profile.weight.trim()) {
+    return { isValid: false, error: "Weight is required." };
+  }
+  if (!profile.bloodGroup || profile.bloodGroup === "Unknown") {
+    return { isValid: false, error: "Blood Group is required. Please select your blood group." };
+  }
+  const bgVal = validateBloodGroup(profile.bloodGroup);
+  if (!bgVal.isValid) return bgVal;
   return { isValid: true };
 }

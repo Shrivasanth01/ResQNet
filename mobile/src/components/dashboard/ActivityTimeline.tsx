@@ -43,7 +43,7 @@ export default function ActivityTimeline({ events }: Props) {
                 <MaterialIcons 
                   name={event.iconName} 
                   size={14} 
-                  color={event.isRecent ? Colors.white : colors.textSecondary} 
+                  color={event.isRecent ? Colors.black : colors.textSecondary} 
                 />
               </View>
               {!isLast && <View style={[styles.line, { backgroundColor: colors.border }]} />}
@@ -51,7 +51,7 @@ export default function ActivityTimeline({ events }: Props) {
             
             {/* Content */}
             <View style={[styles.contentColumn, !isLast && styles.contentColumnBottomPadding]}>
-              <Text style={[styles.title, { color: colors.text }, event.isRecent && styles.titleRecent]}>
+              <Text style={[styles.title, { color: colors.text }, event.isRecent && { color: Colors.primary, fontWeight: "700" }]}>
                 {event.title}
               </Text>
               <Text style={[styles.timestamp, { color: colors.textSecondary }]}>{event.timestamp}</Text>
@@ -68,14 +68,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: 16,
     padding: 16,
-    paddingVertical: 24,
+    paddingVertical: 20,
     borderWidth: 1,
     borderColor: Colors.border,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
     marginBottom: 20,
   },
   emptyContainer: {
@@ -106,13 +101,13 @@ const styles = StyleSheet.create({
   },
   dotRecent: {
     backgroundColor: Colors.primary,
-    borderColor: Colors.primaryDark,
+    borderColor: Colors.accentCyan,
   },
   line: {
     width: 2,
     flex: 1,
     backgroundColor: Colors.border,
-    marginVertical: -4, // Connect under dots
+    marginVertical: -4,
     zIndex: 1,
   },
   contentColumn: {
@@ -121,12 +116,12 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
   },
   contentColumnBottomPadding: {
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
   title: {
-    fontSize: 15,
+    fontSize: 14,
     color: Colors.text,
-    fontWeight: "500",
+    fontWeight: "600",
     marginBottom: 4,
   },
   titleRecent: {

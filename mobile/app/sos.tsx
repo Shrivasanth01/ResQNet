@@ -593,4 +593,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     lineHeight: 18,
   },
-});
+});

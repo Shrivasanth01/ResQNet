@@ -25,7 +25,7 @@ export default function StatusCard({
       case "success": return Colors.success;
       case "warning": return Colors.warning;
       case "danger": return Colors.danger;
-      default: return Colors.secondary;
+      default: return Colors.primary;
     }
   };
 
