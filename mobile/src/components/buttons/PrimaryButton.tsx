@@ -3,8 +3,9 @@ import { Colors } from '../../theme/colors';
 
 type Props = {
   title: string;
-  onPress: () => void;
+  onPress: () => void | Promise<void>;
   loading?: boolean;
+  isLoading?: boolean;
   disabled?: boolean;
 };
 
@@ -12,9 +13,11 @@ export default function PrimaryButton({
   title,
   onPress,
   loading = false,
+  isLoading = false,
   disabled = false,
 }: Props) {
-  const isDisabled = disabled || loading;
+  const isCurrentlyLoading = loading || isLoading;
+  const isDisabled = disabled || isCurrentlyLoading;
 
   return (
     <Pressable
@@ -27,9 +30,9 @@ export default function PrimaryButton({
       disabled={isDisabled}
       accessibilityRole="button"
       accessibilityLabel={title}
-      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      accessibilityState={{ disabled: isDisabled, busy: isCurrentlyLoading }}
     >
-      {loading ? (
+      {isCurrentlyLoading ? (
         <ActivityIndicator color={Colors.white} size="small" />
       ) : (
         <Text style={styles.text}>{title}</Text>

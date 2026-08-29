@@ -24,26 +24,36 @@ const mockUserDocs: Record<string, FirestoreUserDoc> = {};
 
 /**
  * Get the user document from Firestore or Demo Store.
+ * Always falls back to the in-memory store if Firestore is unreachable
+ * or takes too long — never blocks the auth flow.
  */
 export async function getUserDoc(uid: string): Promise<FirestoreUserDoc | null> {
-  if (!isFirebaseConfigured()) {
-    return mockUserDocs[uid] || null;
+  // First check the local mock store (instant)
+  if (mockUserDocs[uid]) return mockUserDocs[uid];
+  if (!isFirebaseConfigured() || !db) {
+    return null;
   }
 
   try {
     const ref = doc(db, 'users', uid);
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
-      return snap.data() as FirestoreUserDoc;
+    // Race the Firestore call against a 3-second timeout so a slow/blocked
+    // Firestore never freezes the auth flow.
+    const snap = await Promise.race([
+      getDoc(ref),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+    ]);
+    if (snap && (snap as any).exists) {
+      return (snap as any).data() as FirestoreUserDoc;
     }
     return null;
   } catch {
-    return mockUserDocs[uid] || null;
+    return null;
   }
 }
 
 /**
  * Create a new user document (first-time user).
+ * Returns the local doc immediately; Firestore write happens in background.
  */
 export async function createUserDoc(uid: string, phoneNumber: string): Promise<FirestoreUserDoc> {
   const userData: FirestoreUserDoc = {
@@ -54,20 +64,25 @@ export async function createUserDoc(uid: string, phoneNumber: string): Promise<F
     profileCompleted: false,
   };
 
-  if (!isFirebaseConfigured()) {
-    mockUserDocs[uid] = userData;
-    return userData;
-  }
+  // Always save to the local store first so the next reads are instant
+  mockUserDocs[uid] = userData;
 
-  try {
-    const ref = doc(db, 'users', uid);
-    await setDoc(ref, {
-      ...userData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-  } catch {
-    mockUserDocs[uid] = userData;
+  // Try to persist to Firestore in the background (best-effort, non-blocking)
+  if (isFirebaseConfigured() && db) {
+    setTimeout(() => {
+      try {
+        const ref = doc(db, 'users', uid);
+        setDoc(ref, {
+          ...userData,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        }).catch(() => {
+          // Firestore unavailable — already saved locally
+        });
+      } catch {
+        // ignored
+      }
+    }, 100);
   }
 
   return userData;

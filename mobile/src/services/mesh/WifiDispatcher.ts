@@ -21,10 +21,14 @@ export class WifiDispatcher implements IDispatcher {
     MeshLogger.info("DISCOVERY", `Initialized Wi-Fi Direct P2P Dispatcher [mDNS Target: ${this.mdnsServiceType}]`);
   }
 
+  public getMethodName() {
+    return "WIFI_DIRECT" as const;
+  }
+
   /**
    * Verifies if local Wi-Fi Direct / local network peers are discovered on the tactical radar.
    */
-  public isAvailable(): boolean {
+  public isAvailable(_network?: any): boolean {
     const wifiPeers = PeerManager.getActivePeers().filter(p => p.transport === "WIFI_DIRECT" || p.transport === "LOCAL_MDNS");
     return this.isWifiDirectEnabled && wifiPeers.length > 0;
   }
@@ -32,7 +36,12 @@ export class WifiDispatcher implements IDispatcher {
   /**
    * Encrypts and transmits packet across high-speed local P2P Wi-Fi Direct channel.
    */
-  public async dispatch(packet: EmergencyPacket): Promise<string | null> {
+  public async dispatch(packet: EmergencyPacket, _gatewayId?: string): Promise<boolean> {
+    const result = await this.dispatchWithDetails(packet);
+    return result !== null;
+  }
+
+  public async dispatchWithDetails(packet: EmergencyPacket): Promise<string | null> {
     const encryptedPacket = PacketEncryption.encryptPacket(packet);
     const packetId = encryptedPacket.header.packetId;
     MeshLogger.info("RELAY", `[WifiDispatcher] Initiating Wi-Fi Direct P2P sync for packet ${packetId}...`);

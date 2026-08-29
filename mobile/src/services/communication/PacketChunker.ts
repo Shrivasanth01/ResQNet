@@ -6,7 +6,7 @@ import { IChunkingContract } from "./CommunicationTypes";
  * Bluetooth Low Energy (BLE GATT) or Satellite frames without packet drop.
  */
 export class PacketChunker implements IChunkingContract {
-  public async chunk(payload: string, mtuSize: number = 256): Promise<string[]> {
+  public static chunk(payload: string, mtuSize: number = 256, _packetId?: string): string[] {
     if (mtuSize <= 0) throw new Error("MTU size must be positive.");
     const chunks: string[] = [];
     const total = Math.ceil(payload.length / mtuSize);
@@ -16,8 +16,16 @@ export class PacketChunker implements IChunkingContract {
     return chunks;
   }
 
-  public async reassemble(chunks: string[]): Promise<string> {
+  public static reassemble(chunks: string[]): string {
     if (!chunks || chunks.length === 0) return "";
     return chunks.join("");
+  }
+
+  public async chunk(payload: string, mtuSize: number = 256): Promise<string[]> {
+    return PacketChunker.chunk(payload, mtuSize);
+  }
+
+  public async reassemble(chunks: string[]): Promise<string> {
+    return PacketChunker.reassemble(chunks);
   }
 }

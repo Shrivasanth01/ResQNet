@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -8,14 +8,21 @@ import Animated, {
   Easing, 
   interpolate 
 } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Colors } from "../../theme/colors";
 import { HardwareButtonDetector } from "../../services/hardware/HardwareButtonDetector";
+import { EmergencyTriggerService } from "../../services/emergency/EmergencyTriggerService";
 
 export default function HeroSOSButton() {
   const pulse = useSharedValue(0);
+  const holdProgress = useSharedValue(0);
   const [tapHint, setTapHint] = useState<string>("POWER BUTTON TAP READY (3X)");
+  const [isHolding, setIsHolding] = useState<boolean>(false);
+  const [countdown, setCountdown] = useState<number>(3);
+  const holdTimerRef = useRef<any>(null);
+  const countdownIntervalRef = useRef<any>(null);
 
   useEffect(() => {
     pulse.value = withRepeat(
@@ -35,6 +42,61 @@ export default function HeroSOSButton() {
     opacity: interpolate(pulse.value, [0, 1], [0.35, 0]),
   }));
 
+  const holdProgressStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(holdProgress.value, [0, 1], [1, 1.25]) }],
+    borderColor: isHolding ? "#ef4444" : "rgba(255, 255, 255, 0.4)",
+  }));
+
+  const clearHoldTimers = () => {
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    holdProgress.value = withTiming(0, { duration: 200 });
+  };
+
+  const handlePressIn = () => {
+    setIsHolding(true);
+    setCountdown(3);
+    holdProgress.value = withTiming(1, { duration: 3000, easing: Easing.linear });
+    
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    } catch {}
+
+    countdownIntervalRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev > 1) {
+          try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          } catch {}
+          return prev - 1;
+        }
+        return prev;
+      });
+    }, 1000);
+
+    holdTimerRef.current = setTimeout(async () => {
+      clearHoldTimers();
+      setIsHolding(false);
+      
+      // 1. Trigger Direct Phone Call & Decentralized Mesh Broadcast
+      await EmergencyTriggerService.triggerSOS();
+      
+      // 2. Open Live SOS Screen
+      router.push("/sos");
+    }, 3000);
+  };
+
+  const handlePressOut = () => {
+    if (isHolding) {
+      clearHoldTimers();
+      setIsHolding(false);
+      setCountdown(3);
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch {}
+    }
+  };
+
   const handlePowerTapSim = () => {
     HardwareButtonDetector.registerPowerButtonTap();
     const count = HardwareButtonDetector.getTapCount();
@@ -51,14 +113,31 @@ export default function HeroSOSButton() {
         <Animated.View style={[styles.pulseCircle, animatedStyle1]} />
 
         <Pressable 
-          style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-          onPress={() => router.push("/sos")}
+          style={({ pressed }) => [
+            styles.button, 
+            pressed && styles.buttonPressed,
+            isHolding && styles.buttonHolding
+          ]}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          onPress={() => {
+            // Instant navigation if tapped quickly
+            if (!isHolding) router.push("/sos");
+          }}
         >
-          <View style={styles.innerGlow}>
-            <MaterialIcons name="warning" size={38} color={Colors.white} />
-            <Text style={styles.buttonText}>SOS</Text>
-            <Text style={styles.subLabel}>PRESS FOR AID</Text>
-          </View>
+          <Animated.View style={[styles.innerGlow, holdProgressStyle]}>
+            <MaterialIcons 
+              name={isHolding ? "emergency-share" : "warning"} 
+              size={36} 
+              color={Colors.white} 
+            />
+            <Text style={styles.buttonText}>
+              {isHolding ? `${countdown}s` : "SOS"}
+            </Text>
+            <Text style={styles.subLabel}>
+              {isHolding ? "HOLDING TO BROADCAST" : "HOLD 3s FOR AID"}
+            </Text>
+          </Animated.View>
         </Pressable>
       </View>
 
@@ -119,6 +198,11 @@ const styles = StyleSheet.create({
   buttonPressed: {
     transform: [{ scale: 0.96 }],
     backgroundColor: Colors.primaryDark,
+  },
+  buttonHolding: {
+    backgroundColor: "#b91c1c",
+    borderColor: "#f87171",
+    borderWidth: 4,
   },
   innerGlow: {
     alignItems: "center",

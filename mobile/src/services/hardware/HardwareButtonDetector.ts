@@ -1,3 +1,5 @@
+import * as Haptics from "expo-haptics";
+
 type SOSTriggerCallback = () => void;
 
 /**

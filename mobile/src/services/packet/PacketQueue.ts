@@ -21,6 +21,17 @@ const SEVERITY_WEIGHTS: Record<IncidentSeverity, number> = {
 
 let inMemoryQueue: EmergencyPacket[] = [];
 
+const sortQueue = (): void => {
+  inMemoryQueue.sort((a, b) => {
+    const scoreA = (SEVERITY_WEIGHTS[a.incident.severity] || 0) + a.incident.emergencyConfidenceScore;
+    const scoreB = (SEVERITY_WEIGHTS[b.incident.severity] || 0) + b.incident.emergencyConfidenceScore;
+    if (scoreA !== scoreB) {
+      return scoreB - scoreA; // Highest combined threat score first
+    }
+    return new Date(a.header.timestamp).getTime() - new Date(b.header.timestamp).getTime();
+  });
+};
+
 /**
  * Intelligent Priority-Based Packet Queue
  * 
@@ -33,18 +44,7 @@ export const PacketQueue: PacketQueueContract = {
   syncFromStorage: async (): Promise<void> => {
     const stored = await PacketStorage.getAllPackets();
     inMemoryQueue = stored.filter(p => p.mesh.deliveryStatus === "QUEUED" || p.mesh.deliveryStatus === "TRANSMITTING");
-    PacketQueue._sortQueue();
-  },
-
-  _sortQueue: (): void => {
-    inMemoryQueue.sort((a, b) => {
-      const scoreA = (SEVERITY_WEIGHTS[a.incident.severity] || 0) + a.incident.emergencyConfidenceScore;
-      const scoreB = (SEVERITY_WEIGHTS[b.incident.severity] || 0) + b.incident.emergencyConfidenceScore;
-      if (scoreA !== scoreB) {
-        return scoreB - scoreA; // Highest combined threat score first
-      }
-      return new Date(a.header.timestamp).getTime() - new Date(b.header.timestamp).getTime();
-    });
+    sortQueue();
   },
 
   enqueue: async (packet: EmergencyPacket): Promise<void> => {
@@ -59,7 +59,7 @@ export const PacketQueue: PacketQueueContract = {
     } else {
       inMemoryQueue.push(updated);
     }
-    PacketQueue._sortQueue();
+    sortQueue();
     await PacketStorage.savePacket(updated);
   },
 

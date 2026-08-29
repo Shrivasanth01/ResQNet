@@ -1,4 +1,4 @@
-import { Accelerometer, SensorTypes } from "expo-sensors";
+import { Accelerometer } from "expo-sensors";
 import { Platform } from "react-native";
 
 export interface AccelerometerData {
@@ -43,7 +43,7 @@ class AccelerometerServiceClass {
     if (this.isRunning || Platform.OS === "web") return;
 
     try {
-      this.subscription = Accelerometer.addListener((reading) => {
+      this.subscription = Accelerometer.addListener((reading: any) => {
         const now = Date.now();
         // Compute resultant vector magnitude in Gs: sqrt(x^2 + y^2 + z^2)
         const magnitude = Math.sqrt(

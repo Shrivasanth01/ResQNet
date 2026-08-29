@@ -45,7 +45,7 @@ export const DecisionEngine = {
     let recommendationText = "Transient event; below triage threshold. No action required.";
     let triggerSource: TriggerSource = "MULTI_SENSOR_FALL";
 
-    if (event.type === "IMPACT_DETECTED" && event.magnitude > 15) {
+    if (event.type === "IMPACT_DETECTED" && (event.magnitude ?? 0) > 15) {
       triggerSource = "VEHICLE_CRASH";
     }
 
@@ -107,7 +107,7 @@ export const DecisionEngine = {
       primaryTrigger: triggerSource,
       recommendationText,
       timestamp: new Date().toISOString(),
-      eventId: event.id,
+      eventId: event.id || `EVT-${Date.now()}`,
     };
 
     return result;

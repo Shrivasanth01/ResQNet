@@ -50,6 +50,10 @@ class MeshLoggerService {
     this.log("ERROR", category, message, metadata);
   }
 
+  public debug(category: MeshLogRecord["category"], message: string, metadata?: Record<string, any>) {
+    this.log("DEBUG", category, message, metadata);
+  }
+
   public getRecentLogs(limit: number = 50, category?: MeshLogRecord["category"]): MeshLogRecord[] {
     if (category) {
       return this.logs.filter(log => log.category === category).slice(0, limit);

@@ -5,7 +5,7 @@ import { PacketValidator } from "../services/packet/PacketValidator";
 import { CommunicationEngine } from "../services/communication/CommunicationEngine";
 import { GatewaySync } from "../services/mesh/GatewaySync";
 import { MeshRouting } from "../services/mesh/MeshRouting";
-import { DatabaseService } from "../storage/database";
+import { initDatabase, saveCompleteProfile } from "../storage/database";
 
 /**
  * ResQNet Phase 7 Real SOS Delivery Integration Automated Test Suite
@@ -30,7 +30,7 @@ export async function runPhase7TestSuite(): Promise<{ total: number; passed: num
   };
 
   // Pre-test setup
-  await DatabaseService.initDatabase();
+  await initDatabase();
   CommunicationEngine.resetEngine();
 
   // Test 1: Direct Internet SOS Delivery & FastAPI Ingest
@@ -46,11 +46,11 @@ export async function runPhase7TestSuite(): Promise<{ total: number; passed: num
     });
 
     const receipt = await CommunicationEngine.simulateInternetAvailable(packet);
-    const isAck = receipt && receipt.deliveryStatus === "ACKNOWLEDGED";
+    const isAck = receipt && receipt.status === "ACKNOWLEDGED";
     recordResult(
       "Test 1 — Internet SOS Delivery & ACK",
       !!isAck,
-      isAck ? `Receipt ACKNOWLEDGED (Method: ${receipt?.communicationMethod})` : `Failed receipt: ${receipt?.deliveryStatus}`
+      isAck ? `Receipt ACKNOWLEDGED (Method: ${receipt?.communicationMethod})` : `Failed receipt: ${receipt?.status}`
     );
   } catch (e: any) {
     recordResult("Test 1 — Internet SOS Delivery & ACK", false, e.message || String(e));
@@ -67,11 +67,11 @@ export async function runPhase7TestSuite(): Promise<{ total: number; passed: num
     });
 
     const receipt = await CommunicationEngine.simulateInternetLost(packet);
-    const isMeshOrRelayed = receipt && (receipt.deliveryStatus === "RELAYED" || receipt.communicationMethod === "BLUETOOTH_MESH");
+    const isMeshOrRelayed = receipt && (receipt.status === "RELAYED" || receipt.communicationMethod === "BLUETOOTH_MESH");
     recordResult(
       "Test 2 — No Internet Fallback",
       !!isMeshOrRelayed,
-      isMeshOrRelayed ? `Selected carrier: ${receipt?.communicationMethod}, status: ${receipt?.deliveryStatus}` : `Unexpected status: ${receipt?.deliveryStatus}`
+      isMeshOrRelayed ? `Selected carrier: ${receipt?.communicationMethod}, status: ${receipt?.status}` : `Unexpected status: ${receipt?.status}`
     );
   } catch (e: any) {
     recordResult("Test 2 — No Internet Fallback", false, e.message || String(e));
@@ -86,7 +86,7 @@ export async function runPhase7TestSuite(): Promise<{ total: number; passed: num
     });
 
     const sim = await CommunicationEngine.simulateGatewayDiscovered(packet);
-    const hasGw = !!sim.gateway && sim.receipt?.deliveryStatus === "GATEWAY_FOUND";
+    const hasGw = !!sim.gateway && sim.receipt?.status === "GATEWAY_FOUND";
     recordResult(
       "Test 3 — One-Hop Gateway Relay",
       hasGw,
@@ -197,11 +197,11 @@ export async function runPhase7TestSuite(): Promise<{ total: number; passed: num
   // Test 8: Medical Privacy Consent Enforcement
   try {
     // Save profile with consent = false
-    await DatabaseService.saveEmergencyProfile({
+    await saveCompleteProfile({
       personal: { fullName: "Jane Doe", bloodGroup: "AB+", consentToShareMedical: false },
       medical: { medicalConditions: "Heart Condition", allergies: "Penicillin" },
       contacts: [],
-    });
+    } as any);
 
     const privatePacket = await PacketBuilder.buildEmergencyPacket({
       emergencyType: "Test 8: Privacy Test",

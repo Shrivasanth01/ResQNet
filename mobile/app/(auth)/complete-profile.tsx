@@ -14,6 +14,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { markProfileCompleted } from '../../src/services/firestoreUser';
 import { getCurrentUser } from '../../src/services/firebaseAuth';
 import { saveCompleteProfile, createNewUserProfile } from '../../src/storage/database';
+import { authStorage } from '../../src/storage/authStorage';
 import PrimaryButton from '../../src/components/buttons/PrimaryButton';
 import TextInputField from '../../src/components/inputs/TextInputField';
 
@@ -88,21 +89,32 @@ export default function CompleteProfileScreen() {
         emergencyContactPhone: emergencyContactPhone.trim(),
       };
 
-      // Save to local SQLite vault
+      // Save to local SQLite vault (this is local and fast)
       const userEmail = registrationData.email;
       const profile = createNewUserProfile(registrationData.name, userEmail, registrationData);
       await saveCompleteProfile(profile, userEmail);
 
-      // Mark profile completed in Firestore
-      await markProfileCompleted(firebaseUser.uid, {
-        displayName: registrationData.name,
-        email: userEmail,
+      // Persist the "profile complete" flag locally so subsequent page
+      // refreshes don't bounce the user back to this form even if
+      // Firestore is slow or unreachable.
+      await authStorage.setProfileCompleted(true);
+
+      // Mark profile completed in Firestore — best-effort, non-blocking
+      // so a slow/unreachable Firestore never freezes the UI.
+      Promise.race([
+        markProfileCompleted(firebaseUser.uid, {
+          displayName: registrationData.name,
+          email: userEmail,
+        }),
+        new Promise((resolve) => setTimeout(resolve, 2000)),
+      ]).catch(() => {
+        // Firestore failed — already saved locally, ignore
       });
 
-      // Refresh auth context state
-      await refreshAuthState();
+      // Refresh auth context state (also non-blocking)
+      refreshAuthState().catch(() => {});
 
-      // Navigate to dashboard
+      // Navigate to dashboard immediately
       router.replace('/(tabs)');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save profile. Please try again.');

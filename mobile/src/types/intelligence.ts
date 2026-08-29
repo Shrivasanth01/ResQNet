@@ -13,12 +13,15 @@ export type DecisionAction = "IGNORE" | "WARN_USER" | "START_COUNTDOWN" | "GENER
 export type BatteryMode = "NORMAL" | "CONSERVATION" | "CRITICAL_POWER_SAVE";
 
 export interface SensorEvent {
-  id: string;
-  type: SensorEventType;
+  id?: string;
+  type?: SensorEventType;
+  eventType?: string;
   timestamp: string; // ISO-8601
   confidence: number; // Normalized 0.0 to 1.0
-  magnitude: number; // e.g. G-force (9.8 m/s^2 = 1G), decibels, meters dropped
-  sourceProvider: "SIMULATED_PROVIDER" | "HARDWARE_IMU";
+  magnitude?: number; // e.g. G-force (9.8 m/s^2 = 1G), decibels, meters dropped
+  sourceProvider?: "SIMULATED_PROVIDER" | "HARDWARE_IMU";
+  source?: string;
+  rawValues?: Record<string, any>;
   metadata?: Record<string, any>;
 }
 

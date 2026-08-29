@@ -54,7 +54,8 @@ export const SensorFusion = {
       if (evt.type === "IMPACT_DETECTED" || evt.type === "LOUD_NOISE_CRASH") hasImpact = true;
       if (evt.type === "FREE_FALL" || evt.type === "RAPID_ALTITUDE_DROP") hasFreeFall = true;
       if (evt.type === "STATIONARY_IMMOBILITY") hasImmobility = true;
-      if (evt.magnitude > maxMagnitude) maxMagnitude = evt.magnitude;
+      const mag = evt.magnitude ?? 0;
+      if (mag > maxMagnitude) maxMagnitude = mag;
       sumConfidence += evt.confidence;
     }
 

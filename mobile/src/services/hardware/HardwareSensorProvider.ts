@@ -1,4 +1,4 @@
-import { ISensorProvider, SensorEvent } from "../intelligence/SensorProviderContract";
+import { SensorProviderContract, SensorEvent } from "../../types/intelligence";
 import { AccelerometerService } from "./AccelerometerService";
 import { GyroscopeService } from "./GyroscopeService";
 import { LocationService } from "./LocationService";
@@ -12,14 +12,22 @@ import { NotificationService } from "./NotificationService";
  * Real Hardware Sensor Provider
  * 
  * DESIGN PRINCIPLE (Dependency Inversion):
- * Implements our existing Phase 2A ISensorProvider / SensorProviderContract directly.
+ * Implements our existing Phase 2A SensorProviderContract directly.
  * Replaces simulated sensor providers without modifying a single line of Sensor Fusion, Decision Engine,
  * or Emergency Packet logic!
  */
-export class HardwareSensorProvider implements ISensorProvider {
+export class HardwareSensorProvider implements SensorProviderContract {
   public readonly providerName = "REAL_DEVICE_MEMS_HARDWARE_PROVIDER";
   private eventCallback: ((event: SensorEvent) => void) | null = null;
   private isProviderRunning: boolean = false;
+
+  public getProviderName(): string {
+    return this.providerName;
+  }
+
+  public isSimulated(): boolean {
+    return false;
+  }
 
   private unsubAccel: any = null;
   private unsubGyro: any = null;
@@ -41,7 +49,7 @@ export class HardwareSensorProvider implements ISensorProvider {
       if (fall.fallDetected && this.eventCallback) {
         this.eventCallback({
           eventType: "SEVERE_IMPACT",
-          timestamp: fall.timestamp,
+          timestamp: new Date(fall.timestamp || Date.now()).toISOString(),
           source: "ACCELEROMETER",
           confidence: 0.95,
           rawValues: { impactG: fall.impactGForce, tumblingDegPerSec: fall.rotationalRateDegPerSec }
@@ -55,7 +63,7 @@ export class HardwareSensorProvider implements ISensorProvider {
         if (motion.activity === "VEHICLE_TRAVEL") {
           this.eventCallback({
             eventType: "VEHICULAR_SPEED_DETECTED",
-            timestamp: motion.timestamp,
+            timestamp: new Date(motion.timestamp || Date.now()).toISOString(),
             source: "GPS_SPEED",
             confidence: motion.confidence,
             rawValues: { cadenceHz: motion.cadenceFrequencyHz, averageGForce: motion.averageGForce }
@@ -70,7 +78,7 @@ export class HardwareSensorProvider implements ISensorProvider {
         if (batt.batteryLevel <= 15 || batt.lowPowerMode) {
           this.eventCallback({
             eventType: "CRITICAL_BATTERY_DEGRADATION",
-            timestamp: batt.timestamp,
+            timestamp: new Date(batt.timestamp || Date.now()).toISOString(),
             source: "BATTERY_MONITOR",
             confidence: 1.0,
             rawValues: { batteryLevel: batt.batteryLevel, isCharging: batt.isCharging, lowPower: batt.lowPowerMode }
@@ -84,7 +92,7 @@ export class HardwareSensorProvider implements ISensorProvider {
       if (this.eventCallback && (!net.isConnected || !net.isInternetReachable)) {
         this.eventCallback({
           eventType: "CONNECTIVITY_LOST_INTERNET",
-          timestamp: net.timestamp,
+          timestamp: new Date(net.timestamp || Date.now()).toISOString(),
           source: "NETWORK_STATE",
           confidence: 1.0,
           rawValues: { networkType: net.networkType, isAirplaneMode: net.isAirplaneMode }

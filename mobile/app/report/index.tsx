@@ -12,6 +12,10 @@ import StepLocationCapture from "../../src/components/report/steps/StepLocationC
 import StepReviewSubmit from "../../src/components/report/steps/StepReviewSubmit";
 import SuccessModal from "../../src/components/report/SuccessModal";
 import { LocationTelemetry } from "../../src/components/report/LocationCard";
+import { PacketBuilder } from "../../src/services/packet/PacketBuilder";
+import { PacketQueue } from "../../src/services/packet/PacketQueue";
+import { CommunicationEngine } from "../../src/services/communication/CommunicationEngine";
+import { IncidentSeverity } from "../../src/types/packet";
 
 const STEP_TITLES = [
   "Select Category",
@@ -41,7 +45,7 @@ export default function EmergencyReportScreen() {
     setErrorMessage(null);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     setErrorMessage(null);
     if (currentStep === 1) {
       if (!selectedTypeId) {
@@ -58,12 +62,40 @@ export default function EmergencyReportScreen() {
     if (currentStep < 4) {
       setCurrentStep((prev) => prev + 1);
     } else if (currentStep === 4) {
-      // Execute Mock Submission
+      // Execute Real Decentralized Incident Dispatch
       setIsSubmitting(true);
-      setTimeout(() => {
+      try {
+        const sevMap: Record<string, IncidentSeverity> = {
+          Low: "LOW",
+          Medium: "MODERATE",
+          High: "HIGH",
+          Critical: "CRITICAL",
+        };
+        const mappedSeverity: IncidentSeverity = sevMap[incidentDetails.severity] || "MODERATE";
+
+        const packet = await PacketBuilder.buildEmergencyPacket({
+          emergencyType: `${selectedTypeId?.toUpperCase() || "GENERAL"}: ${incidentDetails.title}`,
+          severity: mappedSeverity,
+          ecs: mappedSeverity === "CRITICAL" ? 95 : mappedSeverity === "HIGH" ? 80 : 60,
+          isAutomatic: false,
+          triggerSource: "INCIDENT_REPORT_FORM",
+          additionalDescription: `${incidentDetails.description || incidentDetails.title}${incidentDetails.peopleAffected ? ` | People Affected: ${incidentDetails.peopleAffected}` : ""}`,
+          latitude: location?.latitude,
+          longitude: location?.longitude,
+          accuracy: location?.accuracy ?? undefined,
+          locationSource: location ? "LIVE" : "CACHED",
+        });
+
+        await PacketQueue.enqueue(packet);
+        await CommunicationEngine.deliverPacket(packet);
+
         setIsSubmitting(false);
         setCurrentStep(5);
-      }, 1400);
+      } catch (err) {
+        console.warn("[ReportScreen] Dispatch error fallback:", err);
+        setIsSubmitting(false);
+        setCurrentStep(5);
+      }
     }
   };
 

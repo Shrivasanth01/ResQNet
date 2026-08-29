@@ -71,7 +71,7 @@ export const authApi = {
       id: `user_${Date.now()}`,
       name: data.name,
       email: data.email,
-      password: data.password,
+      password: data.password || "",
       createdAt: new Date().toISOString(),
     };
 

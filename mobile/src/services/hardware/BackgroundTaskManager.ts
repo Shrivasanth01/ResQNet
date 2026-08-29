@@ -7,7 +7,7 @@ export const RESQNET_BG_LOCATION_TASK = "RESQNET_BACKGROUND_LOCATION_TRACKER";
 // Register Headless Background Task outside component lifecycles to respect OS execution constraints
 if (Platform.OS !== "web") {
   try {
-    TaskManager.defineTask(RESQNET_BG_LOCATION_TASK, ({ data, error }) => {
+    TaskManager.defineTask(RESQNET_BG_LOCATION_TASK, async ({ data, error }: any) => {
       if (error) {
         console.warn("[BackgroundTaskManager] OS execution error during background telemetry tracking:", error);
         return;

@@ -2,7 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database.session import engine, Base
-from app.api.v1 import incidents, users, health
+from app.api.v1 import incidents, users, health, otp
 from app.middleware.logging import StructuredLoggingMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.websocket.manager import manager
@@ -36,6 +36,7 @@ app.add_middleware(RateLimitMiddleware, max_requests_per_minute=240)
 app.include_router(incidents.router, prefix=f"{settings.API_V1_STR}/incidents", tags=["Incidents & Packets"])
 app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["User Medical Vaults"])
 app.include_router(health.router, prefix=f"{settings.API_V1_STR}/health", tags=["System Health Diagnostics"])
+app.include_router(otp.router, prefix=f"{settings.API_V1_STR}/auth", tags=["OTP Authentication (MSG91)"])
 
 @app.websocket(f"{settings.API_V1_STR}/ws/incidents")
 async def websocket_incidents_endpoint(websocket: WebSocket):

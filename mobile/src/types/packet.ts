@@ -2,7 +2,7 @@ import { BloodGroup } from "./profile";
 
 export type PacketType = "SOS_EMERGENCY" | "STATUS_CHECKIN" | "MESH_RELAY" | "GATEWAY_ACK" | "HEARTBEAT";
 export type DeliveryStatus = "QUEUED" | "TRANSMITTING" | "RELAYED" | "DELIVERED_TO_GATEWAY" | "FAILED_EXHAUSTED";
-export type TriggerSource = "MANUAL_SOS_BUTTON" | "MULTI_SENSOR_FALL" | "VEHICLE_CRASH" | "GOVERNMENT_ALERT" | "API_SYSTEM";
+export type TriggerSource = "MANUAL_SOS_BUTTON" | "MULTI_SENSOR_FALL" | "VEHICLE_CRASH" | "GOVERNMENT_ALERT" | "API_SYSTEM" | "INCIDENT_REPORT_FORM";
 export type IncidentSeverity = "CRITICAL" | "HIGH" | "MODERATE" | "LOW" | "INFO";
 
 export interface PacketHeader {

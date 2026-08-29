@@ -107,25 +107,43 @@ export default function VerifyOTPScreen() {
     try {
       const firebaseUser = await verifyOTP(otpCode);
 
-      // Check Firestore for existing user document
-      const { exists, profileCompleted } = await checkUserStatus(firebaseUser.uid);
+      // Navigate immediately so the user sees progress. Firestore checks
+      // happen in the background; navigation doesn't wait on them.
+      const uid = firebaseUser.uid;
+      const phone = phoneNumber || firebaseUser.phoneNumber || '';
 
-      if (!exists) {
-        // First-time user — create Firestore doc
-        await createUserDoc(firebaseUser.uid, phoneNumber || '');
+      // Default to profile-completion flow (most users are new)
+      let goToProfile = true;
+
+      try {
+        // Race against a 2s budget — if Firestore is slow, just go to profile.
+        const status = await Promise.race([
+          checkUserStatus(uid),
+          new Promise<{ exists: boolean; profileCompleted: boolean }>((resolve) =>
+            setTimeout(() => resolve({ exists: false, profileCompleted: false }), 2000)
+          ),
+        ]);
+        if (!status.exists) {
+          // First-time user — create Firestore doc (non-blocking)
+          createUserDoc(uid, phone).catch(() => {});
+          goToProfile = true;
+        } else {
+          goToProfile = !status.profileCompleted;
+        }
+      } catch {
+        // Firestore unreachable — treat as new user
+        goToProfile = true;
       }
 
-      // Refresh auth state in context
-      await refreshAuthState();
+      // Refresh auth state (also non-blocking)
+      refreshAuthState().catch(() => {});
 
-      if (exists && profileCompleted) {
-        // Returning user with completed profile
+      if (!goToProfile) {
         router.replace('/(tabs)');
       } else {
-        // New user or incomplete profile — go to profile completion
         router.replace({
           pathname: '/(auth)/complete-profile' as any,
-          params: { phoneNumber: phoneNumber || '' },
+          params: { phoneNumber: phone },
         });
       }
     } catch (err) {

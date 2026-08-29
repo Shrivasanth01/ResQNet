@@ -52,6 +52,19 @@ export const authStorage = {
     await AsyncStorage.multiRemove([
       STORAGE_KEYS.AUTH_TOKEN,
       STORAGE_KEYS.USER,
+      STORAGE_KEYS.PROFILE_COMPLETED,
     ]);
+  },
+
+  async setProfileCompleted(completed: boolean): Promise<void> {
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.PROFILE_COMPLETED,
+      completed ? 'true' : 'false'
+    );
+  },
+
+  async getProfileCompleted(): Promise<boolean> {
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS.PROFILE_COMPLETED);
+    return raw === 'true';
   },
 };

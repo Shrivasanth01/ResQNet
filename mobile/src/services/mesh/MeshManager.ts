@@ -91,7 +91,7 @@ class MeshManagerService {
       severity: "CRITICAL"
     });
 
-    const res = await this.bleDispatcher.dispatch(testPacket);
+    const res = await this.bleDispatcher.dispatchWithDetails(testPacket);
     const success = res !== null && res.startsWith("RELAYED_VIA");
 
     const logs = MeshLogger.getRecentLogs(6).map(l => `[${l.category}] ${l.message}`);

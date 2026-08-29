@@ -8,14 +8,19 @@ import React, {
 import { onAuthChange, signOut as firebaseSignOut, getCurrentUser } from '../services/firebaseAuth';
 import { checkUserStatus } from '../services/firestoreUser';
 import { authStorage } from '../storage/authStorage';
+import { authApi } from '../api/authApi';
 import type {
   AuthState,
   User,
+  LoginCredentials,
+  RegisterData,
 } from '../types/auth';
 
 // ─── Context Shape ────────────────────────────────────────────────────────────
 
 interface AuthContextValue extends AuthState {
+  login: (credentials: LoginCredentials) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   refreshAuthState: () => Promise<void>;
 }
@@ -67,14 +72,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         createdAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
       };
 
-      // Check Firestore for profile completion status
-      let profileCompleted = false;
-      try {
-        const status = await checkUserStatus(firebaseUser.uid);
-        profileCompleted = status.profileCompleted;
-      } catch {
-        // Firestore may fail offline — default to false
-        profileCompleted = false;
+      // Decide if the profile is complete. Trust the local flag first
+      // (it was set the moment the user saved their profile) so a
+      // slow/unreachable Firestore never sends them back to the form.
+      let profileCompleted = await authStorage.getProfileCompleted();
+
+      if (!profileCompleted) {
+        // Local flag missing — check Firestore once (with a 3s cap)
+        // so first-launch users still get the right answer.
+        try {
+          const status = await Promise.race([
+            checkUserStatus(firebaseUser.uid),
+            new Promise<{ profileCompleted: boolean }>((resolve) =>
+              setTimeout(() => resolve({ profileCompleted: false }), 3000)
+            ),
+          ]);
+          profileCompleted = status.profileCompleted;
+          if (profileCompleted) {
+            // Cache the result so future reloads skip the network call
+            await authStorage.setProfileCompleted(true);
+          }
+        } catch {
+          // Firestore failed — keep the local answer (false) and move on
+        }
       }
 
       // Persist to storage for backward compatibility
@@ -125,10 +145,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [resolveAuthState]);
 
-  // ─── Auth Actions ───────────────────────────────────────────────────────────
+  const login = useCallback(async (credentials: LoginCredentials): Promise<void> => {
+    const res = await authApi.login(credentials);
+    await authStorage.saveUser(res.user);
+    await authStorage.saveToken(res.tokens.accessToken);
+    setState({
+      user: res.user,
+      token: res.tokens.accessToken,
+      isAuthenticated: true,
+      isLoading: false,
+      profileCompleted: true,
+    });
+  }, []);
+
+  const register = useCallback(async (data: RegisterData): Promise<void> => {
+    const res = await authApi.register(data);
+    await authStorage.saveUser(res.user);
+    await authStorage.saveToken(res.tokens.accessToken);
+    setState({
+      user: res.user,
+      token: res.tokens.accessToken,
+      isAuthenticated: true,
+      isLoading: false,
+      profileCompleted: false,
+    });
+  }, []);
 
   const logout = useCallback(async (): Promise<void> => {
     await firebaseSignOut();
+    // authStorage.clear() now also removes the profile-completed flag,
+    // so signing out puts the user back to a clean state.
     await authStorage.clear();
     setState({
       user: null,
@@ -146,7 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <AuthContext.Provider value={{ ...state, logout, refreshAuthState }}>
+    <AuthContext.Provider value={{ ...state, login, register, logout, refreshAuthState }}>
       {children}
     </AuthContext.Provider>
   );

@@ -11,7 +11,7 @@ import {
 import { router } from 'expo-router';
 import { useState, useRef } from 'react';
 import { Colors } from '../../src/theme/colors';
-import { sendOTP } from '../../src/services/firebaseAuth';
+import { sendOTP, isDemoMode } from '../../src/services/firebaseAuth';
 import { isFirebaseConfigured } from '../../src/firebase';
 import PrimaryButton from '../../src/components/buttons/PrimaryButton';
 
@@ -31,7 +31,7 @@ export default function PhoneLoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const phoneInputRef = useRef<TextInput>(null);
-  const isConfigured = isFirebaseConfigured();
+  const isDemo = isDemoMode();
 
   function formatPhoneDisplay(num: string): string {
     const digits = num.replace(/\D/g, '');
@@ -101,11 +101,11 @@ export default function PhoneLoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Demo Mode / Environment Notice */}
-        {!isConfigured && (
+        {isDemo && (
           <View style={styles.demoBanner}>
             <Text style={styles.demoBannerTitle}>💡 Dev / Demo Mode Enabled</Text>
             <Text style={styles.demoBannerText}>
-              Firebase credentials are not set in `.env`. You can test immediately using any 10-digit phone number (Use test OTP: <Text style={styles.demoBold}>123456</Text>).
+              No real SMS is being sent. You can test immediately using any 10-digit phone number (Use test OTP: <Text style={styles.demoBold}>123456</Text>).
             </Text>
           </View>
         )}

@@ -43,7 +43,7 @@ class GyroscopeServiceClass {
     if (this.isRunning || Platform.OS === "web") return;
 
     try {
-      this.subscription = Gyroscope.addListener((reading) => {
+      this.subscription = Gyroscope.addListener((reading: any) => {
         const now = Date.now();
         // Compute total angular rotational velocity: sqrt(x^2 + y^2 + z^2)
         const angularMagnitude = Math.sqrt(

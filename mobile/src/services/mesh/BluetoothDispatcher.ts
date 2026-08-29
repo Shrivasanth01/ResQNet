@@ -25,10 +25,14 @@ export class BluetoothDispatcher implements IDispatcher {
     MeshLogger.info("DISCOVERY", `Initialized BLE 5.0 GATT Dispatcher [Service UUID: ${this.serviceUuid}]`);
   }
 
+  public getMethodName() {
+    return "BLUETOOTH_MESH" as const;
+  }
+
   /**
    * Verifies BLE capability and ensures at least one Bluetooth peer is within radio range.
    */
-  public isAvailable(): boolean {
+  public isAvailable(_network?: any): boolean {
     const blePeers = PeerManager.getActivePeers().filter(p => p.transport === "BLE");
     return this.isAdvertisingBle && blePeers.length > 0;
   }
@@ -36,7 +40,12 @@ export class BluetoothDispatcher implements IDispatcher {
   /**
    * Encrypts, frames into MTU GATT chunks, and transmits over peer-to-peer relay network.
    */
-  public async dispatch(packet: EmergencyPacket): Promise<string | null> {
+  public async dispatch(packet: EmergencyPacket, _gatewayId?: string): Promise<boolean> {
+    const result = await this.dispatchWithDetails(packet);
+    return result !== null;
+  }
+
+  public async dispatchWithDetails(packet: EmergencyPacket): Promise<string | null> {
     // Phase B: Encrypt PHI fields & sign envelope before BLE radio transmission
     const encryptedPacket = PacketEncryption.encryptPacket(packet);
     const packetId = encryptedPacket.header.packetId;
