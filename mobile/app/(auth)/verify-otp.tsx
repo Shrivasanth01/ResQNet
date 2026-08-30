@@ -346,27 +346,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     letterSpacing: 0.5,
   },
-  demoHintBox: {
-    marginTop: 14,
-    backgroundColor: `${Colors.primary}12`,
-    borderColor: Colors.primary,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  demoHintText: {
-    fontSize: 13,
-    color: Colors.text,
-  },
-  demoHintBold: {
-    fontWeight: '700',
-    color: Colors.primary,
-  },
-  demoHintCode: {
-    fontWeight: '900',
-    color: Colors.primary,
-  },
 
   // OTP Container
   otpContainer: {

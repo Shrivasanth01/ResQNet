@@ -310,29 +310,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
-  demoBanner: {
-    backgroundColor: 'rgba(0, 229, 255, 0.08)',
-    borderColor: Colors.primary,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 20,
-  },
-  demoBannerTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: Colors.primary,
-    marginBottom: 4,
-  },
-  demoBannerText: {
-    fontSize: 13,
-    color: Colors.text,
-    lineHeight: 18,
-  },
-  demoBold: {
-    fontWeight: '800',
-    color: Colors.primary,
-  },
 
   // Brand
   brandSection: {
