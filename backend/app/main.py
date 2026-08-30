@@ -38,6 +38,20 @@ app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["U
 app.include_router(health.router, prefix=f"{settings.API_V1_STR}/health", tags=["System Health Diagnostics"])
 app.include_router(otp.router, prefix=f"{settings.API_V1_STR}/auth", tags=["OTP Authentication (MSG91)"])
 
+@app.get("/")
+def root_endpoint():
+    return {
+        "status": "online",
+        "service": "ResQNet Central Cloud & Emergency Triage API",
+        "version": settings.VERSION,
+        "docs": "/docs",
+        "api_v1": settings.API_V1_STR
+    }
+
+@app.get("/health")
+def health_endpoint():
+    return {"status": "healthy", "service": "ResQNet Backend"}
+
 @app.websocket(f"{settings.API_V1_STR}/ws/incidents")
 async def websocket_incidents_endpoint(websocket: WebSocket):
     """
