@@ -22,12 +22,15 @@ const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 const GENDER_OPTIONS = ['Male', 'Female', 'Other'];
 
 export default function CompleteProfileScreen() {
-  const { phoneNumber } = useLocalSearchParams<{ phoneNumber: string }>();
+  const { phoneNumber, email: paramEmail } = useLocalSearchParams<{
+    phoneNumber?: string;
+    email?: string;
+  }>();
   const { refreshAuthState } = useAuth();
 
   // Step 1: Personal Identity
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(paramEmail || '');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('Male');
 

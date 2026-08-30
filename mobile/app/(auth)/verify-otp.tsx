@@ -12,6 +12,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useRef, useEffect } from 'react';
 import { Colors } from '../../src/theme/colors';
 import { verifyOTP, sendOTP, clearPendingOTP } from '../../src/services/firebaseAuth';
+import { verifyEmailOTP, sendEmailOTP, clearPendingEmailOTP } from '../../src/services/emailAuth';
 import { isFirebaseConfigured } from '../../src/firebase';
 import { checkUserStatus, createUserDoc } from '../../src/services/firestoreUser';
 import { useAuth } from '../../src/context/AuthContext';
@@ -21,12 +22,16 @@ const OTP_LENGTH = 6;
 const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function VerifyOTPScreen() {
-  const { phoneNumber, maskedNumber } = useLocalSearchParams<{
-    phoneNumber: string;
-    maskedNumber: string;
+  const { authMethod = 'email', email, phoneNumber, maskedTarget, maskedNumber } = useLocalSearchParams<{
+    authMethod?: 'email' | 'phone';
+    email?: string;
+    phoneNumber?: string;
+    maskedTarget?: string;
+    maskedNumber?: string;
   }>();
   const { refreshAuthState } = useAuth();
   const isConfigured = isFirebaseConfigured();
+  const isEmailAuth = authMethod === 'email';
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [isVerifying, setIsVerifying] = useState(false);
@@ -35,6 +40,8 @@ export default function VerifyOTPScreen() {
   const [resendTimer, setResendTimer] = useState(RESEND_COOLDOWN_SECONDS);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const displayTarget = maskedTarget || (isEmailAuth ? email : maskedNumber || phoneNumber) || '';
 
   // Start countdown timer on mount
   useEffect(() => {
@@ -105,18 +112,21 @@ export default function VerifyOTPScreen() {
     setIsVerifying(true);
 
     try {
-      const firebaseUser = await verifyOTP(otpCode);
+      let authedUser: any;
+      if (isEmailAuth) {
+        authedUser = await verifyEmailOTP(otpCode, email);
+      } else {
+        authedUser = await verifyOTP(otpCode);
+      }
 
-      // Navigate immediately so the user sees progress. Firestore checks
-      // happen in the background; navigation doesn't wait on them.
-      const uid = firebaseUser.uid;
-      const phone = phoneNumber || firebaseUser.phoneNumber || '';
+      const uid = authedUser.uid || authedUser.id;
+      const userPhone = phoneNumber || authedUser.phoneNumber || '';
+      const userEmail = email || authedUser.email || '';
 
-      // Default to profile-completion flow (most users are new)
+      // Default to profile-completion flow
       let goToProfile = true;
 
       try {
-        // Race against a 2s budget — if Firestore is slow, just go to profile.
         const status = await Promise.race([
           checkUserStatus(uid),
           new Promise<{ exists: boolean; profileCompleted: boolean }>((resolve) =>
@@ -124,18 +134,15 @@ export default function VerifyOTPScreen() {
           ),
         ]);
         if (!status.exists) {
-          // First-time user — create Firestore doc (non-blocking)
-          createUserDoc(uid, phone).catch(() => {});
+          createUserDoc(uid, userPhone).catch(() => {});
           goToProfile = true;
         } else {
           goToProfile = !status.profileCompleted;
         }
       } catch {
-        // Firestore unreachable — treat as new user
         goToProfile = true;
       }
 
-      // Refresh auth state (also non-blocking)
       refreshAuthState().catch(() => {});
 
       if (!goToProfile) {
@@ -143,10 +150,10 @@ export default function VerifyOTPScreen() {
       } else {
         router.replace({
           pathname: '/(auth)/complete-profile' as any,
-          params: { phoneNumber: phone },
+          params: { phoneNumber: userPhone, email: userEmail },
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       const message = err instanceof Error ? err.message : 'Verification failed.';
       if (message.includes('invalid-verification-code') || message.includes('code-expired')) {
         setError('Invalid or expired code. Please try again.');
@@ -161,26 +168,37 @@ export default function VerifyOTPScreen() {
   }
 
   async function handleResend(): Promise<void> {
-    if (resendTimer > 0 || !phoneNumber) return;
+    if (resendTimer > 0) return;
 
     setIsResending(true);
     setError(null);
 
     try {
-      clearPendingOTP();
-      await sendOTP(phoneNumber);
+      if (isEmailAuth) {
+        if (!email) return;
+        clearPendingEmailOTP();
+        await sendEmailOTP(email);
+      } else {
+        if (!phoneNumber) return;
+        clearPendingOTP();
+        await sendOTP(phoneNumber);
+      }
       setOtp(Array(OTP_LENGTH).fill(''));
       inputRefs.current[0]?.focus();
       startCountdown();
-    } catch (err) {
+    } catch (err: any) {
       setError('Failed to resend code. Please try again.');
     } finally {
       setIsResending(false);
     }
   }
 
-  function handleChangeNumber(): void {
-    clearPendingOTP();
+  function handleChangeTarget(): void {
+    if (isEmailAuth) {
+      clearPendingEmailOTP();
+    } else {
+      clearPendingOTP();
+    }
     router.back();
   }
 
@@ -199,21 +217,21 @@ export default function VerifyOTPScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconCircle}>
-            <Text style={styles.iconText}>📱</Text>
+            <Text style={styles.iconText}>{isEmailAuth ? '📧' : '📱'}</Text>
           </View>
-          <Text style={styles.title}>Verify Your Number</Text>
+          <Text style={styles.title}>
+            {isEmailAuth ? 'Verify Your Email' : 'Verify Your Number'}
+          </Text>
           <Text style={styles.subtitle}>
             We sent a 6-digit verification code to
           </Text>
-          <Text style={styles.phoneDisplay}>{maskedNumber || phoneNumber}</Text>
+          <Text style={styles.phoneDisplay}>{displayTarget}</Text>
 
-          {!isConfigured && (
-            <View style={styles.demoHintBox}>
-              <Text style={styles.demoHintText}>
-                💡 <Text style={styles.demoHintBold}>Demo Mode:</Text> Enter test OTP <Text style={styles.demoHintCode}>123456</Text> (or any 6 digits)
-              </Text>
-            </View>
-          )}
+          <View style={styles.demoHintBox}>
+            <Text style={styles.demoHintText}>
+              💡 <Text style={styles.demoHintBold}>Free / Demo Code:</Text> Enter <Text style={styles.demoHintCode}>123456</Text> (or check your inbox)
+            </Text>
+          </View>
         </View>
 
         {/* OTP Input Grid */}
@@ -251,7 +269,7 @@ export default function VerifyOTPScreen() {
           />
         </View>
 
-        {/* Resend / Change Number */}
+        {/* Resend / Change Email or Phone */}
         <View style={styles.actionsRow}>
           {resendTimer > 0 ? (
             <Text style={styles.timerText}>
@@ -268,12 +286,14 @@ export default function VerifyOTPScreen() {
 
           <View style={styles.actionDot} />
 
-          <Pressable onPress={handleChangeNumber}>
-            <Text style={styles.changeLink}>Change Number</Text>
+          <Pressable onPress={handleChangeTarget}>
+            <Text style={styles.changeLink}>
+              {isEmailAuth ? 'Change Email' : 'Change Number'}
+            </Text>
           </Pressable>
         </View>
 
-        {/* Invisible reCAPTCHA container */}
+        {/* Invisible reCAPTCHA container for web fallback */}
         <View nativeID="recaptcha-container" style={styles.recaptchaContainer} />
       </ScrollView>
     </KeyboardAvoidingView>
@@ -291,39 +311,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 40,
     justifyContent: 'center',
+    maxWidth: 520,
+    width: '100%',
+    alignSelf: 'center',
   },
 
   // Header
   header: {
     alignItems: 'center',
-    marginBottom: 36,
+    marginBottom: 32,
   },
   iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: `${Colors.primary}10`,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: `${Colors.primary}15`,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   iconText: {
-    fontSize: 36,
+    fontSize: 32,
   },
   title: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '800',
     color: Colors.text,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
   },
   phoneDisplay: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
     color: Colors.primary,
     marginTop: 6,
@@ -349,32 +372,30 @@ const styles = StyleSheet.create({
   demoHintCode: {
     fontWeight: '900',
     color: Colors.primary,
-    letterSpacing: 1,
   },
 
-  // OTP Grid
+  // OTP Container
   otpContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 10,
-    marginBottom: 16,
+    gap: 8,
+    marginBottom: 20,
   },
   otpCell: {
-    width: 50,
-    height: 60,
-    borderWidth: 2,
+    width: 46,
+    height: 54,
+    borderRadius: 12,
+    borderWidth: 1.5,
     borderColor: Colors.border,
-    borderRadius: 14,
     backgroundColor: Colors.surface,
-    fontSize: 24,
+    textAlign: 'center',
+    fontSize: 22,
     fontWeight: '800',
     color: Colors.text,
-    textAlign: 'center',
-    lineHeight: 56,
   },
   otpCellFilled: {
     borderColor: Colors.primary,
-    backgroundColor: `${Colors.primary}06`,
+    backgroundColor: `${Colors.primary}08`,
   },
   otpCellError: {
     borderColor: Colors.danger,
@@ -384,18 +405,17 @@ const styles = StyleSheet.create({
   errorText: {
     color: Colors.danger,
     fontSize: 14,
-    fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
+    fontWeight: '600',
   },
 
   // Button
   buttonSection: {
-    marginTop: 12,
     marginBottom: 24,
   },
 
-  // Actions
+  // Actions Row
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -407,11 +427,11 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   timerBold: {
-    fontWeight: '800',
+    fontWeight: '700',
     color: Colors.text,
   },
   resendLink: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: Colors.primary,
   },
@@ -422,9 +442,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.border,
   },
   changeLink: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.secondary,
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textSecondary,
   },
 
   // reCAPTCHA

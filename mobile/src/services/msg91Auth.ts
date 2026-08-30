@@ -87,7 +87,7 @@ function persistSession(user: any | null): void {
 // Hydrate from localStorage at module-load time
 mockCurrentUser = restoreSession();
 
-function emitAuthChange(user: any | null): void {
+export function emitAuthChange(user: any | null): void {
   mockCurrentUser = user;
   persistSession(user);
   authListeners.forEach((fn) => fn(user));

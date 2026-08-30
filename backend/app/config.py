@@ -50,5 +50,17 @@ class Settings(BaseSettings):
     FAST2SMS_OTP_LENGTH: int = 6
     FAST2SMS_OTP_EXPIRY_MINUTES: int = 5
 
+    # 100% Free Email (Gmail) OTP Provider
+    # Uses standard Gmail SMTP (smtp.gmail.com:587) with App Password.
+    # If SMTP_USER or SMTP_PASSWORD is not set, automatically falls back to Free Demo Mode.
+    SMTP_ENABLED: bool = True
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_FROM_NAME: str = "ResQNet Emergency Mesh"
+    EMAIL_OTP_EXPIRY_MINUTES: int = 10
+
 
 settings = Settings()

@@ -12,8 +12,10 @@ import { router } from 'expo-router';
 import { useState, useRef } from 'react';
 import { Colors } from '../../src/theme/colors';
 import { sendOTP, isDemoMode } from '../../src/services/firebaseAuth';
-import { isFirebaseConfigured } from '../../src/firebase';
+import { sendEmailOTP } from '../../src/services/emailAuth';
 import PrimaryButton from '../../src/components/buttons/PrimaryButton';
+
+type AuthTab = 'email' | 'phone';
 
 const COUNTRY_CODES = [
   { code: '+91', flag: '🇮🇳', name: 'India' },
@@ -25,12 +27,16 @@ const COUNTRY_CODES = [
 ];
 
 export default function PhoneLoginScreen() {
+  const [activeTab, setActiveTab] = useState<AuthTab>('email');
+  const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedCountry, setSelectedCountry] = useState(COUNTRY_CODES[0]);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const phoneInputRef = useRef<TextInput>(null);
+  const emailInputRef = useRef<TextInput>(null);
   const isDemo = isDemoMode();
 
   function formatPhoneDisplay(num: string): string {
@@ -47,6 +53,14 @@ export default function PhoneLoginScreen() {
     }
   }
 
+  function validateEmail(): string | null {
+    const clean = email.trim().toLowerCase();
+    if (!clean) return 'Email address is required.';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(clean)) return 'Enter a valid email address (e.g. user@gmail.com).';
+    return null;
+  }
+
   function validatePhone(): string | null {
     const digits = phoneNumber.replace(/\D/g, '');
     if (!digits) return 'Phone number is required.';
@@ -54,39 +68,66 @@ export default function PhoneLoginScreen() {
     return null;
   }
 
-  async function handleSendOTP(): Promise<void> {
-    const validationError = validatePhone();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    setError(null);
-    setIsLoading(true);
-
-    try {
-      const fullNumber = `${selectedCountry.code}${phoneNumber}`;
-      await sendOTP(fullNumber);
-      router.push({
-        pathname: '/(auth)/verify-otp' as any,
-        params: {
-          phoneNumber: fullNumber,
-          maskedNumber: `${selectedCountry.code} ${formatPhoneDisplay(phoneNumber)}`,
-        },
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to send OTP.';
-      if (message.includes('too-many-requests')) {
-        setError('Too many attempts. Please try again later.');
-      } else if (message.includes('invalid-phone-number')) {
-        setError('Invalid phone number. Please check and try again.');
-      } else if (message.includes('app-not-authorized')) {
-        setError('App not authorized. Please contact support.');
-      } else {
-        setError(message);
+  async function handleSendCode(): Promise<void> {
+    if (activeTab === 'email') {
+      const emailError = validateEmail();
+      if (emailError) {
+        setError(emailError);
+        return;
       }
-    } finally {
-      setIsLoading(false);
+
+      setError(null);
+      setIsLoading(true);
+
+      try {
+        const cleanEmail = email.trim().toLowerCase();
+        await sendEmailOTP(cleanEmail);
+        router.push({
+          pathname: '/(auth)/verify-otp' as any,
+          params: {
+            authMethod: 'email',
+            email: cleanEmail,
+            maskedTarget: cleanEmail,
+          },
+        });
+      } catch (err: any) {
+        setError(err instanceof Error ? err.message : 'Failed to send email verification code.');
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      const phoneError = validatePhone();
+      if (phoneError) {
+        setError(phoneError);
+        return;
+      }
+
+      setError(null);
+      setIsLoading(true);
+
+      try {
+        const fullNumber = `${selectedCountry.code}${phoneNumber}`;
+        await sendOTP(fullNumber);
+        router.push({
+          pathname: '/(auth)/verify-otp' as any,
+          params: {
+            authMethod: 'phone',
+            phoneNumber: fullNumber,
+            maskedTarget: `${selectedCountry.code} ${formatPhoneDisplay(phoneNumber)}`,
+          },
+        });
+      } catch (err: any) {
+        const message = err instanceof Error ? err.message : 'Failed to send OTP.';
+        if (message.includes('too-many-requests')) {
+          setError('Too many attempts. Please try again later.');
+        } else if (message.includes('invalid-phone-number')) {
+          setError('Invalid phone number. Please check and try again.');
+        } else {
+          setError(message);
+        }
+      } finally {
+        setIsLoading(false);
+      }
     }
   }
 
@@ -100,15 +141,13 @@ export default function PhoneLoginScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Demo Mode / Environment Notice */}
-        {isDemo && (
-          <View style={styles.demoBanner}>
-            <Text style={styles.demoBannerTitle}>💡 Dev / Demo Mode Enabled</Text>
-            <Text style={styles.demoBannerText}>
-              No real SMS is being sent. You can test immediately using any 10-digit phone number (Use test OTP: <Text style={styles.demoBold}>123456</Text>).
-            </Text>
-          </View>
-        )}
+        {/* Free Demo / Developer Banner */}
+        <View style={styles.demoBanner}>
+          <Text style={styles.demoBannerTitle}>⚡ 100% Free Emergency Authentication</Text>
+          <Text style={styles.demoBannerText}>
+            Use your <Text style={styles.demoBold}>Gmail</Text> or phone. In Demo Mode, use verification code: <Text style={styles.demoBold}>123456</Text>.
+          </Text>
+        </View>
 
         {/* Brand Header */}
         <View style={styles.brandSection}>
@@ -116,79 +155,135 @@ export default function PhoneLoginScreen() {
           <Text style={styles.title}>ResQNet</Text>
           <View style={styles.divider} />
           <Text style={styles.subtitle}>
-            Communication When{'\n'}Everything Else Fails
+            Emergency Mesh & Triage Network{'\n'}Communication When Everything Else Fails
           </Text>
         </View>
 
-        {/* Phone Form */}
+        {/* Tab Switcher: Email vs Phone */}
+        <View style={styles.tabContainer}>
+          <Pressable
+            style={[styles.tabButton, activeTab === 'email' && styles.tabButtonActive]}
+            onPress={() => {
+              setActiveTab('email');
+              setError(null);
+            }}
+          >
+            <Text style={[styles.tabButtonText, activeTab === 'email' && styles.tabButtonTextActive]}>
+              📧 Gmail / Email
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.tabButton, activeTab === 'phone' && styles.tabButtonActive]}
+            onPress={() => {
+              setActiveTab('phone');
+              setError(null);
+            }}
+          >
+            <Text style={[styles.tabButtonText, activeTab === 'phone' && styles.tabButtonTextActive]}>
+              📱 Phone SMS
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Form Container */}
         <View style={styles.formSection}>
-          <Text style={styles.formTitle}>Sign in with Phone</Text>
+          <Text style={styles.formTitle}>
+            {activeTab === 'email' ? 'Sign in with Email' : 'Sign in with Phone'}
+          </Text>
           <Text style={styles.formDescription}>
-            We'll send you a one-time verification code to confirm your identity.
+            {activeTab === 'email'
+              ? "We'll send a 6-digit verification code to your Gmail address."
+              : "We'll send a one-time verification code to confirm your phone."}
           </Text>
 
-          {/* Country Code Selector */}
-          <Text style={styles.inputLabel}>Country</Text>
-          <Pressable
-            style={styles.countrySelector}
-            onPress={() => setShowCountryPicker(!showCountryPicker)}
-          >
-            <Text style={styles.countryFlag}>{selectedCountry.flag}</Text>
-            <Text style={styles.countryName}>{selectedCountry.name}</Text>
-            <Text style={styles.countryCode}>{selectedCountry.code}</Text>
-            <Text style={styles.chevron}>▾</Text>
-          </Pressable>
-
-          {showCountryPicker && (
-            <View style={styles.countryDropdown}>
-              {COUNTRY_CODES.map((country) => (
-                <Pressable
-                  key={country.code}
-                  style={[
-                    styles.countryOption,
-                    selectedCountry.code === country.code && styles.countryOptionActive,
-                  ]}
-                  onPress={() => {
-                    setSelectedCountry(country);
-                    setShowCountryPicker(false);
-                  }}
-                >
-                  <Text style={styles.countryFlag}>{country.flag}</Text>
-                  <Text style={styles.countryOptionName}>{country.name}</Text>
-                  <Text style={styles.countryOptionCode}>{country.code}</Text>
-                </Pressable>
-              ))}
+          {activeTab === 'email' ? (
+            /* Email Input */
+            <View style={styles.emailContainer}>
+              <Text style={styles.inputLabel}>Email Address</Text>
+              <TextInput
+                ref={emailInputRef}
+                style={styles.emailInput}
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setError(null);
+                }}
+                placeholder="yourname@gmail.com"
+                placeholderTextColor={Colors.textSecondary}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus
+                accessibilityLabel="Email address"
+              />
             </View>
+          ) : (
+            /* Phone Input */
+            <>
+              {/* Country Code Selector */}
+              <Text style={styles.inputLabel}>Country</Text>
+              <Pressable
+                style={styles.countrySelector}
+                onPress={() => setShowCountryPicker(!showCountryPicker)}
+              >
+                <Text style={styles.countryFlag}>{selectedCountry.flag}</Text>
+                <Text style={styles.countryName}>{selectedCountry.name}</Text>
+                <Text style={styles.countryCode}>{selectedCountry.code}</Text>
+                <Text style={styles.chevron}>▾</Text>
+              </Pressable>
+
+              {showCountryPicker && (
+                <View style={styles.countryDropdown}>
+                  {COUNTRY_CODES.map((country) => (
+                    <Pressable
+                      key={country.code}
+                      style={[
+                        styles.countryOption,
+                        selectedCountry.code === country.code && styles.countryOptionActive,
+                      ]}
+                      onPress={() => {
+                        setSelectedCountry(country);
+                        setShowCountryPicker(false);
+                      }}
+                    >
+                      <Text style={styles.countryFlag}>{country.flag}</Text>
+                      <Text style={styles.countryOptionName}>{country.name}</Text>
+                      <Text style={styles.countryOptionCode}>{country.code}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              {/* Phone Number Input */}
+              <Text style={styles.inputLabel}>Phone Number</Text>
+              <View style={styles.phoneInputRow}>
+                <View style={styles.codeChip}>
+                  <Text style={styles.codeChipText}>{selectedCountry.code}</Text>
+                </View>
+                <TextInput
+                  ref={phoneInputRef}
+                  style={styles.phoneInput}
+                  value={formatPhoneDisplay(phoneNumber)}
+                  onChangeText={handlePhoneChange}
+                  placeholder="98765 43210"
+                  placeholderTextColor={Colors.textSecondary}
+                  keyboardType="phone-pad"
+                  maxLength={11}
+                  autoFocus
+                  accessibilityLabel="Phone number"
+                />
+              </View>
+            </>
           )}
-
-          {/* Phone Number Input */}
-          <Text style={styles.inputLabel}>Phone Number</Text>
-          <View style={styles.phoneInputRow}>
-            <View style={styles.codeChip}>
-              <Text style={styles.codeChipText}>{selectedCountry.code}</Text>
-            </View>
-            <TextInput
-              ref={phoneInputRef}
-              style={styles.phoneInput}
-              value={formatPhoneDisplay(phoneNumber)}
-              onChangeText={handlePhoneChange}
-              placeholder="98765 43210"
-              placeholderTextColor={Colors.textSecondary}
-              keyboardType="phone-pad"
-              maxLength={11}
-              autoFocus
-              accessibilityLabel="Phone number"
-            />
-          </View>
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           <View style={styles.buttonSpacing}>
             <PrimaryButton
               title="Send Verification Code"
-              onPress={handleSendOTP}
+              onPress={handleSendCode}
               loading={isLoading}
-              disabled={phoneNumber.length < 10}
+              disabled={activeTab === 'email' ? !email.trim() : phoneNumber.length < 10}
             />
           </View>
 
@@ -201,7 +296,7 @@ export default function PhoneLoginScreen() {
           </Text>
         </View>
 
-        {/* Invisible reCAPTCHA container */}
+        {/* Invisible reCAPTCHA container for web fallback */}
         <View nativeID="recaptcha-container" style={styles.recaptchaContainer} />
       </ScrollView>
     </KeyboardAvoidingView>
@@ -217,21 +312,24 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: Colors.background,
     paddingHorizontal: 24,
-    paddingVertical: 40,
+    paddingVertical: 36,
     justifyContent: 'center',
+    maxWidth: 520,
+    width: '100%',
+    alignSelf: 'center',
   },
   demoBanner: {
-    backgroundColor: `${Colors.warning}15`,
-    borderColor: Colors.warning,
+    backgroundColor: 'rgba(0, 229, 255, 0.08)',
+    borderColor: Colors.primary,
     borderWidth: 1,
     borderRadius: 12,
     padding: 14,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   demoBannerTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: Colors.warning,
+    color: Colors.primary,
     marginBottom: 4,
   },
   demoBannerText: {
@@ -247,31 +345,60 @@ const styles = StyleSheet.create({
   // Brand
   brandSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   logo: {
-    fontSize: 64,
+    fontSize: 54,
   },
   title: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '800',
     color: Colors.primary,
-    marginTop: 12,
+    marginTop: 8,
     letterSpacing: -0.5,
   },
   divider: {
-    width: 48,
+    width: 44,
     height: 3,
     backgroundColor: Colors.primary,
-    marginTop: 14,
-    marginBottom: 14,
+    marginTop: 10,
+    marginBottom: 10,
     borderRadius: 2,
   },
   subtitle: {
     textAlign: 'center',
     color: Colors.textSecondary,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+
+  // Tab Switcher
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabButtonActive: {
+    backgroundColor: Colors.primary,
+  },
+  tabButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  tabButtonTextActive: {
+    color: Colors.background,
   },
 
   // Form
@@ -285,18 +412,34 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   formDescription: {
-    fontSize: 15,
+    fontSize: 14,
     color: Colors.textSecondary,
-    lineHeight: 22,
-    marginBottom: 28,
+    lineHeight: 20,
+    marginBottom: 22,
   },
   inputLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: Colors.text,
     marginBottom: 8,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
+  },
+
+  // Email Input
+  emailContainer: {
+    marginBottom: 16,
+  },
+  emailInput: {
+    height: 54,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.surface,
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text,
   },
 
   // Country Selector
@@ -309,20 +452,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 54,
-    marginBottom: 20,
+    marginBottom: 16,
     gap: 10,
   },
   countryFlag: {
-    fontSize: 22,
+    fontSize: 20,
   },
   countryName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: Colors.text,
     flex: 1,
   },
   countryCode: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: Colors.primary,
   },
@@ -338,15 +481,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 12,
-    marginTop: -12,
-    marginBottom: 20,
+    marginTop: -8,
+    marginBottom: 16,
     overflow: 'hidden',
   },
   countryOption: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
     gap: 10,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
@@ -355,13 +498,13 @@ const styles = StyleSheet.create({
     backgroundColor: `${Colors.primary}08`,
   },
   countryOptionName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: Colors.text,
     flex: 1,
   },
   countryOptionCode: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: Colors.textSecondary,
   },
@@ -394,7 +537,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     backgroundColor: Colors.surface,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
     color: Colors.text,
     letterSpacing: 1,
@@ -419,7 +562,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     lineHeight: 18,
-    marginTop: 24,
+    marginTop: 20,
   },
   termsLink: {
     color: Colors.primary,
