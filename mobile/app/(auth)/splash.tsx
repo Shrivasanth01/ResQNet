@@ -33,18 +33,20 @@ export default function SplashScreen() {
 
   // Startup animations
   useEffect(() => {
+    const isNative = Platform.OS !== 'web';
+
     // 1. Entrance animation (scale + fade)
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 6,
         tension: 40,
-        useNativeDriver: true,
+        useNativeDriver: isNative,
       }),
       Animated.timing(opacityAnim, {
         toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
+        duration: 600,
+        useNativeDriver: isNative,
       }),
     ]).start();
 
@@ -54,7 +56,7 @@ export default function SplashScreen() {
         toValue: 1,
         duration: 6000,
         easing: Easing.linear,
-        useNativeDriver: true,
+        useNativeDriver: isNative,
       })
     ).start();
 
@@ -65,13 +67,13 @@ export default function SplashScreen() {
           toValue: 1.22,
           duration: 350,
           easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
+          useNativeDriver: isNative,
         }),
         Animated.timing(crossPulse, {
           toValue: 1,
           duration: 400,
           easing: Easing.in(Easing.quad),
-          useNativeDriver: true,
+          useNativeDriver: isNative,
         }),
         Animated.delay(1200),
       ])
@@ -114,14 +116,21 @@ export default function SplashScreen() {
       });
     }, 85);
 
-    // Minimum display timer
+    // Startup timer — on web, transition quickly in 1.2s
+    const displayDuration = Platform.OS === 'web' ? 1200 : Math.max(APP_CONFIG.SPLASH_DURATION_MS, 2000);
     const navTimer = setTimeout(() => {
       setTimerDone(true);
-    }, Math.max(APP_CONFIG.SPLASH_DURATION_MS, 2800));
+    }, displayDuration);
+
+    // Hard fallback: always navigate after 2.5s even if state is slow
+    const fallbackTimer = setTimeout(() => {
+      navigateNext();
+    }, 2500);
 
     return () => {
       clearInterval(progressTimer);
       clearTimeout(navTimer);
+      clearTimeout(fallbackTimer);
     };
   }, []);
 
@@ -136,21 +145,7 @@ export default function SplashScreen() {
     if (hasNavigated.current) return;
     hasNavigated.current = true;
 
-    // Cinematic fade-out & scale transition into homepage
-    Animated.parallel([
-      Animated.timing(opacityAnim, {
-        toValue: 0,
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1.05,
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
+    const doRedirect = () => {
       if (isAuthenticated && profileCompleted) {
         // Returning user with completed profile → Dashboard
         router.replace('/(tabs)');
@@ -158,10 +153,30 @@ export default function SplashScreen() {
         // Authenticated but profile incomplete → Complete Profile
         router.replace('/(auth)/complete-profile' as any);
       } else {
-        // Not authenticated → Phone Login
+        // Not authenticated → Phone / Email Login
         router.replace('/(auth)/phone-login' as any);
       }
-    });
+    };
+
+    if (Platform.OS === 'web') {
+      doRedirect();
+    } else {
+      Animated.parallel([
+        Animated.timing(opacityAnim, {
+          toValue: 0,
+          duration: 400,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1.05,
+          duration: 400,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+      ]).start(() => doRedirect());
+      setTimeout(doRedirect, 500);
+    }
   };
 
   const spin = spinAnim.interpolate({

@@ -141,14 +141,6 @@ export default function PhoneLoginScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Free Demo / Developer Banner */}
-        <View style={styles.demoBanner}>
-          <Text style={styles.demoBannerTitle}>⚡ 100% Free Emergency Authentication</Text>
-          <Text style={styles.demoBannerText}>
-            Use your <Text style={styles.demoBold}>Gmail</Text> or phone. In Demo Mode, use verification code: <Text style={styles.demoBold}>123456</Text>.
-          </Text>
-        </View>
-
         {/* Brand Header */}
         <View style={styles.brandSection}>
           <Text style={styles.logo}>🛡️</Text>

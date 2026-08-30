@@ -31,6 +31,7 @@ export default function CompleteProfileScreen() {
   // Step 1: Personal Identity
   const [name, setName] = useState('');
   const [email, setEmail] = useState(paramEmail || '');
+  const [phone, setPhone] = useState(phoneNumber || '');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('Male');
 
@@ -78,7 +79,7 @@ export default function CompleteProfileScreen() {
       const registrationData = {
         name: name.trim(),
         email: email.trim() || `${firebaseUser.uid}@resqnet.app`,
-        phoneNumber: phoneNumber || firebaseUser.phoneNumber || '',
+        phoneNumber: phone.trim() || phoneNumber || firebaseUser.phoneNumber || '',
         age: age.trim(),
         gender,
         height: height.trim(),
@@ -181,8 +182,9 @@ export default function CompleteProfileScreen() {
                 <TextInputField
                   label="Phone"
                   placeholder="+91..."
-                  value={phoneNumber || ''}
-                  onChangeText={() => {}}
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
                 />
               </View>
             </View>

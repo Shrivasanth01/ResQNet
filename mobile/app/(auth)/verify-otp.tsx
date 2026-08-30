@@ -226,12 +226,6 @@ export default function VerifyOTPScreen() {
             We sent a 6-digit verification code to
           </Text>
           <Text style={styles.phoneDisplay}>{displayTarget}</Text>
-
-          <View style={styles.demoHintBox}>
-            <Text style={styles.demoHintText}>
-              💡 <Text style={styles.demoHintBold}>Free / Demo Code:</Text> Enter <Text style={styles.demoHintCode}>123456</Text> (or check your inbox)
-            </Text>
-          </View>
         </View>
 
         {/* OTP Input Grid */}
