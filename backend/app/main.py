@@ -10,8 +10,12 @@ from app.utils.logger import get_logger
 
 logger = get_logger("ResQNet_Main_App")
 
-# Create all database tables
-Base.metadata.create_all(bind=engine)
+# Ensure all SQLAlchemy models are registered
+try:
+    from app.models import all_models
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    logger.warning(f"Database initialization deferred: {e}")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
