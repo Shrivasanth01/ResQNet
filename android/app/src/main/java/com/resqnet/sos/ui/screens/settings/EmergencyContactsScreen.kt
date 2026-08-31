@@ -80,13 +80,14 @@ fun EmergencyContactsScreen(
 
                             Toast.makeText(context, "Contacts Saved!", Toast.LENGTH_SHORT).show()
                             
-                            // If we came from registration, we might want to go to Dashboard
-                            if (navController.previousBackStackEntry?.destination?.route?.contains("verify_otp") == true) {
+                            val previousRoute = navController.previousBackStackEntry?.destination?.route
+                            if (previousRoute == Screen.Settings.route) {
+                                navController.popBackStack()
+                            } else {
+                                // Forced registration flow: No backstack or came from login
                                 navController.navigate(Screen.Dashboard.route) {
                                     popUpTo(0) { inclusive = true }
                                 }
-                            } else {
-                                navController.popBackStack()
                             }
                         }
                     }) {
