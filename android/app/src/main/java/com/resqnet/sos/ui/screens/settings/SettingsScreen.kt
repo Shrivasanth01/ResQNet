@@ -201,7 +201,7 @@ fun SettingsScreen(
                 subtitle = "${profile.emergencyContacts.size} Contacts Registered (Call & SMS)",
                 icon = Icons.Default.Phone,
                 iconColor = ResQGreen,
-                onClick = { }
+                onClick = { navController.navigate(Screen.EmergencyContacts.route) }
             )
 
             Spacer(modifier = Modifier.height(10.dp))
