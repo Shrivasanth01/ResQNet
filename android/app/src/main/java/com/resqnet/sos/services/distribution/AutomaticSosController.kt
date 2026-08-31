@@ -89,15 +89,36 @@ class AutomaticSosController(private val context: Context) {
         )
         delay(300)
 
-        // STEP 2: LOAD EXISTING RSEP FILE (Zero user selection, zero regeneration)
-        val existingRsep = existingRsepManager.getExistingRsep()
+        // STEP 2: GET LIVE HIGH-ACCURACY GPS LOCATION & LOAD VICTIM RSEP DOSSIER
+        val profile = profilePrefs.getProfile()
+        val coords = locationService.getHighAccuracyLocation()
+        val primaryContact = profile.emergencyContacts.firstOrNull()
+
+        // Update existing RSEP dossier with live GPS coordinates and victim medical vault
+        val existingRsep = existingRsepManager.getExistingRsep().copy(
+            user = com.resqnet.sos.data.model.PacketUser(
+                userId = profile.userId,
+                name = profile.fullName,
+                age = profile.age,
+                bloodGroup = profile.bloodGroup,
+                medicalConditions = profile.medicalConditions,
+                emergencyContacts = profile.emergencyContacts
+            ),
+            location = com.resqnet.sos.data.model.PacketLocation(
+                latitude = coords.latitude,
+                longitude = coords.longitude,
+                accuracy = 5.0f,
+                timestamp = getCurrentTimestamp()
+            )
+        )
+
         val packetId = existingRsep.header.packetId
         val initialTtl = existingRsep.header.ttl
 
         emitProgress(
             SosProgressEvent(
                 step = SosDistributionStep.RSEP_FOUND,
-                message = "📄 EXISTING RSEP FOUND: Packet ID $packetId loaded from secure vault.",
+                message = "📄 RSEP DOSSIER READY: Victim medical vault & Live GPS ($coords) compiled.",
                 packetId = packetId,
                 hopCount = 0,
                 ttl = initialTtl,
@@ -107,15 +128,15 @@ class AutomaticSosController(private val context: Context) {
         )
         delay(350)
 
-        // Dispatch native emergency phone call & SMS in background
-        val profile = profilePrefs.getProfile()
-        val coords = locationService.getCachedLocation()
-        val primaryContact = profile.emergencyContacts.firstOrNull()
-
-        CoroutineScope(Dispatchers.IO).launch {
+        // STEP 2B: IMMEDIATELY INITIATE EMERGENCY PHONE CALL & DISTRESS SMS TO CONTACTS
+        CoroutineScope(Dispatchers.Main).launch {
             try {
                 if (primaryContact != null) {
+                    // 1. Send SMS with Live Google Maps GPS location link & medical details
                     smsCallService.sendEmergencySms(primaryContact, profile, coords)
+
+                    // 2. Automatically dial emergency call to primary emergency contact
+                    smsCallService.initiateEmergencyPhoneCall(primaryContact.phoneNumber)
                 }
                 serverBridge.dispatchSosEmail(profile.email, existingRsep)
             } catch (e: Exception) {
