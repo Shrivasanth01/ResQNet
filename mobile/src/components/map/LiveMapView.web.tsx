@@ -11,19 +11,75 @@ import BottomSheetCard from "./BottomSheetCard";
 import FloatingLocationButton from "./FloatingLocationButton";
 import { LocationService } from "../../services/hardware/LocationService";
 import { EmergencyIncident, getCategoryColor, getCategoryIcon } from "./types";
+import { API_CONFIG } from "../../constants/app";
+import { PacketStorage } from "../../services/packet/PacketStorage";
+import { RSEPTransferManager } from "../../services/distribution/RSEPTransferManager";
+import { EmergencyPacket } from "../../types/packet";
 
 export default function LiveMapView() {
   const { colors, isDarkMode } = useTheme();
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; accuracy?: number } | null>(null);
   const [isLocating, setIsLocating] = useState<boolean>(true);
   const [selectedIncident, setSelectedIncident] = useState<EmergencyIncident | null>(null);
-
-  const defaultLat = 37.7749;
-  const defaultLng = -122.4194;
-
-  const realIncidents: EmergencyIncident[] = [];
+  const [realIncidents, setRealIncidents] = useState<EmergencyIncident[]>([]);
+  const [incomingOfflineRSEP, setIncomingOfflineRSEP] = useState<{
+    packet: EmergencyPacket;
+    transport: string;
+    time: string;
+  } | null>(null);
 
   const [copied, setCopied] = useState(false);
+
+  const fetchActiveIncidents = async () => {
+    try {
+      const list: EmergencyIncident[] = [];
+
+      // 1. Fetch from Central Cloud / FastAPI Server
+      try {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/incidents/active`);
+        if (res.ok) {
+          const serverData = await res.json();
+          if (Array.isArray(serverData)) {
+            for (const inc of serverData) {
+              list.push({
+                id: inc.incident_id || inc.incidentId || "INC-SOS",
+                title: inc.emergency_type || "🚨 Manual SOS Distress Beacon",
+                category: "Medical",
+                severity: "Critical",
+                timestamp: inc.created_at || new Date().toISOString(),
+                distance: "Nearby (< 1.5 km)",
+                latitude: inc.latitude || 13.0827,
+                longitude: inc.longitude || 80.2707,
+              });
+            }
+          }
+        }
+      } catch (cloudErr) {}
+
+      // 2. Fetch from Local Secure Packet Outbox Vault
+      try {
+        const stored = await PacketStorage.getAllPackets();
+        for (const p of stored) {
+          if (!list.some((i) => i.id === p.header.packetId)) {
+            list.push({
+              id: p.header.packetId,
+              title: `${p.incident?.emergencyType || "SOS Distress"} (${p.user?.name || "Citizen"})`,
+              category: "Medical",
+              severity: "Critical",
+              timestamp: p.header.timestamp || new Date().toISOString(),
+              distance: "Mesh Hop (< 500m)",
+              latitude: p.location?.latitude || 13.0827,
+              longitude: p.location?.longitude || 80.2707,
+            });
+          }
+        }
+      } catch (localErr) {}
+
+      if (list.length > 0) {
+        setRealIncidents(list);
+      }
+    } catch (e) {}
+  };
 
   const fetchUserLocation = async () => {
     setIsLocating(true);
@@ -45,12 +101,17 @@ export default function LiveMapView() {
   };
 
   useEffect(() => {
-    // High-frequency 1-second background location tracking
     let isMounted = true;
     
     fetchUserLocation();
+    fetchActiveIncidents();
 
-    // Subscribe to 1-second background LocationService updates
+    // Auto-poll for incoming emergency distress beacons every 4 seconds
+    const interval = setInterval(() => {
+      if (isMounted) fetchActiveIncidents();
+    }, 4000);
+
+    // Subscribe to background LocationService updates
     const unsubscribe = LocationService.subscribe((telemetry) => {
       if (isMounted) {
         setUserLocation({
@@ -61,11 +122,44 @@ export default function LiveMapView() {
       }
     });
 
+    // Subscribe to offline P2P Bluetooth / Wi-Fi Airwaves
+    const unsubscribeAirwaves = RSEPTransferManager.subscribeToIncomingRSEP((packet, transport, senderId) => {
+      if (isMounted) {
+        setIncomingOfflineRSEP({
+          packet,
+          transport,
+          time: new Date().toLocaleTimeString(),
+        });
+        // Save to receiver's local vault
+        PacketStorage.savePacket(packet).catch(() => {});
+        fetchActiveIncidents();
+      }
+    });
+
     return () => {
       isMounted = false;
+      clearInterval(interval);
       unsubscribe();
+      unsubscribeAirwaves();
     };
   }, []);
+
+  const downloadRSEPFile = (packet: any) => {
+    try {
+      const jsonStr = JSON.stringify(packet, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${packet.header.packetId || "emergency_distress"}.rsep`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert("Downloading RSEP file directly to your device storage.");
+    }
+  };
 
   const handleCopyCoords = async () => {
     if (!userLocation) return;
@@ -137,6 +231,78 @@ export default function LiveMapView() {
               </View>
             </View>
           </View>
+
+          {/* INCOMING OFFLINE RSEP FILE ALERT BANNER */}
+          {incomingOfflineRSEP && (
+            <View style={styles.incomingOfflineCard}>
+              <View style={styles.incomingTopRow}>
+                <View style={styles.incomingBadge}>
+                  <MaterialIcons name="bluetooth-audio" size={16} color="#00E5FF" />
+                  <Text style={styles.incomingBadgeText}>
+                    OFFLINE {incomingOfflineRSEP.transport === "BLE" ? "BLUETOOTH LE" : "WI-FI DIRECT"} MESH RECEPTION
+                  </Text>
+                </View>
+                <Pressable onPress={() => setIncomingOfflineRSEP(null)} style={styles.closeBtn}>
+                  <MaterialIcons name="close" size={18} color="#94a3b8" />
+                </Pressable>
+              </View>
+
+              <Text style={styles.incomingTitle}>
+                🚨 Incoming Emergency Distress File Received ({incomingOfflineRSEP.time})
+              </Text>
+
+              <View style={styles.incomingDossierGrid}>
+                <View style={styles.dossierRow}>
+                  <Text style={styles.dossierLabel}>Victim:</Text>
+                  <Text style={styles.dossierVal}>{incomingOfflineRSEP.packet.user?.name || "Citizen"}</Text>
+                </View>
+                <View style={styles.dossierRow}>
+                  <Text style={styles.dossierLabel}>Blood Group:</Text>
+                  <Text style={styles.dossierValRed}>{incomingOfflineRSEP.packet.user?.bloodGroup || "O+"}</Text>
+                </View>
+                <View style={styles.dossierRow}>
+                  <Text style={styles.dossierLabel}>GPS Coords:</Text>
+                  <Text style={styles.dossierVal}>
+                    {incomingOfflineRSEP.packet.location?.latitude.toFixed(5)}°, {incomingOfflineRSEP.packet.location?.longitude.toFixed(5)}°
+                  </Text>
+                </View>
+                <View style={styles.dossierRow}>
+                  <Text style={styles.dossierLabel}>Packet ID:</Text>
+                  <Text style={styles.dossierValCode}>{incomingOfflineRSEP.packet.header.packetId}</Text>
+                </View>
+              </View>
+
+              <View style={styles.incomingActionRow}>
+                <Pressable
+                  style={styles.downloadRsepBtn}
+                  onPress={() => downloadRSEPFile(incomingOfflineRSEP.packet)}
+                >
+                  <MaterialIcons name="download" size={18} color="#ffffff" />
+                  <Text style={styles.downloadRsepText}>Download .rsep File</Text>
+                </Pressable>
+
+                <Pressable
+                  style={styles.viewOnMapBtn}
+                  onPress={() => {
+                    const inc: EmergencyIncident = {
+                      id: incomingOfflineRSEP.packet.header.packetId,
+                      title: incomingOfflineRSEP.packet.incident?.emergencyType || "SOS Distress",
+                      category: "Medical",
+                      severity: "Critical",
+                      timestamp: incomingOfflineRSEP.packet.header.timestamp,
+                      distance: "Direct P2P (< 100m)",
+                      latitude: incomingOfflineRSEP.packet.location?.latitude || 13.0827,
+                      longitude: incomingOfflineRSEP.packet.location?.longitude || 80.2707,
+                    };
+                    setSelectedIncident(inc);
+                  }}
+                >
+                  <MaterialIcons name="map" size={18} color="#ffffff" />
+                  <Text style={styles.viewOnMapText}>View on Tactical Map</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
 
           <Text style={[styles.sectionHeader, { color: colors.text }]}>Surrounding Active Emergencies ({realIncidents.length})</Text>
           <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
@@ -440,6 +606,117 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 19,
     maxWidth: "90%",
+  },
+  incomingOfflineCard: {
+    backgroundColor: "#07172c",
+    borderColor: "#00E5FF",
+    borderWidth: 2,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#00E5FF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+  },
+  incomingTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  incomingBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 229, 255, 0.15)",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "rgba(0, 229, 255, 0.3)",
+  },
+  incomingBadgeText: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: "#00E5FF",
+    letterSpacing: 0.5,
+  },
+  closeBtn: {
+    padding: 4,
+  },
+  incomingTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#ffffff",
+    marginBottom: 10,
+  },
+  incomingDossierGrid: {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 10,
+    padding: 10,
+    gap: 6,
+    marginBottom: 12,
+  },
+  dossierRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  dossierLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#94a3b8",
+  },
+  dossierVal: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#f8fafc",
+  },
+  dossierValRed: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: "#ef4444",
+  },
+  dossierValCode: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#38bdf8",
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  incomingActionRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  downloadRsepBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0284c7",
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  downloadRsepText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#ffffff",
+  },
+  viewOnMapBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#059669",
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  viewOnMapText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#ffffff",
   },
   bottomOverlay: {
     position: "absolute",

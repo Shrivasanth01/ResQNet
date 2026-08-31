@@ -10,6 +10,8 @@ import { PacketQueue } from "../packet/PacketQueue";
 import { CommunicationEngine } from "../communication/CommunicationEngine";
 import { EmergencyPacket } from "../../types/packet";
 import { CommunicationMethod, DeliveryReceipt } from "../communication/CommunicationTypes";
+import { EmergencyDispatchService, SOSDispatchResult } from "./EmergencyDispatchService";
+import { AutomaticSOSController, SOSDistributionResult } from "../distribution";
 
 export interface EmergencyTriggerResult {
   packet: EmergencyPacket;
@@ -17,6 +19,8 @@ export interface EmergencyTriggerResult {
   receipt?: DeliveryReceipt | null;
   callInitiated: boolean;
   contactCalled?: { name: string; phoneNumber: string };
+  dispatchResult?: SOSDispatchResult;
+  distributionResult?: SOSDistributionResult;
 }
 
 export class EmergencyTriggerService {
@@ -119,7 +123,23 @@ export class EmergencyTriggerService {
     // Step 5: Enqueue into local SQLite / IndexedDB Store-and-Forward Queue
     await PacketQueue.enqueue(packet);
 
-    // Step 6: Dispatch across all carriers (Internet -> BLE Mesh -> Wi-Fi Direct Mesh)
+    // Step 6: Dispatch live emergency distress email & SMS payload to emergency contacts
+    let dispatchResult: SOSDispatchResult | undefined;
+    try {
+      dispatchResult = await EmergencyDispatchService.dispatchToEmergencyContacts();
+    } catch (dispatchErr) {
+      console.warn("[EmergencyTriggerService] Emergency contact dispatch deferred:", dispatchErr);
+    }
+
+    // Step 7: Launch the Automated SOS Distribution Mesh Pipeline
+    let distributionResult: SOSDistributionResult | undefined;
+    try {
+      distributionResult = await AutomaticSOSController.triggerAutomaticSOS();
+    } catch (distErr) {
+      console.warn("[EmergencyTriggerService] Automatic distribution pipeline error:", distErr);
+    }
+
+    // Step 8: Dispatch across all mesh carriers (Internet -> BLE Mesh -> Wi-Fi Direct Mesh)
     const result = await CommunicationEngine.deliverPacket(packet);
     const receipt = CommunicationEngine.getReceipt(packet.header.packetId);
     console.log(`[EmergencyTriggerService] SOS Packet dispatched via ${result.method} (Success: ${result.success})`);
@@ -130,6 +150,8 @@ export class EmergencyTriggerService {
       receipt,
       callInitiated,
       contactCalled: primaryContact ? { name: primaryContact.name, phoneNumber: primaryContact.phoneNumber } : undefined,
+      dispatchResult,
+      distributionResult,
     };
   }
 }

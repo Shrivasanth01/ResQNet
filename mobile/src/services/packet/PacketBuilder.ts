@@ -1,5 +1,6 @@
 import { EmergencyPacket, PacketType, TriggerSource, IncidentSeverity } from "../../types/packet";
 import { DatabaseService } from "../db";
+import { LocationService } from "../hardware/LocationService";
 
 export interface BuildPacketOptions {
   packetType?: PacketType;
@@ -79,10 +80,10 @@ export const PacketBuilder = {
         emergencyContacts: emergencyContacts,
       },
       location: {
-        latitude: options.latitude !== undefined ? options.latitude : 37.7749,
-        longitude: options.longitude !== undefined ? options.longitude : -122.4194,
-        altitude: options.altitude || 15,
-        accuracy: options.accuracy || 4,
+        latitude: options.latitude !== undefined ? options.latitude : (LocationService as any).lastLocation?.latitude || 0,
+        longitude: options.longitude !== undefined ? options.longitude : (LocationService as any).lastLocation?.longitude || 0,
+        altitude: options.altitude || 0,
+        accuracy: options.accuracy || 5,
         speed: options.speed || 0,
         heading: options.heading || 0,
         timestamp: now,

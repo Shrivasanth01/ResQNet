@@ -44,3 +44,14 @@ Thumbs.db
 *.log
 # Local Netlify folder
 .netlify
+
+# Android
+.gradle/
+build/
+app/build/
+*.apk
+*.aar
+local.properties
+.idea/
+*.iml
+

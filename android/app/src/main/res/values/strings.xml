@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ResQNet</string>
+    <string name="sos_title">Emergency SOS</string>
+    <string name="hold_sos_hint">Hold for 3 seconds</string>
+    <string name="mesh_active">Decentralized Mesh Active</string>
+</resources>

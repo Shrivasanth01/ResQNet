@@ -183,3 +183,63 @@ export async function signOut(): Promise<void> {
 export function onAuthStateChanged(cb: (user: any | null) => void): () => void {
   return msg91OnAuthChange(cb);
 }
+
+export interface CloudUserProfile {
+  exists: boolean;
+  profileCompleted: boolean;
+  user?: {
+    id: string;
+    fullName: string;
+    email: string;
+    phoneNumber: string;
+  };
+  profile?: {
+    age: string;
+    bloodGroup: string;
+    medicalConditions: string;
+    allergies: string;
+    emergencyContacts: any[];
+  };
+}
+
+/**
+ * Checks if a profile is already saved for this Gmail address on the central cloud database.
+ */
+export async function fetchProfileByEmail(email: string): Promise<CloudUserProfile> {
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch(`${API_CONFIG.BASE_URL}/users/profile-by-email/${encodeURIComponent(cleanEmail)}`, {
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    console.warn('[emailAuth] Cloud profile lookup notice:', e);
+  }
+  return { exists: false, profileCompleted: false };
+}
+
+/**
+ * Permanently saves the user's complete profile to the cloud database linked to their Gmail.
+ */
+export async function saveProfileToCloud(payload: any): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_CONFIG.BASE_URL}/users/save-profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      console.log('[emailAuth] Profile saved to cloud vault permanently for email:', payload.email);
+      return true;
+    }
+  } catch (e) {
+    console.warn('[emailAuth] Cloud profile save deferred:', e);
+  }
+  return false;
+}
+

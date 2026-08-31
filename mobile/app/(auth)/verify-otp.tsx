@@ -12,9 +12,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useRef, useEffect } from 'react';
 import { Colors } from '../../src/theme/colors';
 import { verifyOTP, sendOTP, clearPendingOTP } from '../../src/services/firebaseAuth';
-import { verifyEmailOTP, sendEmailOTP, clearPendingEmailOTP } from '../../src/services/emailAuth';
+import { verifyEmailOTP, sendEmailOTP, clearPendingEmailOTP, fetchProfileByEmail } from '../../src/services/emailAuth';
 import { isFirebaseConfigured } from '../../src/firebase';
 import { checkUserStatus, createUserDoc } from '../../src/services/firestoreUser';
+import { getCompleteProfile, saveCompleteProfile } from '../../src/storage/database';
+import { authStorage } from '../../src/storage/authStorage';
 import { useAuth } from '../../src/context/AuthContext';
 import PrimaryButton from '../../src/components/buttons/PrimaryButton';
 
@@ -121,31 +123,93 @@ export default function VerifyOTPScreen() {
 
       const uid = authedUser.uid || authedUser.id;
       const userPhone = phoneNumber || authedUser.phoneNumber || '';
-      const userEmail = email || authedUser.email || '';
+      const userEmail = (email || authedUser.email || '').trim().toLowerCase();
 
-      // Default to profile-completion flow
-      let goToProfile = true;
+      // Determine if profile already exists for this Gmail / User
+      let isProfileDone = false;
 
-      try {
-        const status = await Promise.race([
-          checkUserStatus(uid),
-          new Promise<{ exists: boolean; profileCompleted: boolean }>((resolve) =>
-            setTimeout(() => resolve({ exists: false, profileCompleted: false }), 2000)
-          ),
-        ]);
-        if (!status.exists) {
-          createUserDoc(uid, userPhone).catch(() => {});
-          goToProfile = true;
-        } else {
-          goToProfile = !status.profileCompleted;
+      // 1. Check central cloud database for this email
+      if (userEmail) {
+        try {
+          const cloud = await fetchProfileByEmail(userEmail);
+          if (cloud.exists && cloud.profileCompleted) {
+            isProfileDone = true;
+            if (cloud.user && cloud.profile) {
+              await saveCompleteProfile({
+                personal: {
+                  id: cloud.user.id || uid,
+                  fullName: cloud.user.fullName || userEmail.split('@')[0],
+                  age: cloud.profile.age || '',
+                  gender: 'Other',
+                  dateOfBirth: '',
+                  bloodGroup: (cloud.profile.bloodGroup as any) || 'O+',
+                  height: '',
+                  weight: '',
+                  photographUrl: '',
+                  phoneNumber: cloud.user.phoneNumber || userPhone,
+                  email: userEmail,
+                  languagesSpoken: 'English',
+                  responderSkills: ['Emergency Beacon'],
+                  consentToShareMedical: true,
+                  organDonor: false,
+                  syncHash: 'CLOUD_SYNCED',
+                  lastUpdated: new Date().toISOString(),
+                },
+                medical: {
+                  medicalConditions: cloud.profile.medicalConditions || 'None reported',
+                  allergies: cloud.profile.allergies || 'None reported',
+                  currentMedications: 'None',
+                  disabilities: 'None',
+                  updatedAt: new Date().toISOString(),
+                },
+                contacts: cloud.profile.emergencyContacts || [],
+                settings: {},
+              }, userEmail);
+            }
+          }
+        } catch (e) {
+          console.warn('[verify-otp] Cloud profile lookup:', e);
         }
-      } catch {
-        goToProfile = true;
       }
 
-      refreshAuthState().catch(() => {});
+      // 2. Check local database history for this email
+      if (!isProfileDone && userEmail) {
+        try {
+          const localProf = await getCompleteProfile(userEmail);
+          if (
+            localProf &&
+            localProf.personal &&
+            localProf.personal.fullName &&
+            localProf.personal.fullName !== 'New User' &&
+            localProf.personal.fullName !== 'Alex Mercer'
+          ) {
+            isProfileDone = true;
+          }
+        } catch {}
+      }
 
-      if (!goToProfile) {
+      // 3. Fallback Firestore check for phone users
+      if (!isProfileDone && !isEmailAuth) {
+        try {
+          const status = await Promise.race([
+            checkUserStatus(uid),
+            new Promise<{ exists: boolean; profileCompleted: boolean }>((resolve) =>
+              setTimeout(() => resolve({ exists: false, profileCompleted: false }), 2000)
+            ),
+          ]);
+          if (status.exists && status.profileCompleted) {
+            isProfileDone = true;
+          }
+        } catch {}
+      }
+
+      if (isProfileDone) {
+        await authStorage.setProfileCompleted(true);
+      }
+
+      await refreshAuthState();
+
+      if (isProfileDone) {
         router.replace('/(tabs)');
       } else {
         router.replace({

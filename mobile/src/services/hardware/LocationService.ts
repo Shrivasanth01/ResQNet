@@ -137,37 +137,78 @@ class LocationServiceClass {
 
   public async refreshCurrentLocation(): Promise<HardwareLocationTelemetry> {
     try {
-      if (Platform.OS !== "web" && PermissionManager.getStatus().locationForeground) {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.BestForNavigation });
-        this.processNewLocation(loc);
-      } else if (typeof navigator !== "undefined" && "geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            this.processNewLocation({
-              coords: {
-                latitude: pos.coords.latitude,
-                longitude: pos.coords.longitude,
-                altitude: pos.coords.altitude,
-                accuracy: pos.coords.accuracy,
-                speed: pos.coords.speed,
-                heading: pos.coords.heading,
-              },
-              timestamp: pos.timestamp,
-            } as any);
-          },
-          () => {},
-          { enableHighAccuracy: true, maximumAge: 0, timeout: 4000 }
-        );
+      if (Platform.OS !== "web") {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === "granted") {
+          const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.High,
+          });
+          this.processNewLocation(loc);
+          return { ...this.lastLocation };
+        }
+      }
+
+      // Web / Browser High-Accuracy Geolocation (properly awaited)
+      if (typeof navigator !== "undefined" && "geolocation" in navigator) {
+        const hasPos = await new Promise<boolean>((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              this.processNewLocation({
+                coords: {
+                  latitude: pos.coords.latitude,
+                  longitude: pos.coords.longitude,
+                  altitude: pos.coords.altitude || 0,
+                  accuracy: pos.coords.accuracy || 5,
+                  speed: pos.coords.speed || 0,
+                  heading: pos.coords.heading || 0,
+                },
+                timestamp: pos.timestamp,
+              } as any);
+              resolve(true);
+            },
+            (err) => {
+              console.warn("[LocationService] Browser geolocation warning:", err.message);
+              resolve(false);
+            },
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+          );
+        });
+
+        if (hasPos) {
+          return { ...this.lastLocation };
+        }
+      }
+
+      // Fallback: If device GPS is unavailable or blocked, resolve via IP location
+      if (this.lastLocation.isSimulatedFallback) {
+        try {
+          const res = await fetch("https://ipapi.co/json/", { signal: AbortSignal.timeout(4000) });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.latitude && data.longitude) {
+              this.processNewLocation({
+                coords: {
+                  latitude: parseFloat(data.latitude),
+                  longitude: parseFloat(data.longitude),
+                  altitude: 10,
+                  accuracy: 500, // Coarse accuracy
+                  speed: 0,
+                  heading: 0,
+                },
+                timestamp: Date.now(),
+              } as any);
+            }
+          }
+        } catch {}
       }
     } catch (e) {
-      // Keep last known good coordinates
+      console.warn("[LocationService] Error refreshing location:", e);
     }
     return { ...this.lastLocation };
   }
 
   public async getLatestLocation(): Promise<HardwareLocationTelemetry> {
-    await this.refreshCurrentLocation();
-    return { ...this.lastLocation };
+    return await this.refreshCurrentLocation();
   }
 
   public subscribe(callback: LocationCallback): () => void {

@@ -13,6 +13,7 @@ import { Colors } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
 import { markProfileCompleted } from '../../src/services/firestoreUser';
 import { getCurrentUser } from '../../src/services/firebaseAuth';
+import { saveProfileToCloud } from '../../src/services/emailAuth';
 import { saveCompleteProfile, createNewUserProfile } from '../../src/storage/database';
 import { authStorage } from '../../src/storage/authStorage';
 import PrimaryButton from '../../src/components/buttons/PrimaryButton';
@@ -97,6 +98,9 @@ export default function CompleteProfileScreen() {
       const userEmail = registrationData.email;
       const profile = createNewUserProfile(registrationData.name, userEmail, registrationData);
       await saveCompleteProfile(profile, userEmail);
+
+      // Save permanently to Central Cloud Database linked to this Gmail
+      saveProfileToCloud(registrationData).catch(() => {});
 
       // Persist the "profile complete" flag locally so subsequent page
       // refreshes don't bounce the user back to this form even if

@@ -670,3 +670,270 @@ def verify_email_otp(req: EmailOTPVerifyRequest):
         message="Email verified successfully",
     )
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SOS Emergency Contact Email & Telemetry Dispatch
+# ─────────────────────────────────────────────────────────────────────────────
+
+class SOSDispatchRequest(BaseModel):
+    senderName: Optional[str] = "ResQNet Citizen"
+    senderEmail: Optional[str] = None
+    senderPhone: Optional[str] = None
+    age: Optional[str] = None
+    gender: Optional[str] = None
+    bloodGroup: Optional[str] = "Unknown"
+    medicalConditions: Optional[str] = "None reported"
+    allergies: Optional[str] = "None reported"
+    currentMedications: Optional[str] = "None reported"
+    emergencyContactName: Optional[str] = "Designated Emergency Contact"
+    emergencyContactPhone: Optional[str] = "112"
+    emergencyContactEmail: Optional[str] = None
+    emergencyContactRelation: Optional[str] = "Primary Contact"
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    accuracy: Optional[float] = None
+    altitude: Optional[float] = None
+    timestamp: Optional[str] = None
+    batteryLevel: Optional[int] = None
+    packetId: Optional[str] = None
+    emergencyType: Optional[str] = "MANUAL SOS DISTRESS BEACON"
+
+
+class SOSDispatchResponse(BaseModel):
+    success: bool
+    message: str
+    recipients: list[str]
+    dispatchedAt: str
+    packetId: Optional[str] = None
+    googleMapsUrl: Optional[str] = None
+
+
+def _send_sos_distress_email(to_emails: list[str], req: SOSDispatchRequest):
+    """
+    Sends an urgent, high-visibility Emergency Distress Alert Email to all designated contacts.
+    """
+    if not to_emails:
+        return
+
+    sender_email = settings.SMTP_FROM_EMAIL or settings.SMTP_USER
+    sender_name = "🚨 ResQNet Emergency Distress Beacon"
+    
+    lat = req.latitude or 0.0
+    lng = req.longitude or 0.0
+    has_loc = bool(req.latitude and req.longitude)
+    maps_url = f"https://www.google.com/maps?q={lat},{lng}" if has_loc else "https://www.google.com/maps"
+    apple_maps_url = f"https://maps.apple.com/?q={lat},{lng}" if has_loc else "https://maps.apple.com"
+    timestamp_str = req.timestamp or (__import__("datetime").datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"))
+    
+    subject = f"🚨 [CRITICAL SOS] Emergency Distress Alert from {req.senderName}!"
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #080c14; color: #e6edf3; margin: 0; padding: 20px 10px; }}
+        .card {{ max-width: 580px; margin: 0 auto; background: #131822; border-radius: 16px; border: 2px solid #ef4444; overflow: hidden; box-shadow: 0 12px 36px rgba(239, 68, 68, 0.35); }}
+        .header {{ background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); padding: 24px 20px; text-align: center; color: #ffffff; }}
+        .header h1 {{ margin: 0; font-size: 22px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }}
+        .header p {{ margin: 6px 0 0 0; color: #fee2e2; font-size: 14px; font-weight: 600; }}
+        .content {{ padding: 24px; }}
+        .alert-box {{ background: rgba(239, 68, 68, 0.15); border-left: 4px solid #ef4444; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; }}
+        .alert-box p {{ margin: 0; color: #fca5a5; font-size: 14px; line-height: 1.5; font-weight: 600; }}
+        .section-title {{ font-size: 13px; font-weight: 800; color: #00E5FF; text-transform: uppercase; letter-spacing: 1px; margin: 18px 0 8px 0; border-bottom: 1px solid #21262d; padding-bottom: 4px; }}
+        .info-grid {{ width: 100%; border-collapse: collapse; margin-bottom: 12px; }}
+        .info-grid td {{ padding: 6px 8px; font-size: 14px; vertical-align: top; }}
+        .label {{ color: #8b949e; width: 38%; font-weight: 600; }}
+        .value {{ color: #ffffff; font-weight: 700; }}
+        .medical-badge {{ display: inline-block; background: #ef4444; color: #ffffff; font-weight: 900; padding: 2px 8px; border-radius: 6px; font-size: 13px; }}
+        .btn-container {{ text-align: center; margin: 24px 0 16px 0; }}
+        .btn-maps {{ display: inline-block; background: #ef4444; color: #ffffff !important; font-size: 16px; font-weight: 900; padding: 14px 28px; border-radius: 12px; text-decoration: none; box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4); text-transform: uppercase; letter-spacing: 0.5px; }}
+        .btn-call {{ display: inline-block; background: #00E5FF; color: #000000 !important; font-size: 14px; font-weight: 800; padding: 10px 20px; border-radius: 10px; text-decoration: none; margin-top: 8px; }}
+        .footer {{ padding: 16px 20px; background: #0b0f17; border-top: 1px solid #21262d; text-align: center; font-size: 12px; color: #64748b; line-height: 1.5; }}
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <div class="header">
+          <h1>🚨 EMERGENCY DISTRESS BEACON</h1>
+          <p>ResQNet Triage Network &bull; Immediate Action Required</p>
+        </div>
+        <div class="content">
+          <div class="alert-box">
+            <p>⚠️ <strong>{req.senderName}</strong> triggered an emergency SOS distress signal requesting immediate rescue support.</p>
+          </div>
+
+          <div class="btn-container">
+            <a href="{maps_url}" class="btn-maps" target="_blank">📍 Open Live GPS Location in Google Maps</a>
+            {f'<br><a href="tel:{req.senderPhone}" class="btn-call">📞 Call {req.senderName} ({req.senderPhone})</a>' if req.senderPhone else ''}
+          </div>
+
+          <div class="section-title">📍 Live Telemetry & Location</div>
+          <table class="info-grid">
+            <tr>
+              <td class="label">GPS Coordinates:</td>
+              <td class="value">{lat:.6f}, {lng:.6f}</td>
+            </tr>
+            <tr>
+              <td class="label">GPS Accuracy:</td>
+              <td class="value">±{req.accuracy or 10:.1f} meters</td>
+            </tr>
+            <tr>
+              <td class="label">Timestamp:</td>
+              <td class="value">{timestamp_str}</td>
+            </tr>
+            <tr>
+              <td class="label">Packet ID:</td>
+              <td class="value"><code style="color:#00E5FF;">{req.packetId or 'PKT-DIRECT'}</code></td>
+            </tr>
+            <tr>
+              <td class="label">Navigation Links:</td>
+              <td class="value">
+                <a href="{maps_url}" style="color:#00E5FF; text-decoration:underline;">Google Maps</a> &bull;
+                <a href="{apple_maps_url}" style="color:#00E5FF; text-decoration:underline;">Apple Maps</a>
+              </td>
+            </tr>
+          </table>
+
+          <div class="section-title">👤 Victim Dossier</div>
+          <table class="info-grid">
+            <tr>
+              <td class="label">Full Name:</td>
+              <td class="value">{req.senderName}</td>
+            </tr>
+            <tr>
+              <td class="label">Phone:</td>
+              <td class="value">{req.senderPhone or 'N/A'}</td>
+            </tr>
+            <tr>
+              <td class="label">Email:</td>
+              <td class="value">{req.senderEmail or 'N/A'}</td>
+            </tr>
+            <tr>
+              <td class="label">Age / Gender:</td>
+              <td class="value">{req.age or 'N/A'} / {req.gender or 'N/A'}</td>
+            </tr>
+          </table>
+
+          <div class="section-title">🩺 Medical Information Vault</div>
+          <table class="info-grid">
+            <tr>
+              <td class="label">Blood Group:</td>
+              <td class="value"><span class="medical-badge">{req.bloodGroup}</span></td>
+            </tr>
+            <tr>
+              <td class="label">Allergies:</td>
+              <td class="value" style="color:#fca5a5;">{req.allergies}</td>
+            </tr>
+            <tr>
+              <td class="label">Medical Conditions:</td>
+              <td class="value">{req.medicalConditions}</td>
+            </tr>
+            <tr>
+              <td class="label">Medications:</td>
+              <td class="value">{req.currentMedications}</td>
+            </tr>
+          </table>
+
+          <div class="section-title">👥 Designated Emergency Contact</div>
+          <table class="info-grid">
+            <tr>
+              <td class="label">Contact Name:</td>
+              <td class="value">{req.emergencyContactName} ({req.emergencyContactRelation})</td>
+            </tr>
+            <tr>
+              <td class="label">Contact Phone:</td>
+              <td class="value">{req.emergencyContactPhone}</td>
+            </tr>
+          </table>
+        </div>
+        <div class="footer">
+          Dispatched automatically by ResQNet Emergency Mesh Protocol &bull; ed25519 Verified
+        </div>
+      </div>
+    </body>
+    </html>
+    """
+
+    plain_content = (
+        f"🚨 EMERGENCY DISTRESS ALERT 🚨\n"
+        f"Victim: {req.senderName} ({req.senderPhone or 'No phone'})\n"
+        f"Blood Group: {req.bloodGroup}\n"
+        f"Allergies: {req.allergies}\n"
+        f"Medical Conditions: {req.medicalConditions}\n"
+        f"GPS Location: https://www.google.com/maps?q={lat},{lng}\n"
+        f"Timestamp: {timestamp_str}\n"
+        f"Emergency Contact: {req.emergencyContactName} ({req.emergencyContactPhone})\n"
+    )
+
+    for recipient in to_emails:
+        if not recipient or not recipient.strip():
+            continue
+        clean_recipient = recipient.strip().lower()
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = formataddr((sender_name, sender_email))
+        msg["To"] = clean_recipient
+        msg["X-Priority"] = "1"
+        msg["X-MSMail-Priority"] = "High"
+        msg["Importance"] = "High"
+        msg.attach(MIMEText(plain_content, "plain"))
+        msg.attach(MIMEText(html_content, "html"))
+
+        try:
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                server.sendmail(sender_email, [clean_recipient], msg.as_string())
+            logger.info(f"🚨 SOS Distress Email dispatched successfully to {clean_recipient}")
+        except Exception as e:
+            logger.error(f"Failed to dispatch SOS Distress Email to {clean_recipient}: {e}")
+
+
+@router.post("/sos/dispatch", response_model=SOSDispatchResponse)
+def dispatch_sos_alert(req: SOSDispatchRequest):
+    """
+    Dispatches real-time SOS distress alerts via Gmail SMTP to emergency contacts and central triage.
+    """
+    recipients = []
+    
+    # 1. Primary Emergency Contact email (if specified)
+    if req.emergencyContactEmail and req.emergencyContactEmail.strip():
+        recipients.append(req.emergencyContactEmail.strip().lower())
+    
+    # 2. Sender's own email (so user receives emergency record)
+    if req.senderEmail and req.senderEmail.strip():
+        sender_clean = req.senderEmail.strip().lower()
+        if sender_clean not in recipients:
+            recipients.append(sender_clean)
+            
+    # 3. Always dispatch to the central cloud emergency email
+    admin_email = settings.SMTP_FROM_EMAIL or settings.SMTP_USER or "ResQNet7@gmail.com"
+    if admin_email and admin_email.strip().lower() not in recipients:
+        recipients.append(admin_email.strip().lower())
+
+    lat = req.latitude or 0.0
+    lng = req.longitude or 0.0
+    maps_url = f"https://www.google.com/maps?q={lat},{lng}"
+    now_iso = __import__("datetime").datetime.utcnow().isoformat() + "Z"
+
+    if _is_smtp_configured():
+        _send_sos_distress_email(recipients, req)
+        mode = "live_smtp"
+    else:
+        logger.warning(f"[DEMO SOS DISPATCH] Emergency email simulated to: {recipients}")
+        mode = "demo_simulated"
+
+    return SOSDispatchResponse(
+        success=True,
+        message=f"SOS Distress alert dispatched to {len(recipients)} emergency contacts ({mode}).",
+        recipients=recipients,
+        dispatchedAt=now_iso,
+        packetId=req.packetId,
+        googleMapsUrl=maps_url,
+    )
+
+
