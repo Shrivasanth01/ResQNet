@@ -1,5 +1,6 @@
 package com.resqnet.sos.ui.screens.settings
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,6 +35,52 @@ fun SettingsScreen(
     val context = LocalContext.current
     val profilePrefs = remember { ProfilePreferences(context) }
     val profile = remember { profilePrefs.getProfile() }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    fun performLogout() {
+        profilePrefs.logout()
+        Toast.makeText(context, "Logged out successfully.", Toast.LENGTH_SHORT).show()
+        navController.navigate(Screen.Login.route) {
+            popUpTo(0) { inclusive = true }
+        }
+    }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            containerColor = ResQSurface,
+            title = {
+                Text(
+                    text = "Sign Out of ResQNet?",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to log out of ${profile.email}? You will need to sign in with your Gmail address to access your emergency profile again.",
+                    color = ResQTextSecondary,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLogoutDialog = false
+                        performLogout()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = ResQCrimson)
+                ) {
+                    Text("Log Out", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Cancel", color = ResQTextSecondary)
+                }
+            }
+        )
+    }
 
     Scaffold(
         containerColor = ResQBackground,
@@ -78,14 +126,14 @@ fun SettingsScreen(
                 color = ResQTextPrimary
             )
             Text(
-                text = "Manage your cryptographic profile and mesh radios",
+                text = "Manage your emergency profile, medical vault and account",
                 style = MaterialTheme.typography.bodyMedium,
                 color = ResQTextSecondary
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Profile Card
+            // Profile Card with Sign Out Button
             Card(
                 colors = CardDefaults.cardColors(containerColor = ResQSurface),
                 shape = RoundedCornerShape(16.dp),
@@ -95,8 +143,7 @@ fun SettingsScreen(
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
@@ -107,15 +154,36 @@ fun SettingsScreen(
                         Icon(Icons.Default.Person, contentDescription = null, tint = ResQCyan, modifier = Modifier.size(28.dp))
                     }
 
-                    Column {
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(profile.fullName, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                         Text(profile.email, color = ResQTextSecondary, fontSize = 12.sp)
                         Text("Blood Group: ${profile.bloodGroup} • Age: ${profile.age}", color = ResQCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    IconButton(
+                        onClick = { showLogoutDialog = true }
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "Sign Out",
+                            tint = ResQCrimson
+                        )
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = "Vault & Radios",
+                color = ResQTextSecondary,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Settings Items
             SettingsRow(
@@ -146,19 +214,24 @@ fun SettingsScreen(
                 onClick = { }
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            Text(
+                text = "Account Session",
+                color = ResQTextSecondary,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Dedicated Logout Button Row
             SettingsRow(
-                title = "Switch Account / Sign Out",
-                subtitle = "Log out of ${profile.email} and log in with another Gmail",
-                icon = Icons.Default.Logout,
+                title = "Log Out of ResQNet",
+                subtitle = "Signed in as ${profile.email}",
+                icon = Icons.AutoMirrored.Filled.ExitToApp,
                 iconColor = ResQCrimson,
-                onClick = {
-                    profilePrefs.logout()
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
+                onClick = { showLogoutDialog = true }
             )
         }
     }
