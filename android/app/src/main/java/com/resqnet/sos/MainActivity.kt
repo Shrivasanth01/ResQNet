@@ -14,15 +14,19 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.resqnet.sos.data.local.ProfilePreferences
 import com.resqnet.sos.theme.ResQBackground
 import com.resqnet.sos.theme.ResQNetTheme
 import com.resqnet.sos.ui.navigation.Screen
+import com.resqnet.sos.ui.screens.auth.LoginScreen
+import com.resqnet.sos.ui.screens.auth.VerifyOtpScreen
 import com.resqnet.sos.ui.screens.dashboard.DashboardScreen
 import com.resqnet.sos.ui.screens.map.LiveMapScreen
 import com.resqnet.sos.ui.screens.reports.ReportsScreen
 import com.resqnet.sos.ui.screens.settings.MedicalVaultScreen
 import com.resqnet.sos.ui.screens.settings.SettingsScreen
 import com.resqnet.sos.ui.screens.sos.ActiveSosScreen
+import java.net.URLDecoder
 
 class MainActivity : ComponentActivity() {
 
@@ -36,6 +40,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         requestAppPermissions()
 
+        val profilePrefs = ProfilePreferences(this)
+        val startDest = if (profilePrefs.isLoggedIn()) Screen.Dashboard.route else Screen.Login.route
+
         setContent {
             ResQNetTheme {
                 Surface(
@@ -46,8 +53,22 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(
                         navController = navController,
-                        startDestination = Screen.Dashboard.route
+                        startDestination = startDest
                     ) {
+                        composable(Screen.Login.route) {
+                            LoginScreen(navController = navController)
+                        }
+                        composable("${Screen.VerifyOtp.route}/{email}/{requestId}") { backStackEntry ->
+                            val rawEmail = backStackEntry.arguments?.getString("email") ?: ""
+                            val rawReqId = backStackEntry.arguments?.getString("requestId") ?: ""
+                            val email = URLDecoder.decode(rawEmail, "UTF-8")
+                            val requestId = URLDecoder.decode(rawReqId, "UTF-8")
+                            VerifyOtpScreen(
+                                navController = navController,
+                                email = email,
+                                requestId = requestId
+                            )
+                        }
                         composable(Screen.Dashboard.route) {
                             DashboardScreen(navController = navController)
                         }

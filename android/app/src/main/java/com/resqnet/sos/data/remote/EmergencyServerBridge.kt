@@ -103,4 +103,103 @@ class EmergencyServerBridge {
             true
         }
     }
+
+    suspend fun sendEmailOtp(email: String): Pair<String, String> {
+        return withContext(Dispatchers.IO) {
+            val payload = buildJsonObject {
+                put("email", email.trim().lowercase())
+            }.toString()
+
+            for (baseUrl in baseUrls) {
+                try {
+                    val request = Request.Builder()
+                        .url("$baseUrl/auth/email-otp/send")
+                        .post(payload.toRequestBody("application/json".toMediaType()))
+                        .build()
+
+                    val response = client.newCall(request).execute()
+                    val body = response.body?.string() ?: ""
+                    if (response.isSuccessful && body.isNotEmpty()) {
+                        val obj = json.parseToJsonElement(body) as? kotlinx.serialization.json.JsonObject
+                        val reqId = obj?.get("requestId")?.toString()?.replace("\"", "") ?: ""
+                        val mode = obj?.get("mode")?.toString()?.replace("\"", "") ?: "demo"
+                        return@withContext Pair(reqId, mode)
+                    }
+                } catch (e: Exception) {
+                    // Try next URL
+                }
+            }
+            // Offline/Demo fallback
+            Pair("REQ-DEMO-${System.currentTimeMillis()}", "demo")
+        }
+    }
+
+    suspend fun verifyEmailOtp(email: String, otp: String, requestId: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            val payload = buildJsonObject {
+                put("email", email.trim().lowercase())
+                put("otp", otp.trim())
+                put("requestId", requestId)
+            }.toString()
+
+            for (baseUrl in baseUrls) {
+                try {
+                    val request = Request.Builder()
+                        .url("$baseUrl/auth/email-otp/verify")
+                        .post(payload.toRequestBody("application/json".toMediaType()))
+                        .build()
+
+                    val response = client.newCall(request).execute()
+                    if (response.isSuccessful) return@withContext true
+                } catch (e: Exception) {
+                    // Try next URL
+                }
+            }
+            // Demo OTP fallback: 123456
+            otp.trim() == "123456"
+        }
+    }
+
+    suspend fun fetchProfileByEmail(email: String): com.resqnet.sos.data.model.UserProfile? {
+        return withContext(Dispatchers.IO) {
+            val cleanEmail = email.trim().lowercase()
+            for (baseUrl in baseUrls) {
+                try {
+                    val request = Request.Builder()
+                        .url("$baseUrl/users/profile-by-email/$cleanEmail")
+                        .get()
+                        .build()
+
+                    val response = client.newCall(request).execute()
+                    val body = response.body?.string() ?: ""
+                    if (response.isSuccessful && body.isNotEmpty()) {
+                        val obj = json.parseToJsonElement(body) as? kotlinx.serialization.json.JsonObject
+                        val exists = obj?.get("exists")?.toString()?.toBoolean() ?: false
+                        if (exists) {
+                            val userObj = obj?.get("user") as? kotlinx.serialization.json.JsonObject
+                            val profObj = obj?.get("profile") as? kotlinx.serialization.json.JsonObject
+
+                            val fullName = userObj?.get("fullName")?.toString()?.replace("\"", "") ?: "ResQNet User"
+                            val age = profObj?.get("age")?.toString()?.replace("\"", "") ?: "24"
+                            val bloodGroup = profObj?.get("bloodGroup")?.toString()?.replace("\"", "") ?: "O+"
+                            val allergies = profObj?.get("allergies")?.toString()?.replace("\"", "") ?: "None"
+                            val medicalConditions = profObj?.get("medicalConditions")?.toString()?.replace("\"", "") ?: "None"
+
+                            return@withContext com.resqnet.sos.data.model.UserProfile(
+                                email = cleanEmail,
+                                fullName = fullName,
+                                age = age,
+                                bloodGroup = bloodGroup,
+                                allergies = allergies,
+                                medicalConditions = medicalConditions
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Try next URL
+                }
+            }
+            null
+        }
+    }
 }

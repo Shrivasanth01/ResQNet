@@ -145,6 +145,21 @@ fun SettingsScreen(
                 iconColor = ResQBlue,
                 onClick = { }
             )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            SettingsRow(
+                title = "Switch Account / Sign Out",
+                subtitle = "Log out of ${profile.email} and log in with another Gmail",
+                icon = Icons.Default.Logout,
+                iconColor = ResQCrimson,
+                onClick = {
+                    profilePrefs.logout()
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }

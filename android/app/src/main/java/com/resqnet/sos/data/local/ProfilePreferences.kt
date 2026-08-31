@@ -16,8 +16,16 @@ class ProfilePreferences(context: Context) {
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    fun isLoggedIn(): Boolean {
+        return prefs.getBoolean("is_logged_in", false)
+    }
+
+    fun setLoggedIn(loggedIn: Boolean) {
+        prefs.edit().putBoolean("is_logged_in", loggedIn).apply()
+    }
+
     fun isProfileComplete(): Boolean {
-        return prefs.getBoolean("is_profile_complete", true)
+        return prefs.getBoolean("is_profile_complete", false)
     }
 
     fun setProfileComplete(complete: Boolean) {
@@ -43,6 +51,14 @@ class ProfilePreferences(context: Context) {
             }
         }
         return UserProfile()
+    }
+
+    fun logout() {
+        prefs.edit()
+            .putBoolean("is_logged_in", false)
+            .remove("user_email")
+            .remove("saved_user_profile")
+            .apply()
     }
 
     fun getSavedEmail(): String {
