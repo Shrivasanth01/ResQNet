@@ -196,3 +196,65 @@ def save_user_profile(payload: CompleteProfilePayload, db: Session = Depends(get
         "profileCompleted": True
     }
 
+
+class SupabaseGoogleAuthPayload(BaseModel):
+    email: str
+    fullName: Optional[str] = "ResQNet User"
+    supabaseUserId: Optional[str] = None
+    avatarUrl: Optional[str] = None
+
+
+@router.post("/auth/supabase-google-sync")
+def sync_supabase_google_user(payload: SupabaseGoogleAuthPayload, db: Session = Depends(get_db)):
+    """
+    Syncs Supabase Google / Gmail OAuth user into central PostgreSQL database repository.
+    Auto-creates profile if user is new, or fetches existing profile if returning user.
+    """
+    clean_email = payload.email.strip().lower()
+    user = db.query(User).filter(User.email == clean_email).first()
+
+    if not user:
+        user_id = payload.supabaseUserId or f"usr_{uuid.uuid4().hex[:12]}"
+        user = User(
+            id=user_id,
+            full_name=payload.fullName or "ResQNet User",
+            email=clean_email,
+            phone_number=f"+{user_id[:10]}"
+        )
+        db.add(user)
+        db.flush()
+
+        profile = EmergencyProfile(
+            id=f"prof_{uuid.uuid4().hex[:10]}",
+            user_id=user.id,
+            age="24",
+            blood_group="O+",
+            medical_conditions="None reported",
+            allergies="None reported",
+            emergency_contacts=[
+                {
+                    "id": "c1",
+                    "name": "Primary Guardian",
+                    "relationship": "Family",
+                    "phoneNumber": "112",
+                    "priorityOrder": 1
+                }
+            ]
+        )
+        db.add(profile)
+        db.commit()
+        db.refresh(user)
+
+    token = create_access_token({"sub": user.id, "email": user.email})
+
+    return {
+        "success": True,
+        "accessToken": token,
+        "user": {
+            "id": user.id,
+            "fullName": user.full_name,
+            "email": user.email
+        }
+    }
+
+
