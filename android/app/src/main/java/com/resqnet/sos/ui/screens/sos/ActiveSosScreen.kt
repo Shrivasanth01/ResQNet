@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.resqnet.sos.data.local.ProfilePreferences
 import com.resqnet.sos.services.distribution.*
+import com.resqnet.sos.ui.navigation.Screen
 import com.resqnet.sos.services.hardware.AndroidLocationService
 import com.resqnet.sos.services.hardware.AndroidSmsCallService
 import com.resqnet.sos.theme.*
@@ -91,6 +92,8 @@ fun ActiveSosScreen(
                         onClick = {
                             if (primaryContact != null) {
                                 smsCallService.initiateEmergencyPhoneCall(primaryContact.phoneNumber)
+                            } else {
+                                navController.navigate(Screen.EmergencyContacts.route)
                             }
                         },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = ResQCyan),
@@ -98,9 +101,9 @@ fun ActiveSosScreen(
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(if (primaryContact != null) Icons.Default.Call else Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Re-Dial Call", fontWeight = FontWeight.Bold)
+                        Text(if (primaryContact != null) "Re-Dial Call" else "Add Contact", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -372,21 +375,72 @@ fun ActiveSosScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Row(
-                        modifier = Modifier
-                            .background(ResQGreen.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                            .border(1.dp, ResQGreen.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ResQGreen, modifier = Modifier.size(14.dp))
-                        Text(
-                            text = primaryContact?.let { "${it.name} (${it.phoneNumber})" } ?: "Universal Emergency Line (112)",
-                            color = Color(0xFF86EFAC),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                    if (primaryContact != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(ResQGreen.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                .border(1.dp, ResQGreen.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ResQGreen, modifier = Modifier.size(16.dp))
+                                Column {
+                                    Text(
+                                        text = "${primaryContact.name} (${primaryContact.phoneNumber})",
+                                        color = Color(0xFF86EFAC),
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "Call dialer & SMS dispatched automatically",
+                                        color = ResQTextSecondary,
+                                        fontSize = 10.sp
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        // NO CONTACT SAVED: Prominent Add Contact Button
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF2C1305)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, ResQYellow, RoundedCornerShape(10.dp))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "⚠️ No Emergency Contact Registered!",
+                                    color = ResQYellow,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Register your family or guardian's phone number so the app can automatically call and SMS them during SOS.",
+                                    color = ResQTextSecondary,
+                                    fontSize = 11.sp,
+                                    lineHeight = 15.sp
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = { navController.navigate(Screen.EmergencyContacts.route) },
+                                    colors = ButtonDefaults.buttonColors(containerColor = ResQYellow),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Add Family / Guardian Phone Number", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
