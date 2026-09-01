@@ -141,10 +141,11 @@ class AutomaticSosController(private val context: Context) {
         )
         delay(300)
 
-        // Dispatch server email alert
+        // Dispatch server email alert & broadcast over local mesh UDP socket
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 serverBridge.dispatchSosEmail(profile.email, existingRsep)
+                AndroidMeshBroadcaster.broadcastRsepPacket(context, existingRsep)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
