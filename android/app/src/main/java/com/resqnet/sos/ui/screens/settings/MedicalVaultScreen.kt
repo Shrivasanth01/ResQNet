@@ -26,6 +26,8 @@ import androidx.navigation.NavController
 import com.resqnet.sos.data.local.ProfilePreferences
 import com.resqnet.sos.data.local.RsepStorageManager
 import com.resqnet.sos.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +36,7 @@ fun MedicalVaultScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val profilePrefs = remember { ProfilePreferences(context) }
     val storageManager = remember { RsepStorageManager(context) }
     val initialProfile = remember { profilePrefs.getProfile() }
@@ -319,7 +322,16 @@ fun MedicalVaultScreen(
                     )
                     storageManager.saveRsep(updatedRsep)
 
-                    Toast.makeText(context, "Medical Vault Saved & Synced to RSEP!", Toast.LENGTH_SHORT).show()
+                    // Sync permanently to Supabase PostgreSQL database
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            com.resqnet.sos.data.remote.EmergencyServerBridge().saveProfileToCloud(updated)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+
+                    Toast.makeText(context, "Medical Vault Saved & Synced to Cloud Database!", Toast.LENGTH_SHORT).show()
                     navController.popBackStack()
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = ResQCyan),

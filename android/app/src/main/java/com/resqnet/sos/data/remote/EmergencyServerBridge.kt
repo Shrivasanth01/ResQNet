@@ -288,4 +288,36 @@ class EmergencyServerBridge {
             null
         }
     }
+
+    suspend fun saveProfileToCloud(profile: com.resqnet.sos.data.model.UserProfile): Boolean {
+        return withContext(Dispatchers.IO) {
+            val primaryContact = profile.emergencyContacts.firstOrNull()
+            val payload = buildJsonObject {
+                put("email", profile.email)
+                put("name", profile.fullName)
+                put("phoneNumber", profile.phoneNumber)
+                put("age", profile.age)
+                put("bloodGroup", profile.bloodGroup)
+                put("medicalConditions", profile.medicalConditions)
+                put("allergies", profile.allergies)
+                put("emergencyContactName", primaryContact?.name ?: "Primary Guardian")
+                put("emergencyContactPhone", primaryContact?.phoneNumber ?: "112")
+            }.toString()
+
+            for (baseUrl in baseUrls) {
+                try {
+                    val request = Request.Builder()
+                        .url("$baseUrl/users/save-profile")
+                        .post(payload.toRequestBody("application/json".toMediaType()))
+                        .build()
+
+                    val response = client.newCall(request).execute()
+                    if (response.isSuccessful) return@withContext true
+                } catch (e: Exception) {
+                    // Try next
+                }
+            }
+            false
+        }
+    }
 }
