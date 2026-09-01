@@ -106,10 +106,32 @@ class EmergencyServerBridge {
 
     suspend fun sendEmailOtp(email: String): Pair<String, String> {
         return withContext(Dispatchers.IO) {
+            val cleanEmail = email.trim().lowercase()
+            val supabaseUrl = "https://jnahwwcmmdciqqjcnreo.supabase.co/auth/v1/otp"
+            val supabaseAnonKey = "sb_publishable_Tc3wr90nzn0xyG5HafMa7g_S6QCZknM"
+
             val payload = buildJsonObject {
-                put("email", email.trim().lowercase())
+                put("email", cleanEmail)
             }.toString()
 
+            try {
+                val request = Request.Builder()
+                    .url(supabaseUrl)
+                    .post(payload.toRequestBody("application/json".toMediaType()))
+                    .addHeader("apikey", supabaseAnonKey)
+                    .addHeader("Content-Type", "application/json")
+                    .build()
+
+                val response = client.newCall(request).execute()
+                if (response.isSuccessful || response.code == 200 || response.code == 201) {
+                    println("[EmergencyServerBridge] ✅ Supabase Auth OTP sent to $cleanEmail")
+                    return@withContext Pair("SUPABASE-REQ-${System.currentTimeMillis()}", "supabase")
+                }
+            } catch (e: Exception) {
+                println("[EmergencyServerBridge] Supabase Auth OTP notice: ${e.localizedMessage}")
+            }
+
+            // Fallback: local backend
             for (baseUrl in baseUrls) {
                 try {
                     val request = Request.Builder()
@@ -129,34 +151,98 @@ class EmergencyServerBridge {
                     // Try next URL
                 }
             }
-            // Offline/Demo fallback
             Pair("REQ-DEMO-${System.currentTimeMillis()}", "demo")
         }
     }
 
     suspend fun verifyEmailOtp(email: String, otp: String, requestId: String): Boolean {
         return withContext(Dispatchers.IO) {
+            val cleanEmail = email.trim().lowercase()
+            val supabaseVerifyUrl = "https://jnahwwcmmdciqqjcnreo.supabase.co/auth/v1/verify"
+            val supabaseAnonKey = "sb_publishable_Tc3wr90nzn0xyG5HafMa7g_S6QCZknM"
+
             val payload = buildJsonObject {
-                put("email", email.trim().lowercase())
-                put("otp", otp.trim())
-                put("requestId", requestId)
+                put("type", "email")
+                put("email", cleanEmail)
+                put("token", otp.trim())
+            }.toString()
+
+            try {
+                val request = Request.Builder()
+                    .url(supabaseVerifyUrl)
+                    .post(payload.toRequestBody("application/json".toMediaType()))
+                    .addHeader("apikey", supabaseAnonKey)
+                    .addHeader("Content-Type", "application/json")
+                    .build()
+
+                val response = client.newCall(request).execute()
+                if (response.isSuccessful || response.code == 200) {
+                    println("[EmergencyServerBridge] ✅ Supabase Auth OTP Verified for $cleanEmail!")
+                    syncSupabaseUserWithBackend(cleanEmail)
+                    return@withContext true
+                }
+            } catch (e: Exception) {
+                println("[EmergencyServerBridge] Supabase Verify notice: ${e.localizedMessage}")
+            }
+
+            // Fallback to local backend / Demo OTP 123456
+            for (baseUrl in baseUrls) {
+                try {
+                    val verifyPayload = buildJsonObject {
+                        put("email", cleanEmail)
+                        put("otp", otp.trim())
+                        put("requestId", requestId)
+                    }.toString()
+
+                    val request = Request.Builder()
+                        .url("$baseUrl/auth/email-otp/verify")
+                        .post(verifyPayload.toRequestBody("application/json".toMediaType()))
+                        .build()
+
+                    val response = client.newCall(request).execute()
+                    if (response.isSuccessful) {
+                        syncSupabaseUserWithBackend(cleanEmail)
+                        return@withContext true
+                    }
+                } catch (e: Exception) {
+                    // Try next URL
+                }
+            }
+
+            if (otp.trim() == "123456") {
+                syncSupabaseUserWithBackend(cleanEmail)
+                return@withContext true
+            }
+
+            false
+        }
+    }
+
+    private fun syncSupabaseUserWithBackend(email: String) {
+        try {
+            val namePart = email.split("@")[0].replace(".", " ")
+            val formattedName = namePart.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }
+
+            val syncPayload = buildJsonObject {
+                put("email", email)
+                put("fullName", formattedName)
             }.toString()
 
             for (baseUrl in baseUrls) {
                 try {
                     val request = Request.Builder()
-                        .url("$baseUrl/auth/email-otp/verify")
-                        .post(payload.toRequestBody("application/json".toMediaType()))
+                        .url("$baseUrl/users/auth/supabase-google-sync")
+                        .post(syncPayload.toRequestBody("application/json".toMediaType()))
                         .build()
 
                     val response = client.newCall(request).execute()
-                    if (response.isSuccessful) return@withContext true
+                    if (response.isSuccessful) break
                 } catch (e: Exception) {
-                    // Try next URL
+                    // Ignore
                 }
             }
-            // Demo OTP fallback: 123456
-            otp.trim() == "123456"
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
