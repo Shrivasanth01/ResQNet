@@ -18,6 +18,7 @@ import com.resqnet.sos.data.local.ProfilePreferences
 import com.resqnet.sos.theme.ResQBackground
 import com.resqnet.sos.theme.ResQNetTheme
 import com.resqnet.sos.ui.navigation.Screen
+import com.resqnet.sos.ui.screens.auth.CompleteProfileScreen
 import com.resqnet.sos.ui.screens.auth.LoginScreen
 import com.resqnet.sos.ui.screens.auth.VerifyOtpScreen
 import com.resqnet.sos.ui.screens.dashboard.DashboardScreen
@@ -90,6 +91,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Screen.EmergencyContacts.route) {
                             EmergencyContactsScreen(navController = navController)
+                        }
+                        composable(Screen.CompleteProfile.route) {
+                            CompleteProfileScreen(navController = navController)
                         }
                     }
                 }
