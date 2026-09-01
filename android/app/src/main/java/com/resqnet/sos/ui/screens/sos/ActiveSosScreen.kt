@@ -468,6 +468,84 @@ fun ActiveSosScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // =========================================================================
+            // MANUAL SYSTEM SHARE / BLUETOOTH RSEP EXPORT CARD
+            // =========================================================================
+            Card(
+                colors = CardDefaults.cardColors(containerColor = ResQSurface),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, ResQCyan.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Bluetooth, contentDescription = null, tint = ResQCyan, modifier = Modifier.size(20.dp))
+                        Text(
+                            text = "Direct Bluetooth / System Share",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = ResQTextPrimary,
+                            fontSize = 15.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "Send your active .rsep dossier file directly to a nearby phone or device using native Android Bluetooth or Nearby Share:",
+                        color = ResQTextSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = {
+                            try {
+                                val rsepStorageManager = com.resqnet.sos.data.local.RsepStorageManager(context)
+                                val rsepPacket = rsepStorageManager.getExistingRsep()
+                                val rsepJson = rsepStorageManager.exportRsepJson(rsepPacket)
+
+                                val shareText = "🚨 RESQNET EMERGENCY RSEP DOSSIER 🚨\n\n" +
+                                        "Victim: ${profile.fullName}\n" +
+                                        "Blood Group: ${profile.bloodGroup}\n" +
+                                        "Allergies: ${profile.allergies}\n" +
+                                        "Medical Conditions: ${profile.medicalConditions}\n" +
+                                        "Live Location: https://www.google.com/maps?q=${locationCoords.latitude},${locationCoords.longitude}\n\n" +
+                                        "RAW RSEP PAYLOAD:\n$rsepJson"
+
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_SUBJECT, "ResQNet Emergency RSEP Dossier - ${profile.fullName}")
+                                    putExtra(Intent.EXTRA_TEXT, shareText)
+                                }
+                                context.startActivity(Intent.createChooser(shareIntent, "Send RSEP File via Bluetooth / Nearby Share"))
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = ResQCyan),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Send .rsep File via Bluetooth / Nearby Share",
+                            color = Color.Black,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
         }
     }
 }
