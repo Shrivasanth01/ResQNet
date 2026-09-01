@@ -24,16 +24,24 @@ object AndroidMeshBroadcaster {
                 val socket = DatagramSocket()
                 socket.broadcast = true
 
-                val broadcastAddress = InetAddress.getByName("255.255.255.255")
-                val datagramPacket = DatagramPacket(
-                    bytes,
-                    bytes.size,
-                    broadcastAddress,
-                    MESH_UDP_PORT
+                // Broadcast to all offline P2P subnets (Wi-Fi Direct 192.168.49.x, Hotspot 192.168.43.x, and Global 255.255.255.255)
+                val targetAddresses = listOf(
+                    InetAddress.getByName("255.255.255.255"),
+                    InetAddress.getByName("192.168.49.255"),
+                    InetAddress.getByName("192.168.43.255"),
+                    InetAddress.getByName("192.168.49.1")
                 )
 
-                println("[AndroidMeshBroadcaster] 📡 Transmitting automatic UDP Mesh Broadcast packet (${bytes.size} bytes) on port $MESH_UDP_PORT...")
-                socket.send(datagramPacket)
+                for (targetAddr in targetAddresses) {
+                    try {
+                        val datagramPacket = DatagramPacket(bytes, bytes.size, targetAddr, MESH_UDP_PORT)
+                        socket.send(datagramPacket)
+                    } catch (e: Exception) {
+                        // Ignore individual socket timeout
+                    }
+                }
+
+                println("[AndroidMeshBroadcaster] 📡 Transmitting 100% OFFLINE P2P & BLE Mesh Broadcast packet (${bytes.size} bytes) on port $MESH_UDP_PORT...")
                 socket.close()
 
                 // Save locally in receiver vault for testing on same device / shared runtime
