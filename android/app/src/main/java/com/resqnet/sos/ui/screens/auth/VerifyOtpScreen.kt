@@ -153,9 +153,12 @@ fun VerifyOtpScreen(
                             profilePrefs.setProfileComplete(true)
 
                             isLoading = false
-                            Toast.makeText(context, "Logged in as ${email}. Profile synced!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Logged in as ${email}. Syncing profile...", Toast.LENGTH_SHORT).show()
 
-                            navController.navigate(Screen.Dashboard.route) {
+                            val hasContacts = cloudProfile?.emergencyContacts?.isNotEmpty() == true
+                            val destination = if (hasContacts) Screen.Dashboard.route else Screen.EmergencyContacts.route
+
+                            navController.navigate(destination) {
                                 popUpTo(Screen.Login.route) { inclusive = true }
                             }
                         } else {

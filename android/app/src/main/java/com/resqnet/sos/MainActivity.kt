@@ -23,6 +23,7 @@ import com.resqnet.sos.ui.screens.auth.VerifyOtpScreen
 import com.resqnet.sos.ui.screens.dashboard.DashboardScreen
 import com.resqnet.sos.ui.screens.map.LiveMapScreen
 import com.resqnet.sos.ui.screens.reports.ReportsScreen
+import com.resqnet.sos.ui.screens.settings.EmergencyContactsScreen
 import com.resqnet.sos.ui.screens.settings.MedicalVaultScreen
 import com.resqnet.sos.ui.screens.settings.SettingsScreen
 import com.resqnet.sos.ui.screens.sos.ActiveSosScreen
@@ -86,6 +87,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Screen.MedicalVault.route) {
                             MedicalVaultScreen(navController = navController)
+                        }
+                        composable(Screen.EmergencyContacts.route) {
+                            EmergencyContactsScreen(navController = navController)
                         }
                     }
                 }
