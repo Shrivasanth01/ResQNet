@@ -21,8 +21,12 @@ class Settings(BaseSettings):
     VERSION: str = "3.0.0-PROD"
     API_V1_STR: str = "/api/v1"
 
-    # Database Settings - Defaults to SQLite fallback for rapid local developmental testing
+    # Database & Supabase Settings
+    # Defaults to SQLite local fallback, or set PostgreSQL / Supabase URL in .env
     DATABASE_URL: str = "sqlite:///./resqnet_cloud_vault.db"
+    SUPABASE_URL: str = ""
+    SUPABASE_ANON_KEY: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
 
     # Security & JWT Configuration
     JWT_SECRET: str = "resqnet-super-secret-production-key-v3"
