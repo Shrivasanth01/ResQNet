@@ -131,7 +131,7 @@ class AutomaticSosController(private val context: Context) {
         emitProgress(
             SosProgressEvent(
                 step = SosDistributionStep.RSEP_FOUND,
-                message = "📄 RSEP DOSSIER READY: Victim medical vault & Live GPS ($coords) compiled.",
+                message = "📄 RSEP DOSSIER READY: Medical Vault & Live GPS (Lat: ${String.format(Locale.US, "%.5f", coords.latitude)}°, Long: ${String.format(Locale.US, "%.5f", coords.longitude)}°) compiled.",
                 packetId = packetId,
                 hopCount = 0,
                 ttl = initialTtl,
@@ -164,7 +164,7 @@ class AutomaticSosController(private val context: Context) {
             )
         )
 
-        val nearbyDevices = DeviceDiscoveryManager.discoverNearbyDevices()
+        val nearbyDevices = DeviceDiscoveryManager.discoverNearbyDevices(context)
 
         // STEP 4: AUTOMATIC MULTI-HOP DISTRIBUTION OVER NEARBY DEVICES
         var currentPacket = existingRsep
