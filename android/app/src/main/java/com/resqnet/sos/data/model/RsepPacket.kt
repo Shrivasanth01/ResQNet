@@ -34,6 +34,9 @@ data class PacketUser(
     @SerialName("userId") val userId: String,
     @SerialName("name") val name: String,
     @SerialName("age") val age: String = "",
+    @SerialName("gender") val gender: String = "",
+    @SerialName("height") val height: String = "",
+    @SerialName("weight") val weight: String = "",
     @SerialName("bloodGroup") val bloodGroup: String = "O+",
     @SerialName("medicalConditions") val medicalConditions: String = "",
     @SerialName("emergencyContacts") val emergencyContacts: List<EmergencyContact> = emptyList()
