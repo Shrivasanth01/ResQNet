@@ -27,7 +27,8 @@ object RsepTransferManager {
 
     suspend fun transferRsep(
         packet: RsepPacket,
-        targetDevice: MeshParticipatingDevice
+        targetDevice: MeshParticipatingDevice,
+        context: android.content.Context? = null
     ): TransferResult {
         val startTime = System.currentTimeMillis()
         println("[RsepTransferManager] 📤 Automatically transferring existing RSEP (${packet.header.packetId}) to ${targetDevice.name} via ${targetDevice.transport}...")
@@ -61,6 +62,14 @@ object RsepTransferManager {
 
         val elapsed = System.currentTimeMillis() - startTime
         println("[RsepTransferManager] ✅ RSEP (${packet.header.packetId}) transferred successfully to ${targetDevice.name} in ${elapsed}ms ($byteSize bytes)")
+
+        if (context != null) {
+            try {
+                com.resqnet.sos.data.local.ReceivedIncidentsVault(context).saveReceivedPacket(packet)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
 
         return TransferResult(
             success = true,

@@ -192,7 +192,7 @@ class AutomaticSosController(private val context: Context) {
             delay(400)
 
             // STEP 4B: AUTOMATICALLY CONNECT & TRANSFER EXISTING RSEP
-            val transfer = RsepTransferManager.transferRsep(currentPacket, device)
+            val transfer = RsepTransferManager.transferRsep(currentPacket, device, context)
             if (transfer.success) {
                 emitProgress(
                     SosProgressEvent(

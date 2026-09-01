@@ -161,6 +161,89 @@ fun DashboardScreen(
                 }
             }
 
+            // RECEIVED MESH EMERGENCY ALERTS CARD
+            val receivedVault = remember { com.resqnet.sos.data.local.ReceivedIncidentsVault(context) }
+            val receivedPackets = remember { receivedVault.getReceivedPackets() }
+
+            if (receivedPackets.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E0B0B)),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.5.dp, ResQCrimson, RoundedCornerShape(16.dp))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = ResQCrimson, modifier = Modifier.size(20.dp))
+                            Text(
+                                text = "🚨 RECEIVED MESH SOS ALERTS (${receivedPackets.size})",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        receivedPackets.take(3).forEach { pkt ->
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp)
+                                    .border(1.dp, ResQCrimson.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text("Victim: ${pkt.user.name}", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    Text("Blood: ${pkt.user.bloodGroup} • Medical: ${pkt.user.medicalConditions}", color = ResQCyan, fontSize = 11.sp)
+                                    Text("GPS: ${pkt.location.latitude}, ${pkt.location.longitude}", color = ResQTextSecondary, fontSize = 10.sp)
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Button(
+                                            onClick = {
+                                                val mapUri = android.net.Uri.parse("https://www.google.com/maps?q=${pkt.location.latitude},${pkt.location.longitude}")
+                                                context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, mapUri))
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = ResQBlue),
+                                            shape = RoundedCornerShape(6.dp),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text("View Map Location", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        }
+
+                                        val contact = pkt.user.emergencyContacts.firstOrNull()
+                                        if (contact != null) {
+                                            Button(
+                                                onClick = {
+                                                    val callIntent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                                                        data = android.net.Uri.parse("tel:${contact.phoneNumber}")
+                                                    }
+                                                    context.startActivity(callIntent)
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = ResQGreen),
+                                                shape = RoundedCornerShape(6.dp),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Text("Call Contact", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(28.dp))
 
             // =========================================================================
