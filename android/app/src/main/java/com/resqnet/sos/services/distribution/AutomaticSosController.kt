@@ -19,14 +19,11 @@ import java.util.*
  * MODULE 2: SOS CONTROLLER (AUTOMATIC SOS DISTRIBUTION SYSTEM)
  * 
  * CORE REQUIREMENT ENFORCEMENT:
- * - The user performs ONLY ONE ACTION: Press SOS.
+ * - The user performs ONLY ONE ACTION: Press / Tap / Hold SOS.
  * - Everything else happens 100% AUTOMATICALLY.
- * - No selecting RSEP file.
- * - No selecting Bluetooth or Wi-Fi.
- * - No selecting nearby devices.
- * - No pressing Connect or Send.
- * - No manual forwarding.
- * - Emits real-time progress events for visual Jetpack Compose timeline.
+ * - Dispatches phone call dialer and SMS IMMEDIATELY (0ms delay).
+ * - Compiles victim profile & live GPS.
+ * - Broadcasts RSEP emergency dossier across BLE & Wi-Fi Direct mesh relays.
  */
 class AutomaticSosController(private val context: Context) {
 
@@ -59,8 +56,8 @@ class AutomaticSosController(private val context: Context) {
     }
 
     /**
-     * Master single-click entry point.
-     * Executes the entire automated distribution pipeline without user interaction.
+     * Master single-click / tap entry point.
+     * Executes phone call, SMS, and automated mesh distribution pipeline immediately.
      */
     suspend fun triggerAutomaticSos(): SosDistributionResult {
         if (isRunning) return SosDistributionResult(true, "RUNNING", 0, false)
@@ -75,11 +72,30 @@ class AutomaticSosController(private val context: Context) {
         println("🚨 AUTOMATIC SOS DISTRIBUTION SYSTEM ACTIVATED (ANDROID)")
         println("==================================================")
 
-        // STEP 1: SOS ACTIVATED
+        // 🚨 STEP 1: IMMEDIATELY INITIATE EMERGENCY PHONE CALL & DISTRESS SMS (0ms DELAY)
+        val profile = profilePrefs.getProfile()
+        val primaryContact = profile.emergencyContacts.firstOrNull()
+        val immediateCoords = locationService.getCachedLocation()
+
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                if (primaryContact != null) {
+                    // 1. Send SMS with Live Google Maps GPS location link & medical details immediately
+                    smsCallService.sendEmergencySms(primaryContact, profile, immediateCoords)
+
+                    // 2. Automatically dial emergency phone call to primary emergency contact
+                    smsCallService.initiateEmergencyPhoneCall(primaryContact.phoneNumber)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        // STEP 1B: SOS ACTIVATED PROGRESS EVENT
         emitProgress(
             SosProgressEvent(
                 step = SosDistributionStep.SOS_ACTIVATED,
-                message = "🚨 SOS ACTIVATED: Emergency broadcast initiated.",
+                message = "🚨 SOS ACTIVATED: Emergency call dialer & SMS dispatched immediately.",
                 packetId = "INITIALIZING",
                 hopCount = 0,
                 ttl = 5,
@@ -87,12 +103,9 @@ class AutomaticSosController(private val context: Context) {
                 timestamp = getCurrentTimestamp()
             )
         )
-        delay(300)
 
         // STEP 2: GET LIVE HIGH-ACCURACY GPS LOCATION & LOAD VICTIM RSEP DOSSIER
-        val profile = profilePrefs.getProfile()
         val coords = locationService.getHighAccuracyLocation()
-        val primaryContact = profile.emergencyContacts.firstOrNull()
 
         // Update existing RSEP dossier with live GPS coordinates and victim medical vault
         val existingRsep = existingRsepManager.getExistingRsep().copy(
@@ -126,18 +139,11 @@ class AutomaticSosController(private val context: Context) {
                 timestamp = getCurrentTimestamp()
             )
         )
-        delay(350)
+        delay(300)
 
-        // STEP 2B: IMMEDIATELY INITIATE EMERGENCY PHONE CALL & DISTRESS SMS TO CONTACTS
-        CoroutineScope(Dispatchers.Main).launch {
+        // Dispatch server email alert
+        CoroutineScope(Dispatchers.IO).launch {
             try {
-                if (primaryContact != null) {
-                    // 1. Send SMS with Live Google Maps GPS location link & medical details
-                    smsCallService.sendEmergencySms(primaryContact, profile, coords)
-
-                    // 2. Automatically dial emergency call to primary emergency contact
-                    smsCallService.initiateEmergencyPhoneCall(primaryContact.phoneNumber)
-                }
                 serverBridge.dispatchSosEmail(profile.email, existingRsep)
             } catch (e: Exception) {
                 e.printStackTrace()
