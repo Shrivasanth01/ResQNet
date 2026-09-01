@@ -24,9 +24,11 @@ object AndroidMeshBroadcaster {
                 val socket = DatagramSocket()
                 socket.broadcast = true
 
-                // Broadcast to all offline P2P subnets (Wi-Fi Direct 192.168.49.x, Hotspot 192.168.43.x, and Global 255.255.255.255)
+                // Broadcast to all offline P2P subnets and Multicast groups (Wi-Fi Direct 192.168.49.x, Hotspot 192.168.43.x, Multicast 239.255.255.250 & 224.0.0.1)
                 val targetAddresses = listOf(
                     InetAddress.getByName("255.255.255.255"),
+                    InetAddress.getByName("239.255.255.250"),
+                    InetAddress.getByName("224.0.0.1"),
                     InetAddress.getByName("192.168.49.255"),
                     InetAddress.getByName("192.168.43.255"),
                     InetAddress.getByName("192.168.49.1")
