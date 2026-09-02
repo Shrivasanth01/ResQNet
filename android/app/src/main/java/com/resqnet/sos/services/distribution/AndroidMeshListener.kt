@@ -24,17 +24,12 @@ object AndroidMeshListener {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                println("[AndroidMeshListener] 👂 Starting background UDP/Multicast Mesh listener on port $MESH_UDP_PORT...")
+                println("[AndroidMeshListener] 👂 Acquiring Wi-Fi Multicast Lock & starting UDP listener on port $MESH_UDP_PORT...")
                 
-                // Multicast socket for offline Wi-Fi Direct / Hotspot reception
-                val multicastGroup = java.net.InetAddress.getByName("239.255.255.250")
-                val multicastSocket = java.net.MulticastSocket(MESH_UDP_PORT)
-                multicastSocket.reuseAddress = true
-                try {
-                    multicastSocket.joinGroup(multicastGroup)
-                } catch (e: Exception) {
-                    // Ignore if multicast join restricted by OS
-                }
+                val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
+                val multicastLock = wifiManager?.createMulticastLock("resqnet_multicast_lock")
+                multicastLock?.setReferenceCounted(true)
+                multicastLock?.acquire()
 
                 val socket = DatagramSocket(MESH_UDP_PORT)
                 socket.reuseAddress = true
