@@ -16,6 +16,15 @@ class ProfilePreferences(context: Context) {
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    fun getOrCreateDeviceId(): String {
+        var deviceId = prefs.getString("local_device_id", null)
+        if (deviceId.isNullOrEmpty()) {
+            deviceId = java.util.UUID.randomUUID().toString().take(8).uppercase()
+            prefs.edit().putString("local_device_id", deviceId).apply()
+        }
+        return deviceId
+    }
+
     fun isLoggedIn(): Boolean {
         return prefs.getBoolean("is_logged_in", false)
     }
