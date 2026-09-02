@@ -105,11 +105,19 @@ class AutomaticSosController(private val context: Context) {
             )
         )
 
-        // STEP 2: GET LIVE HIGH-ACCURACY GPS LOCATION & LOAD VICTIM RSEP DOSSIER
+        // STEP 2: GET LIVE HIGH-ACCURACY GPS LOCATION & GENERATE FRESH RSEP PACKET ID FOR THIS SOS DISPATCH
         val coords = locationService.getHighAccuracyLocation()
+        val newPacketId = "RQ-PKT-" + java.util.UUID.randomUUID().toString().take(8).uppercase()
+        val freshTimestamp = getCurrentTimestamp()
 
-        // Update existing RSEP dossier with live GPS coordinates and victim medical vault
+        // Update existing RSEP dossier with fresh packet ID, live GPS coordinates, and victim medical vault
         val existingRsep = existingRsepManager.getExistingRsep().copy(
+            header = com.resqnet.sos.data.model.PacketHeader(
+                packetId = newPacketId,
+                timestamp = freshTimestamp,
+                ttl = 5,
+                hopCount = 0
+            ),
             user = com.resqnet.sos.data.model.PacketUser(
                 userId = profile.userId,
                 name = profile.fullName,
@@ -122,7 +130,7 @@ class AutomaticSosController(private val context: Context) {
                 latitude = coords.latitude,
                 longitude = coords.longitude,
                 accuracy = 5.0f,
-                timestamp = getCurrentTimestamp()
+                timestamp = freshTimestamp
             )
         )
 
