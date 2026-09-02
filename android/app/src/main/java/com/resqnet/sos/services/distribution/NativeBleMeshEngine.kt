@@ -37,6 +37,7 @@ object NativeBleMeshEngine {
     private var gattServer: BluetoothGattServer? = null
 
     private val connectedGattClients = ConcurrentHashMap<String, BluetoothGatt>()
+    private val connectedGattServerDevices = ConcurrentHashMap<String, BluetoothDevice>()
     private val incomingReassemblyBuffers = ConcurrentHashMap<String, StringBuilder>()
 
     // StateFlow Monitoring Indicators
@@ -202,12 +203,12 @@ object NativeBleMeshEngine {
             val mac = gatt?.device?.address ?: return
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 addLog("Device connected: $mac")
-                _connectedDevicesCount.value = connectedGattClients.size
+                _connectedDevicesCount.value = connectedGattClients.size + connectedGattServerDevices.size
                 gatt.discoverServices()
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 addLog("Device disconnected: $mac")
                 connectedGattClients.remove(mac)
-                _connectedDevicesCount.value = connectedGattClients.size
+                _connectedDevicesCount.value = connectedGattClients.size + connectedGattServerDevices.size
             }
         }
 
@@ -223,6 +224,17 @@ object NativeBleMeshEngine {
                 addLog("GATT MTU negotiated: $mtu bytes for ${gatt?.device?.address}")
             }
         }
+
+        @Suppress("DEPRECATION")
+        override fun onCharacteristicChanged(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?) {
+            if (characteristic?.uuid == MESH_CHARACTERISTIC_UUID && characteristic.value != null) {
+                val mac = gatt?.device?.address ?: "UNKNOWN"
+                val chunkText = String(characteristic.value, Charsets.UTF_8)
+                scope.launch {
+                    processIncomingGattChunk(mac, chunkText)
+                }
+            }
+        }
     }
 
     private val gattServerCallback = object : BluetoothGattServerCallback() {
@@ -230,9 +242,13 @@ object NativeBleMeshEngine {
             val mac = device?.address ?: return
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 addLog("GATT Server client connected: $mac")
+                connectedGattServerDevices[mac] = device
+                _connectedDevicesCount.value = connectedGattClients.size + connectedGattServerDevices.size
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 addLog("GATT Server client disconnected: $mac")
+                connectedGattServerDevices.remove(mac)
                 incomingReassemblyBuffers.remove(mac)
+                _connectedDevicesCount.value = connectedGattClients.size + connectedGattServerDevices.size
             }
         }
 
