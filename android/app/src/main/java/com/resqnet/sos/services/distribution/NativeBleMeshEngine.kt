@@ -98,6 +98,7 @@ object NativeBleMeshEngine {
                 MESH_CHARACTERISTIC_UUID,
                 BluetoothGattCharacteristic.PROPERTY_READ or
                         BluetoothGattCharacteristic.PROPERTY_WRITE or
+                        BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE or
                         BluetoothGattCharacteristic.PROPERTY_NOTIFY,
                 BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE
             )
@@ -177,7 +178,7 @@ object NativeBleMeshEngine {
 
                 if (!connectedGattClients.containsKey(mac)) {
                     addLog("Auto-connecting GATT client to $mac...")
-                    val gatt = device.connectGatt(appContext, false, gattCallback)
+                    val gatt = device.connectGatt(appContext, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
                     if (gatt != null) {
                         connectedGattClients[mac] = gatt
                     }
@@ -213,6 +214,13 @@ object NativeBleMeshEngine {
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 addLog("Mesh GATT Service discovered on ${gatt?.device?.address}")
+                gatt?.requestMtu(512)
+            }
+        }
+
+        override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                addLog("GATT MTU negotiated: $mtu bytes for ${gatt?.device?.address}")
             }
         }
     }
@@ -307,7 +315,7 @@ object NativeBleMeshEngine {
                 addLog("Broadcasting RSEP ($packetId) over connected BLE GATT peers...")
 
                 val bytes = jsonPayload.toByteArray(Charsets.UTF_8)
-                val chunkSize = 400
+                val chunkSize = 180
                 val totalBytes = bytes.size
                 var offset = 0
 
