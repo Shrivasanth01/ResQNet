@@ -291,10 +291,6 @@ fun DashboardScreen(
                                 vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
                                 tryAwaitRelease()
                                 isHoldingSos = false
-                            },
-                            onTap = {
-                                // Instant tap triggers SOS directly
-                                navController.navigate(Screen.ActiveSos.route)
                             }
                         )
                     }
@@ -350,7 +346,7 @@ fun DashboardScreen(
                             letterSpacing = 1.sp
                         )
                         Text(
-                            text = if (isHoldingSos) "HOLDING..." else "PRESS OR HOLD",
+                            text = if (isHoldingSos) "HOLDING..." else "HOLD 3s FOR SOS",
                             color = Color.White.copy(alpha = 0.85f),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
@@ -374,7 +370,7 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(14.dp))
 
             Text(
-                text = "Hold for 3 seconds or tap for instant mesh distress broadcast",
+                text = "Hold firmly for 3 seconds to trigger mesh distress broadcast",
                 style = MaterialTheme.typography.bodyMedium,
                 color = ResQTextSecondary,
                 textAlign = TextAlign.Center
