@@ -15,6 +15,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.resqnet.sos.data.local.ProfilePreferences
+import com.resqnet.sos.services.distribution.NativeBleMeshEngine
 import com.resqnet.sos.theme.ResQBackground
 import com.resqnet.sos.theme.ResQNetTheme
 import com.resqnet.sos.ui.navigation.Screen
@@ -41,6 +42,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestAppPermissions()
+
+        NativeBleMeshEngine.init(this)
 
         val profilePrefs = ProfilePreferences(this)
         val startDest = if (profilePrefs.isLoggedIn()) Screen.Dashboard.route else Screen.Login.route
