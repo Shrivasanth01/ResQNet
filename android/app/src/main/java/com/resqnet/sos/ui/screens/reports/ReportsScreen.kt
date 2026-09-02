@@ -33,7 +33,7 @@ fun ReportsScreen(
 ) {
     val context = LocalContext.current
     val receivedVault = remember { ReceivedIncidentsVault(context) }
-    val receivedPackets = remember { receivedVault.getReceivedPackets() }
+    var receivedPacketsList by remember { mutableStateOf(receivedVault.getReceivedPackets()) }
 
     Scaffold(
         containerColor = ResQBackground,
@@ -86,17 +86,34 @@ fun ReportsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // RECEIVED MESH INCIDENTS SECTION
-            Text(
-                text = "Received Mesh Peer Incidents (${receivedPackets.size})",
-                color = ResQCyan,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
+            // RECEIVED MESH INCIDENTS SECTION WITH CLEAR BUTTON
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Received Mesh Incidents (${receivedPacketsList.size})",
+                    color = ResQCyan,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                if (receivedPacketsList.isNotEmpty()) {
+                    TextButton(
+                        onClick = {
+                            receivedVault.clearReceivedPackets()
+                            receivedPacketsList = emptyList()
+                        }
+                    ) {
+                        Text("Clear History", color = ResQCrimson, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (receivedPackets.isEmpty()) {
+            if (receivedPacketsList.isEmpty()) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = ResQSurface),
                     shape = RoundedCornerShape(12.dp),
@@ -121,7 +138,7 @@ fun ReportsScreen(
                     }
                 }
             } else {
-                receivedPackets.forEach { pkt ->
+                receivedPacketsList.forEach { pkt ->
                     Card(
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E0B0B)),
                         shape = RoundedCornerShape(14.dp),
@@ -149,12 +166,14 @@ fun ReportsScreen(
                                     Text("Packet ID: ${pkt.header.packetId}", color = ResQCyan, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
                                 }
 
-                                Box(
-                                    modifier = Modifier
-                                        .background(ResQCrimson.copy(alpha = 0.2f), RoundedCornerShape(6.dp))
-                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                IconButton(
+                                    onClick = {
+                                        receivedVault.deleteReceivedPacket(pkt.header.packetId)
+                                        receivedPacketsList = receivedVault.getReceivedPackets()
+                                    },
+                                    modifier = Modifier.size(28.dp)
                                 ) {
-                                    Text("CRITICAL", color = ResQCrimson, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete Incident", tint = ResQTextMuted, modifier = Modifier.size(18.dp))
                                 }
                             }
 

@@ -56,6 +56,17 @@ class ReceivedIncidentsVault(private val context: Context) {
         return list
     }
 
+    fun deleteReceivedPacket(packetId: String) {
+        try {
+            val file = File(receivedDir, "$packetId.rsep")
+            if (file.exists()) {
+                file.delete()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     fun clearReceivedPackets() {
         try {
             receivedDir.listFiles()?.forEach { it.delete() }

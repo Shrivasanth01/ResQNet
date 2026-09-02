@@ -161,11 +161,11 @@ fun DashboardScreen(
                 }
             }
 
-            // RECEIVED MESH EMERGENCY ALERTS CARD
+            // RECEIVED MESH EMERGENCY ALERTS CARD WITH DELETE OPTION
             val receivedVault = remember { com.resqnet.sos.data.local.ReceivedIncidentsVault(context) }
-            val receivedPackets = remember { receivedVault.getReceivedPackets() }
+            var receivedPacketsList by remember { mutableStateOf(receivedVault.getReceivedPackets()) }
 
-            if (receivedPackets.isNotEmpty()) {
+            if (receivedPacketsList.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Card(
@@ -177,21 +177,36 @@ fun DashboardScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Warning, contentDescription = null, tint = ResQCrimson, modifier = Modifier.size(20.dp))
-                            Text(
-                                text = "🚨 RECEIVED MESH SOS ALERTS (${receivedPackets.size})",
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Black
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Default.Warning, contentDescription = null, tint = ResQCrimson, modifier = Modifier.size(20.dp))
+                                Text(
+                                    text = "🚨 RECEIVED SOS ALERTS (${receivedPacketsList.size})",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+
+                            TextButton(
+                                onClick = {
+                                    receivedVault.clearReceivedPackets()
+                                    receivedPacketsList = emptyList()
+                                }
+                            ) {
+                                Text("Clear All", color = ResQCrimson, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        receivedPackets.take(3).forEach { pkt ->
+                        receivedPacketsList.forEach { pkt ->
                             Card(
                                 colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
                                 shape = RoundedCornerShape(10.dp),
@@ -201,7 +216,23 @@ fun DashboardScreen(
                                     .border(1.dp, ResQCrimson.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
                             ) {
                                 Column(modifier = Modifier.padding(10.dp)) {
-                                    Text("Victim: ${pkt.user.name}", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Victim: ${pkt.user.name}", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                        IconButton(
+                                            onClick = {
+                                                receivedVault.deleteReceivedPacket(pkt.header.packetId)
+                                                receivedPacketsList = receivedVault.getReceivedPackets()
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(Icons.Default.Delete, contentDescription = "Delete Alert", tint = ResQTextMuted, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+
                                     Text("Blood: ${pkt.user.bloodGroup} • Medical: ${pkt.user.medicalConditions}", color = ResQCyan, fontSize = 11.sp)
                                     Text("GPS: ${pkt.location.latitude}, ${pkt.location.longitude}", color = ResQTextSecondary, fontSize = 10.sp)
 
