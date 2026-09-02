@@ -568,10 +568,13 @@ fun ActiveSosScreen(
                                 val rsepJson = rsepStorageManager.exportRsepJson(rsepPacket)
 
                                 val shareText = "🚨 RESQNET EMERGENCY RSEP DOSSIER 🚨\n\n" +
-                                        "Victim: ${profile.fullName}\n" +
+                                        "Victim Name: ${profile.fullName}\n" +
+                                        "Age: ${profile.age} yrs • Gender: ${profile.gender}\n" +
+                                        "Height: ${profile.height} cm • Weight: ${profile.weight} kg\n" +
                                         "Blood Group: ${profile.bloodGroup}\n" +
                                         "Allergies: ${profile.allergies}\n" +
                                         "Medical Conditions: ${profile.medicalConditions}\n" +
+                                        "Emergency Contact: ${primaryContact?.name ?: "Guardian"} (${primaryContact?.phoneNumber ?: "112"})\n" +
                                         "Live Location: https://www.google.com/maps?q=${locationCoords.latitude},${locationCoords.longitude}\n\n" +
                                         "RAW RSEP PAYLOAD:\n$rsepJson"
 

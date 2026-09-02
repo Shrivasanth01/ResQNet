@@ -179,9 +179,19 @@ fun ReportsScreen(
 
                             Spacer(modifier = Modifier.height(10.dp))
 
-                            Text("Blood Group: ${pkt.user.bloodGroup}", color = ResQTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            val physicalInfo = listOfNotNull(
+                                if (pkt.user.gender.isNotBlank()) "Gender: ${pkt.user.gender}" else null,
+                                if (pkt.user.age.isNotBlank()) "Age: ${pkt.user.age} yrs" else null,
+                                if (pkt.user.height.isNotBlank()) "Ht: ${pkt.user.height}cm" else null,
+                                if (pkt.user.weight.isNotBlank()) "Wt: ${pkt.user.weight}kg" else null
+                            ).joinToString(" • ")
+
+                            if (physicalInfo.isNotBlank()) {
+                                Text(physicalInfo, color = ResQTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Text("Blood Group: ${pkt.user.bloodGroup}", color = ResQCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             Text("Medical Conditions: ${pkt.user.medicalConditions}", color = ResQTextSecondary, fontSize = 11.sp)
-                            Text("Live GPS: ${pkt.location.latitude}, ${pkt.location.longitude}", color = ResQCyan, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                            Text("Live GPS: ${pkt.location.latitude}, ${pkt.location.longitude}", color = ResQTextMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
 
                             Spacer(modifier = Modifier.height(12.dp))
 

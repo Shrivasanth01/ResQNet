@@ -221,7 +221,12 @@ fun DashboardScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("Victim: ${pkt.user.name}", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                        val physicalInfo = listOfNotNull(
+                                            if (pkt.user.gender.isNotBlank()) pkt.user.gender else null,
+                                            if (pkt.user.age.isNotBlank()) "${pkt.user.age} yrs" else null
+                                        ).joinToString(" • ")
+
+                                        Text("Victim: ${pkt.user.name}${if (physicalInfo.isNotBlank()) " ($physicalInfo)" else ""}", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                                         IconButton(
                                             onClick = {
                                                 receivedVault.deleteReceivedPacket(pkt.header.packetId)
@@ -233,8 +238,15 @@ fun DashboardScreen(
                                         }
                                     }
 
-                                    Text("Blood: ${pkt.user.bloodGroup} • Medical: ${pkt.user.medicalConditions}", color = ResQCyan, fontSize = 11.sp)
-                                    Text("GPS: ${pkt.location.latitude}, ${pkt.location.longitude}", color = ResQTextSecondary, fontSize = 10.sp)
+                                    val bodySpecs = listOfNotNull(
+                                        if (pkt.user.bloodGroup.isNotBlank()) "Blood: ${pkt.user.bloodGroup}" else null,
+                                        if (pkt.user.height.isNotBlank()) "Ht: ${pkt.user.height}cm" else null,
+                                        if (pkt.user.weight.isNotBlank()) "Wt: ${pkt.user.weight}kg" else null
+                                    ).joinToString(" • ")
+
+                                    Text(bodySpecs, color = ResQCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text("Medical: ${pkt.user.medicalConditions}", color = ResQTextSecondary, fontSize = 11.sp)
+                                    Text("GPS: ${pkt.location.latitude}, ${pkt.location.longitude}", color = ResQTextMuted, fontSize = 10.sp)
 
                                     Spacer(modifier = Modifier.height(8.dp))
 

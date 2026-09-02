@@ -122,8 +122,15 @@ class AutomaticSosController(private val context: Context) {
                 userId = profile.userId,
                 name = profile.fullName,
                 age = profile.age,
+                gender = profile.gender,
+                height = profile.height,
+                weight = profile.weight,
                 bloodGroup = profile.bloodGroup,
-                medicalConditions = profile.medicalConditions,
+                medicalConditions = if (profile.allergies.isNotBlank() && profile.allergies != "NIL") {
+                    "${profile.medicalConditions} | Allergies: ${profile.allergies}"
+                } else {
+                    profile.medicalConditions
+                },
                 emergencyContacts = profile.emergencyContacts
             ),
             location = com.resqnet.sos.data.model.PacketLocation(
