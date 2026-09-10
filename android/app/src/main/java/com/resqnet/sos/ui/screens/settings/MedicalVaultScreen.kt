@@ -9,7 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
@@ -65,7 +65,7 @@ fun MedicalVaultScreen(
                 title = { Text("Medical Emergency Vault", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = ResQCyan)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = ResQCyan)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ResQSurface)
@@ -152,7 +152,7 @@ fun MedicalVaultScreen(
                             focusedBorderColor = ResQCyan,
                             unfocusedBorderColor = ResQCardBorder
                         ),
-                        modifier = Modifier.menuAnchor()
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     )
                     ExposedDropdownMenu(
                         expanded = genderExpanded,
@@ -225,7 +225,7 @@ fun MedicalVaultScreen(
                         focusedBorderColor = ResQCyan,
                         unfocusedBorderColor = ResQCardBorder
                     ),
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                 )
                 ExposedDropdownMenu(
                     expanded = bloodExpanded,

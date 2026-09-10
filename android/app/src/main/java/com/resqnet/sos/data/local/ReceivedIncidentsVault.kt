@@ -75,7 +75,7 @@ class ReceivedIncidentsVault(private val context: Context) {
         }
     }
 
-    @android.annotation.SuppressLint("MissingPermission")
+    @android.annotation.SuppressLint("MissingPermission", "POST_NOTIFICATIONS", "NotificationPermission")
     private fun postNotification(packet: RsepPacket) {
         try {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -107,7 +107,13 @@ class ReceivedIncidentsVault(private val context: Context) {
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
 
-            notificationManager.notify(packet.header.packetId.hashCode(), builder.build())
+            if (androidx.core.app.ActivityCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationManager.notify(packet.header.packetId.hashCode(), builder.build())
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }

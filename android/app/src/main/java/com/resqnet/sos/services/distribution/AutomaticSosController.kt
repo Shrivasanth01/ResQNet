@@ -1,7 +1,15 @@
 package com.resqnet.sos.services.distribution
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import com.resqnet.sos.data.local.ProfilePreferences
+import com.resqnet.sos.data.local.RsepStorageManager
+import com.resqnet.sos.data.local.SosLocationRepository
+import com.resqnet.sos.data.local.SosMessageQueueManager
+import com.resqnet.sos.data.model.PacketHeader
+import com.resqnet.sos.data.model.PacketLocation
+import com.resqnet.sos.data.model.PacketUser
 import com.resqnet.sos.data.remote.EmergencyServerBridge
 import com.resqnet.sos.data.remote.ServerDeliveryResponse
 import com.resqnet.sos.services.hardware.AndroidLocationService
@@ -17,14 +25,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * MODULE 2: SOS CONTROLLER (AUTOMATIC SOS DISTRIBUTION SYSTEM)
- * 
- * CORE REQUIREMENT ENFORCEMENT:
- * - The user performs ONLY ONE ACTION: Press / Tap / Hold SOS.
- * - Everything else happens 100% AUTOMATICALLY.
- * - Dispatches phone call dialer and SMS IMMEDIATELY (0ms delay).
- * - Compiles victim profile & live GPS.
- * - Broadcasts RSEP emergency dossier across BLE & Wi-Fi Direct mesh relays.
+ * MODULE 2: SOS CONTROLLER (AUTOMATIC SOS DISTRIBUTION & OFFLINE ADAPTIVE RELAY)
  */
 class AutomaticSosController(private val context: Context) {
 
@@ -33,6 +34,7 @@ class AutomaticSosController(private val context: Context) {
     private val smsCallService = AndroidSmsCallService(context)
     private val serverBridge = EmergencyServerBridge()
     private val profilePrefs = ProfilePreferences(context)
+    private val locationRepo = SosLocationRepository(context)
 
     private val _events = MutableStateFlow<List<SosProgressEvent>>(emptyList())
     val events: StateFlow<List<SosProgressEvent>> = _events.asStateFlow()
@@ -44,9 +46,17 @@ class AutomaticSosController(private val context: Context) {
     val isDelivered: StateFlow<Boolean> = _isDelivered.asStateFlow()
 
     private var isRunning = false
+    private var activePacketId: String? = null
 
     private fun getCurrentTimestamp(): String {
         return SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+    }
+
+    private fun isNetworkConnected(): Boolean {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        val activeNetwork = cm?.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(activeNetwork) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
     private fun emitProgress(event: SosProgressEvent) {
@@ -56,9 +66,17 @@ class AutomaticSosController(private val context: Context) {
         println("[AutomaticSosController] [${event.step}] ${event.message}")
     }
 
+    fun stopSos() {
+        isRunning = false
+        locationService.stopAdaptiveTracking()
+        NativeBleMeshEngine.stopBroadcast()
+        _currentStep.value = SosDistributionStep.IDLE
+        println("[AutomaticSosController] 🛑 SOS session stopped completely.")
+    }
+
     /**
      * Master single-click / tap entry point.
-     * Executes phone call, SMS, and automated mesh distribution pipeline immediately.
+     * Executes phone call, SMS, adaptive location tracking, and mesh distribution.
      */
     suspend fun triggerAutomaticSos(): SosDistributionResult {
         if (isRunning) return SosDistributionResult(true, "RUNNING", 0, false)
@@ -73,7 +91,7 @@ class AutomaticSosController(private val context: Context) {
         println("🚨 AUTOMATIC SOS DISTRIBUTION SYSTEM ACTIVATED (ANDROID)")
         println("==================================================")
 
-        // 🚨 STEP 1: IMMEDIATELY INITIATE EMERGENCY PHONE CALL & DISTRESS SMS (0ms DELAY)
+        // 🚨 STEP 1: IMMEDIATELY INITIATE EMERGENCY PHONE CALL & DISTRESS SMS
         val profile = profilePrefs.getProfile()
         val primaryContact = profile.emergencyContacts.firstOrNull()
         val immediateCoords = locationService.getCachedLocation()
@@ -81,10 +99,7 @@ class AutomaticSosController(private val context: Context) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
                 if (primaryContact != null) {
-                    // 1. Send SMS with Live Google Maps GPS location link & medical details immediately
                     smsCallService.sendEmergencySms(primaryContact, profile, immediateCoords)
-
-                    // 2. Automatically dial emergency phone call to primary emergency contact
                     smsCallService.initiateEmergencyPhoneCall(primaryContact.phoneNumber)
                 }
             } catch (e: Exception) {
@@ -92,7 +107,6 @@ class AutomaticSosController(private val context: Context) {
             }
         }
 
-        // STEP 1B: SOS ACTIVATED PROGRESS EVENT
         emitProgress(
             SosProgressEvent(
                 step = SosDistributionStep.SOS_ACTIVATED,
@@ -105,20 +119,23 @@ class AutomaticSosController(private val context: Context) {
             )
         )
 
-        // STEP 2: GET LIVE HIGH-ACCURACY GPS LOCATION & GENERATE FRESH RSEP PACKET ID FOR THIS SOS DISPATCH
+        // STEP 2: GET LIVE HIGH-ACCURACY GPS LOCATION & GENERATE FRESH RSEP PACKET
         val coords = locationService.getHighAccuracyLocation()
-        val newPacketId = "RQ-PKT-" + java.util.UUID.randomUUID().toString().take(8).uppercase()
+        val newPacketId = "RQ-PKT-" + UUID.randomUUID().toString().take(8).uppercase()
+        activePacketId = newPacketId
         val freshTimestamp = getCurrentTimestamp()
 
-        // Update existing RSEP dossier with fresh packet ID, live GPS coordinates, and victim medical vault
-        val existingRsep = existingRsepManager.getExistingRsep().copy(
-            header = com.resqnet.sos.data.model.PacketHeader(
+        // 🚀 Start Adaptive GPS Location Tracking
+        locationService.startAdaptiveTracking(newPacketId, myNodeId)
+
+        var existingRsep = existingRsepManager.getExistingRsep().copy(
+            header = PacketHeader(
                 packetId = newPacketId,
                 timestamp = freshTimestamp,
                 ttl = 5,
                 hopCount = 0
             ),
-            user = com.resqnet.sos.data.model.PacketUser(
+            user = PacketUser(
                 userId = profile.userId,
                 name = profile.fullName,
                 age = profile.age,
@@ -133,13 +150,27 @@ class AutomaticSosController(private val context: Context) {
                 },
                 emergencyContacts = profile.emergencyContacts
             ),
-            location = com.resqnet.sos.data.model.PacketLocation(
+            location = PacketLocation(
                 latitude = coords.latitude,
                 longitude = coords.longitude,
-                accuracy = 5.0f,
-                timestamp = freshTimestamp
+                altitude = coords.altitude,
+                accuracy = coords.accuracy ?: 5.0f,
+                speed = coords.speed,
+                heading = coords.heading,
+                timestamp = freshTimestamp,
+                isTransmitted = isNetworkConnected(),
+                sosId = newPacketId,
+                deviceId = myNodeId
             )
         )
+
+        val queueManager = SosMessageQueueManager(context)
+        try {
+            RsepStorageManager(context).saveRsep(existingRsep)
+            queueManager.enqueueMessage(existingRsep, myNodeId)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         val packetId = existingRsep.header.packetId
         val initialTtl = existingRsep.header.ttl
@@ -157,18 +188,39 @@ class AutomaticSosController(private val context: Context) {
         )
         delay(300)
 
-        // Dispatch server email alert & broadcast over real-time BLE GATT + local mesh UDP socket
+        // Monitor ACK delivery confirmation over BLE Mesh
         CoroutineScope(Dispatchers.IO).launch {
-            try {
-                serverBridge.dispatchSosEmail(profile.email, existingRsep)
-                AndroidMeshBroadcaster.broadcastRsepPacket(context, existingRsep)
-                NativeBleMeshEngine.broadcastRsep(existingRsep)
-            } catch (e: Exception) {
-                e.printStackTrace()
+            while (isRunning) {
+                val queuedMsg = queueManager.getQueuedMessage(packetId)
+                if (queuedMsg != null && (queuedMsg.ackReceived || queuedMsg.status == "DELIVERED")) {
+                    _isDelivered.value = true
+                    println("[AutomaticSosController] 🎉 BLE Mesh ACK received for $packetId! Delivery confirmed.")
+                    break
+                }
+                delay(1000)
             }
         }
 
-        // STEP 3: AUTOMATICALLY SEARCH FOR NEARBY PARTICIPATING DEVICES
+        // Continuously broadcast live RSEP dossier over BLE GATT + local mesh UDP sockets
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                if (isNetworkConnected()) {
+                    serverBridge.dispatchSosEmail(profile.email, existingRsep)
+                }
+            } catch (_: Exception) {}
+
+            while (isRunning) {
+                try {
+                    AndroidMeshBroadcaster.broadcastRsepPacket(context, existingRsep)
+                    NativeBleMeshEngine.broadcastRsep(existingRsep)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                delay(3000)
+            }
+        }
+
+        // STEP 3: SEARCH FOR NEARBY PARTICIPATING DEVICES
         emitProgress(
             SosProgressEvent(
                 step = SosDistributionStep.SEARCHING_FOR_NEARBY_DEVICES,
@@ -183,15 +235,14 @@ class AutomaticSosController(private val context: Context) {
 
         val nearbyDevices = DeviceDiscoveryManager.discoverNearbyDevices(context)
 
-        // STEP 4: AUTOMATIC MULTI-HOP DISTRIBUTION OVER NEARBY DEVICES
-        var currentPacket = existingRsep
+        // STEP 4: AUTOMATIC MULTI-HOP DISTRIBUTION
+        val currentPacket = existingRsep
         var deliveredToGateway = false
         var gatewayNodeId: String? = null
 
         for ((index, device) in nearbyDevices.withIndex()) {
             relayChain.add(device.deviceId)
 
-            // STEP 4A: DEVICE FOUND
             emitProgress(
                 SosProgressEvent(
                     step = if (index == 0) SosDistributionStep.DEVICE_FOUND else SosDistributionStep.ANOTHER_DEVICE_FOUND,
@@ -209,7 +260,6 @@ class AutomaticSosController(private val context: Context) {
             )
             delay(350)
 
-            // STEP 4B: AUTOMATICALLY CONNECT & TRANSFER EXISTING RSEP
             val transfer = try {
                 RsepTransferManager.transferRsep(currentPacket, device, context)
             } catch (e: Exception) {
@@ -234,7 +284,6 @@ class AutomaticSosController(private val context: Context) {
             )
             delay(350)
 
-            // STEP 4C: AUTOMATIC RELAY THROUGH MESH NODE
             emitProgress(
                 SosProgressEvent(
                     step = SosDistributionStep.RELAYING,
@@ -248,7 +297,6 @@ class AutomaticSosController(private val context: Context) {
             )
             delay(400)
 
-            // STEP 4D: CHECK IF TARGET NODE IS AN INTERNET GATEWAY
             if (device.isInternetGateway || index == nearbyDevices.size - 1) {
                 deliveredToGateway = true
                 gatewayNodeId = device.deviceId
@@ -276,12 +324,12 @@ class AutomaticSosController(private val context: Context) {
                     ServerDeliveryResponse(true, "INC-${packetId.takeLast(6)}", getCurrentTimestamp(), "Delivered via Mesh Gateway")
                 }
 
-                val incidentId = if (delivery.incidentId.isNotBlank()) delivery.incidentId else "INC-${packetId.takeLast(6)}"
+                val incidentId = delivery.incidentId.ifBlank { "INC-${packetId.takeLast(6)}" }
 
                 emitProgress(
                     SosProgressEvent(
                         step = SosDistributionStep.SOS_DELIVERED,
-                        message = "✅ SOS DELIVERED TO EMERGENCY SERVER via ${device.name}! Incident ID: $incidentId",
+                        message = "✅ SOS LOGGED ON EMERGENCY SERVER via ${device.name}! Incident ID: $incidentId",
                         packetId = packetId,
                         hopCount = index + 1,
                         ttl = (currentPacket.header.ttl - 1).coerceAtLeast(0),
@@ -291,12 +339,9 @@ class AutomaticSosController(private val context: Context) {
                         timestamp = getCurrentTimestamp()
                     )
                 )
-                _isDelivered.value = true
-                break // Destination reached! Stop further relaying.
             }
         }
 
-        isRunning = false
         return SosDistributionResult(
             success = true,
             packetId = packetId,

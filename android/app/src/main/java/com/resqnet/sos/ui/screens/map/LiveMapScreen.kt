@@ -45,12 +45,32 @@ fun LiveMapScreen(
     val context = LocalContext.current
     val locationService = remember { AndroidLocationService(context) }
     val storageManager = remember { RsepStorageManager(context) }
+    val receivedVault = remember { com.resqnet.sos.data.local.ReceivedIncidentsVault(context) }
     val coords = remember { locationService.getCachedLocation() }
 
     var showOfflineBanner by remember { mutableStateOf(true) }
+    var receivedPacketsList by remember { mutableStateOf(receivedVault.getReceivedPackets()) }
 
-    val mockIncidents = remember {
-        listOf(
+    LaunchedEffect(Unit) {
+        while (true) {
+            receivedPacketsList = receivedVault.getReceivedPackets()
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    val mockIncidents = remember(receivedPacketsList, coords) {
+        val realList = receivedPacketsList.map { pkt ->
+            IncidentDisplay(
+                id = pkt.header.packetId,
+                title = "🚨 Emergency SOS (${pkt.user.name})",
+                severity = "CRITICAL",
+                distance = "Mesh Hop (${pkt.header.hopCount} hops)",
+                time = pkt.header.timestamp,
+                latitude = pkt.location.latitude,
+                longitude = pkt.location.longitude
+            )
+        }
+        if (realList.isNotEmpty()) realList else listOf(
             IncidentDisplay(
                 id = "RQ-PKT-1A04607E3D5",
                 title = "Manual SOS Distress (Siva Ajish Ram R)",

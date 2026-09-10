@@ -1,7 +1,11 @@
 package com.resqnet.sos.ui.screens.dashboard
 
+import android.bluetooth.BluetoothManager
+import android.content.Context
+import android.content.Intent
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.provider.Settings
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,7 +22,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -31,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.resqnet.sos.services.distribution.NativeBleMeshEngine
 import com.resqnet.sos.theme.*
 import com.resqnet.sos.ui.navigation.Screen
 import kotlinx.coroutines.delay
@@ -140,8 +144,22 @@ fun DashboardScreen(
 
                 Row(
                     modifier = Modifier
-                        .background(ResQGreen.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                        .border(1.dp, ResQGreen.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                        .background(
+                            if (NativeBleMeshEngine.isMeshActive.collectAsState().value)
+                                ResQGreen.copy(alpha = 0.15f)
+                            else
+                                ResQCrimson.copy(alpha = 0.15f),
+                            RoundedCornerShape(8.dp)
+                        )
+                        .border(
+                            1.dp,
+                            if (NativeBleMeshEngine.isMeshActive.collectAsState().value)
+                                ResQGreen.copy(alpha = 0.3f)
+                            else
+                                ResQCrimson.copy(alpha = 0.3f),
+                            RoundedCornerShape(8.dp)
+                        )
+                        .clickable { navController.navigate(Screen.MeshStatus.route) }
                         .padding(horizontal = 10.dp, vertical = 5.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -149,11 +167,17 @@ fun DashboardScreen(
                     Box(
                         modifier = Modifier
                             .size(8.dp)
-                            .background(ResQGreen, CircleShape)
+                            .background(
+                                if (NativeBleMeshEngine.isMeshActive.collectAsState().value)
+                                    ResQGreen
+                                else
+                                    ResQCrimson,
+                                CircleShape
+                            )
                     )
                     Text(
-                        text = "MESH ACTIVE",
-                        color = ResQGreen,
+                        text = if (NativeBleMeshEngine.isMeshActive.collectAsState().value) "MESH ACTIVE" else "BT OFF",
+                        color = if (NativeBleMeshEngine.isMeshActive.collectAsState().value) ResQGreen else ResQCrimson,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 0.5.sp
@@ -161,9 +185,187 @@ fun DashboardScreen(
                 }
             }
 
+            var isAirplaneModeOn by remember { mutableStateOf(false) }
+            var isBluetoothOn by remember { mutableStateOf(false) }
+
+            val btManager = remember { context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager }
+            val btAdapter = remember { btManager?.adapter }
+
+            LaunchedEffect(Unit) {
+                while (true) {
+                    isAirplaneModeOn = try {
+                        Settings.Global.getInt(
+                            context.contentResolver,
+                            Settings.Global.AIRPLANE_MODE_ON,
+                            0
+                        ) != 0
+                    } catch (_: Exception) {
+                        false
+                    }
+                    isBluetoothOn = btAdapter?.isEnabled == true
+                    if (isBluetoothOn) {
+                        NativeBleMeshEngine.init(context)
+                    }
+                    delay(1000)
+                }
+            }
+
+            if (isAirplaneModeOn && !isBluetoothOn) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF2E0A0A)),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.5.dp, ResQCrimson, RoundedCornerShape(12.dp))
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AirplanemodeActive,
+                                contentDescription = "Airplane Mode",
+                                tint = ResQCrimson,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = "⚠️ AIRPLANE MODE TURNED OFF BLUETOOTH!",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                                Text(
+                                    text = "Airplane Mode automatically turned off Bluetooth. For offline SOS to send & receive alerts without cellular or internet, Bluetooth MUST be turned back ON.",
+                                    color = ResQTextSecondary,
+                                    fontSize = 11.sp,
+                                    lineHeight = 15.sp
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Button(
+                            onClick = {
+                                try {
+                                    val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = ResQCrimson),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Bluetooth, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("OPEN SETTINGS TO TURN ON BLUETOOTH", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            } else if (isAirplaneModeOn) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F231A)),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.5.dp, ResQGreen, RoundedCornerShape(12.dp))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.BluetoothConnected,
+                            contentDescription = "Bluetooth Mesh Active",
+                            tint = ResQGreen,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "✈️ AIRPLANE MODE • OFFLINE BLE MESH ACTIVE",
+                                color = ResQGreen,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Bluetooth LE Mesh is active and listening for nearby emergency distress signals in 100% offline mode without cellular or internet.",
+                                color = ResQTextSecondary,
+                                fontSize = 10.5.sp
+                            )
+                        }
+                    }
+                }
+            } else if (!isBluetoothOn) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF281C08)),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.5.dp, ResQYellow, RoundedCornerShape(12.dp))
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.BluetoothDisabled,
+                                contentDescription = "Bluetooth Disabled",
+                                tint = ResQYellow,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = "⚠️ BLUETOOTH IS TURNED OFF",
+                                    color = ResQYellow,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Turn on Bluetooth to participate in offline peer-to-peer BLE mesh emergency broadcasts.",
+                                    color = ResQTextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Button(
+                            onClick = {
+                                try {
+                                    val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = ResQYellow),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Bluetooth, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("ENABLE BLUETOOTH IN SETTINGS", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
             // RECEIVED MESH EMERGENCY ALERTS CARD WITH DELETE OPTION
             val receivedVault = remember { com.resqnet.sos.data.local.ReceivedIncidentsVault(context) }
             var receivedPacketsList by remember { mutableStateOf(receivedVault.getReceivedPackets()) }
+
+            LaunchedEffect(Unit) {
+                while (true) {
+                    receivedPacketsList = receivedVault.getReceivedPackets()
+                    delay(1000)
+                }
+            }
 
             if (receivedPacketsList.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))

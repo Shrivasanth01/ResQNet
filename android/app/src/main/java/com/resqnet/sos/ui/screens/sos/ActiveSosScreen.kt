@@ -1,18 +1,19 @@
 package com.resqnet.sos.ui.screens.sos
 
+import android.bluetooth.BluetoothManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
+import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ForwardToInbox
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,12 +28,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.resqnet.sos.data.local.ProfilePreferences
+import com.resqnet.sos.data.local.SosLocationRepository
 import com.resqnet.sos.services.distribution.*
 import com.resqnet.sos.ui.navigation.Screen
 import com.resqnet.sos.services.hardware.AndroidLocationService
 import com.resqnet.sos.services.hardware.AndroidSmsCallService
 import com.resqnet.sos.theme.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.lang.String
+import java.util.Locale
 
 @Composable
 fun ActiveSosScreen(
@@ -48,7 +53,6 @@ fun ActiveSosScreen(
     val profilePrefs = remember { ProfilePreferences(context) }
 
     val events by controller.events.collectAsState()
-    val currentStep by controller.currentStep.collectAsState()
     val isDelivered by controller.isDelivered.collectAsState()
 
     val profile = remember { profilePrefs.getProfile() }
@@ -61,6 +65,12 @@ fun ActiveSosScreen(
             locationCoords = locationService.getHighAccuracyLocation()
         }
         controller.triggerAutomaticSos()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            controller.stopSos()
+        }
     }
 
     Scaffold(
@@ -78,7 +88,10 @@ fun ActiveSosScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Button(
-                        onClick = { navController.popBackStack() },
+                        onClick = {
+                            controller.stopSos()
+                            navController.popBackStack()
+                        },
                         colors = ButtonDefaults.buttonColors(containerColor = ResQCrimson),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.weight(1f)
@@ -97,7 +110,7 @@ fun ActiveSosScreen(
                             }
                         },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = ResQCyan),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(brush = Brush.linearGradient(listOf(ResQCyan, ResQBlue))),
+                        border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(brush = Brush.linearGradient(listOf(ResQCyan, ResQBlue))),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.weight(1f)
                     ) {
@@ -167,6 +180,70 @@ fun ActiveSosScreen(
                             color = ResQTextSecondary,
                             fontSize = 11.sp
                         )
+                    }
+                }
+            }
+
+            val btManager = remember { context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager }
+            var isBtActive by remember { mutableStateOf(btManager?.adapter?.isEnabled == true) }
+
+            LaunchedEffect(Unit) {
+                while (true) {
+                    isBtActive = btManager?.adapter?.isEnabled == true
+                    if (isBtActive) {
+                        NativeBleMeshEngine.init(context)
+                    }
+                    delay(1000)
+                }
+            }
+
+            if (!isBtActive) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF2E0A0A)),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.5.dp, ResQCrimson, RoundedCornerShape(12.dp))
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(Icons.Default.BluetoothDisabled, contentDescription = null, tint = ResQCrimson, modifier = Modifier.size(24.dp))
+                            Column {
+                                Text(
+                                    text = "⚠️ BLUETOOTH IS DISABLED!",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                                Text(
+                                    text = "Bluetooth radio is OFF. Offline mesh cannot transmit or receive emergency SOS packets without Bluetooth enabled.",
+                                    color = ResQTextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Button(
+                            onClick = {
+                                try {
+                                    val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = ResQCrimson),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Bluetooth, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("TURN ON BLUETOOTH IN SETTINGS", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -356,7 +433,7 @@ fun ActiveSosScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.ForwardToInbox, contentDescription = null, tint = ResQCyan, modifier = Modifier.size(20.dp))
+                        Icon(Icons.AutoMirrored.Filled.ForwardToInbox, contentDescription = null, tint = ResQCyan, modifier = Modifier.size(20.dp))
                         Text(
                             text = "Emergency Contacts Alerted",
                             style = MaterialTheme.typography.titleLarge,
@@ -472,44 +549,120 @@ fun ActiveSosScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // =========================================================================
-            // LIVE GPS TELEMETRY CARD
+            // LIVE ADAPTIVE GPS & FRESHNESS TELEMETRY CARD
             // =========================================================================
+            val liveRecord by locationService.liveLocationRecord.collectAsState()
+            val isUserMoving by locationService.isUserMoving.collectAsState()
+            val locationRepo = remember { SosLocationRepository(context) }
+            val pendingCount = remember(liveRecord) { locationRepo.getPendingLocationRecords().size }
+
+            var currentTimeMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+            LaunchedEffect(Unit) {
+                while (true) {
+                    currentTimeMs = System.currentTimeMillis()
+                    delay(1000)
+                }
+            }
+
+            val lat = liveRecord?.latitude ?: locationCoords.latitude
+            val lng = liveRecord?.longitude ?: locationCoords.longitude
+            val accuracy = liveRecord?.accuracy ?: 5.0f
+            val recordTime = liveRecord?.timestamp ?: currentTimeMs
+            val ageSeconds = ((currentTimeMs - recordTime) / 1000L).coerceAtLeast(0L)
+            val speedKmh = ((liveRecord?.speed ?: 0f) * 3.6f)
+
             Card(
-                colors = CardDefaults.cardColors(containerColor = ResQSurface),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0A192F)),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, ResQCardBorder, RoundedCornerShape(16.dp))
+                    .border(1.5.dp, ResQCyan, RoundedCornerShape(16.dp))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.MyLocation, contentDescription = null, tint = ResQCyan, modifier = Modifier.size(20.dp))
-                        Text(
-                            text = "Live GPS Coordinates",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = ResQTextPrimary,
-                            fontSize = 15.sp
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.MyLocation, contentDescription = null, tint = ResQCyan, modifier = Modifier.size(20.dp))
+                            Text(
+                                text = "Last Known Location",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = Color.White,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    if (isUserMoving) ResQYellow.copy(alpha = 0.2f) else ResQGreen.copy(alpha = 0.2f),
+                                    RoundedCornerShape(6.dp)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = if (isUserMoving) "🏃 MOVING (${String.format(Locale.US, "%.1f", speedKmh)} km/h)" else "🧍 STATIONARY",
+                                color = if (isUserMoving) ResQYellow else ResQGreen,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "Lat: ${String.format("%.5f", locationCoords.latitude)}° N  •  Long: ${String.format("%.5f", locationCoords.longitude)}° E",
+                        text = "📍 Lat: ${String.format(Locale.US, "%.5f", lat)}° N  •  Long: ${
+                            String.format(
+                                Locale.US, "%.5f", lng)}° E",
                         color = ResQCyan,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace
                     )
 
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Accuracy: ±${accuracy.toInt()} m",
+                            color = ResQTextSecondary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            text = "Updated: $ageSeconds ${if (ageSeconds == 1L) "second" else "seconds"} ago",
+                            color = if (ageSeconds < 15) ResQGreen else ResQYellow,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    if (pendingCount > 0) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "💾 Offline Storage: $pendingCount location records queued locally for relay/cloud upload",
+                            color = ResQYellow,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Button(
                         onClick = {
-                            val mapUri = Uri.parse("https://www.google.com/maps?q=${locationCoords.latitude},${locationCoords.longitude}")
+                            val mapUri = Uri.parse("https://www.google.com/maps?q=$lat,$lng")
                             context.startActivity(Intent(Intent.ACTION_VIEW, mapUri))
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = ResQBlue),

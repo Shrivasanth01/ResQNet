@@ -260,25 +260,27 @@ class EmergencyServerBridge {
                     val body = response.body?.string() ?: ""
                     if (response.isSuccessful && body.isNotEmpty()) {
                         val obj = json.parseToJsonElement(body) as? kotlinx.serialization.json.JsonObject
-                        val exists = obj?.get("exists")?.toString()?.toBoolean() ?: false
-                        if (exists) {
-                            val userObj = obj?.get("user") as? kotlinx.serialization.json.JsonObject
-                            val profObj = obj?.get("profile") as? kotlinx.serialization.json.JsonObject
+                        if (obj != null) {
+                            val exists = obj["exists"]?.toString()?.toBoolean() ?: false
+                            if (exists) {
+                                val userObj = obj["user"] as? kotlinx.serialization.json.JsonObject
+                                val profObj = obj["profile"] as? kotlinx.serialization.json.JsonObject
 
-                            val fullName = userObj?.get("fullName")?.toString()?.replace("\"", "") ?: "ResQNet User"
-                            val age = profObj?.get("age")?.toString()?.replace("\"", "") ?: "24"
-                            val bloodGroup = profObj?.get("bloodGroup")?.toString()?.replace("\"", "") ?: "O+"
-                            val allergies = profObj?.get("allergies")?.toString()?.replace("\"", "") ?: "None"
-                            val medicalConditions = profObj?.get("medicalConditions")?.toString()?.replace("\"", "") ?: "None"
+                                val fullName = userObj?.get("fullName")?.toString()?.replace("\"", "") ?: "ResQNet User"
+                                val age = profObj?.get("age")?.toString()?.replace("\"", "") ?: "24"
+                                val bloodGroup = profObj?.get("bloodGroup")?.toString()?.replace("\"", "") ?: "O+"
+                                val allergies = profObj?.get("allergies")?.toString()?.replace("\"", "") ?: "None"
+                                val medicalConditions = profObj?.get("medicalConditions")?.toString()?.replace("\"", "") ?: "None"
 
-                            return@withContext com.resqnet.sos.data.model.UserProfile(
-                                email = cleanEmail,
-                                fullName = fullName,
-                                age = age,
-                                bloodGroup = bloodGroup,
-                                allergies = allergies,
-                                medicalConditions = medicalConditions
-                            )
+                                return@withContext com.resqnet.sos.data.model.UserProfile(
+                                    email = cleanEmail,
+                                    fullName = fullName,
+                                    age = age,
+                                    bloodGroup = bloodGroup,
+                                    allergies = allergies,
+                                    medicalConditions = medicalConditions
+                                )
+                            }
                         }
                     }
                 } catch (e: Exception) {

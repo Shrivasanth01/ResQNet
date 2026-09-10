@@ -4,10 +4,10 @@ import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import com.resqnet.sos.data.local.ProfilePreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import java.net.InetAddress
 import java.net.NetworkInterface
 
 /**
@@ -22,8 +22,17 @@ object DeviceDiscoveryManager {
 
     private var myNodeId: String = "NODE_" + (10000..99999).random().toString(16).uppercase()
 
-    fun getMyNodeId(): String = myNodeId
+    fun getMyNodeId(context: Context? = null): String {
+        if (context != null) {
+            try {
+                val persistentId = ProfilePreferences(context).getOrCreateDeviceId()
+                myNodeId = "NODE_$persistentId"
+            } catch (_: Exception) {}
+        }
+        return myNodeId
+    }
 
+    @Suppress("unused")
     fun setMyNodeId(id: String) {
         myNodeId = id
     }
@@ -31,24 +40,23 @@ object DeviceDiscoveryManager {
     suspend fun discoverNearbyDevices(context: Context? = null): List<MeshParticipatingDevice> {
         return withContext(Dispatchers.IO) {
             println("[DeviceDiscoveryManager] 📡 Performing real-time hardware & network scan...")
-            delay(300)
+            delay(300L)
 
             val discovered = mutableListOf<MeshParticipatingDevice>()
 
             // 1. Real-time Active Network & Gateway Discovery
-            var isOnline = false
             var activeIp = "127.0.0.1"
 
-            try {
-                if (context != null) {
-                    val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-                    val activeNetwork = cm?.activeNetwork
-                    val caps = cm?.getNetworkCapabilities(activeNetwork)
-                    isOnline = caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
-                } else {
-                    isOnline = true
-                }
+            val isOnline = if (context != null) {
+                val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+                val activeNetwork = cm?.activeNetwork
+                val caps = cm?.getNetworkCapabilities(activeNetwork)
+                caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+            } else {
+                true
+            }
 
+            try {
                 // Get local IP address
                 val interfaces = NetworkInterface.getNetworkInterfaces()
                 while (interfaces.hasMoreElements()) {
@@ -56,7 +64,7 @@ object DeviceDiscoveryManager {
                     val addresses = element.inetAddresses
                     while (addresses.hasMoreElements()) {
                         val addr = addresses.nextElement()
-                        if (!addr.isLoopbackAddress && addr is InetAddress && addr.hostAddress?.contains(":") == false) {
+                        if (!addr.isLoopbackAddress && (addr.hostAddress?.contains(":") == false)) {
                             activeIp = addr.hostAddress ?: "127.0.0.1"
                             break
                         }
@@ -69,22 +77,27 @@ object DeviceDiscoveryManager {
             // 2. Real Bluetooth Hardware Discovery
             val btName = try {
                 @android.annotation.SuppressLint("MissingPermission")
-                val adapter = BluetoothAdapter.getDefaultAdapter()
+                val bluetoothManager = context?.getSystemService(Context.BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager
+                @Suppress("DEPRECATION")
+                val adapter = bluetoothManager?.adapter ?: BluetoothAdapter.getDefaultAdapter()
+                @android.annotation.SuppressLint("MissingPermission")
                 adapter?.name ?: "BLE Mesh Peer"
-            } catch (e: Throwable) {
+            } catch (_: SecurityException) {
+                "BLE Mesh Peer"
+            } catch (_: Throwable) {
                 "BLE Mesh Peer"
             }
 
             // Add real Bluetooth LE Peer node
             discovered.add(
                 MeshParticipatingDevice(
-                    deviceId = "BLE_${UUID_SHORT()}",
+                    deviceId = "BLE_${uuidShort()}",
                     name = "$btName (Bluetooth LE Peer)",
                     transport = "BLE",
                     rssi = -62,
                     batteryLevel = 85,
                     isInternetGateway = false,
-                    hopDistance = 1
+                    hopDistance = 1,
                 )
             )
 
@@ -92,13 +105,13 @@ object DeviceDiscoveryManager {
             val gatewayName = if (isOnline) "Internet Gateway ($activeIp)" else "Local Wi-Fi Peer ($activeIp)"
             discovered.add(
                 MeshParticipatingDevice(
-                    deviceId = "GW_${UUID_SHORT()}",
+                    deviceId = "GW_${uuidShort()}",
                     name = gatewayName,
                     transport = if (isOnline) "CELLULAR_GATEWAY" else "LOCAL_WIFI",
                     rssi = -48,
                     batteryLevel = 92,
                     isInternetGateway = isOnline,
-                    hopDistance = 1
+                    hopDistance = 1,
                 )
             )
 
@@ -110,5 +123,5 @@ object DeviceDiscoveryManager {
         }
     }
 
-    private fun UUID_SHORT(): String = (1000..9999).random().toString(16).uppercase()
+    private fun uuidShort(): String = (1000..9999).random().toString(16).uppercase()
 }

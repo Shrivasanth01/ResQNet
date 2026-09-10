@@ -2,6 +2,8 @@ package com.resqnet.sos.data.local
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
+import java.util.UUID
 import com.resqnet.sos.data.model.EmergencyContact
 import com.resqnet.sos.data.model.UserProfile
 import kotlinx.serialization.encodeToString
@@ -19,8 +21,8 @@ class ProfilePreferences(context: Context) {
     fun getOrCreateDeviceId(): String {
         var deviceId = prefs.getString("local_device_id", null)
         if (deviceId.isNullOrEmpty()) {
-            deviceId = java.util.UUID.randomUUID().toString().take(8).uppercase()
-            prefs.edit().putString("local_device_id", deviceId).apply()
+            deviceId = UUID.randomUUID().toString().take(8).uppercase()
+            prefs.edit { putString("local_device_id", deviceId) }
         }
         return deviceId
     }
@@ -30,7 +32,7 @@ class ProfilePreferences(context: Context) {
     }
 
     fun setLoggedIn(loggedIn: Boolean) {
-        prefs.edit().putBoolean("is_logged_in", loggedIn).apply()
+        prefs.edit { putBoolean("is_logged_in", loggedIn) }
     }
 
     fun isProfileComplete(): Boolean {
@@ -38,16 +40,16 @@ class ProfilePreferences(context: Context) {
     }
 
     fun setProfileComplete(complete: Boolean) {
-        prefs.edit().putBoolean("is_profile_complete", complete).apply()
+        prefs.edit { putBoolean("is_profile_complete", complete) }
     }
 
     fun saveProfile(profile: UserProfile) {
         val serialized = json.encodeToString(profile)
-        prefs.edit()
-            .putString("saved_user_profile", serialized)
-            .putString("user_email", profile.email)
-            .putBoolean("is_profile_complete", true)
-            .apply()
+        prefs.edit {
+            putString("saved_user_profile", serialized)
+            putString("user_email", profile.email)
+            putBoolean("is_profile_complete", true)
+        }
     }
 
     fun getProfile(): UserProfile {
@@ -63,11 +65,11 @@ class ProfilePreferences(context: Context) {
     }
 
     fun logout() {
-        prefs.edit()
-            .putBoolean("is_logged_in", false)
-            .remove("user_email")
-            .remove("saved_user_profile")
-            .apply()
+        prefs.edit {
+            putBoolean("is_logged_in", false)
+            remove("user_email")
+            remove("saved_user_profile")
+        }
     }
 
     fun getSavedEmail(): String {

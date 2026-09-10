@@ -31,6 +31,17 @@ class RsepStorageManager(private val context: Context) {
     private val primaryRsepFile: File
         get() = File(rsepVaultDir, "active_sos.rsep")
 
+    fun getActiveSosPacketId(): String? {
+        if (primaryRsepFile.exists()) {
+            try {
+                val content = primaryRsepFile.readText()
+                val pkt = json.decodeFromString<RsepPacket>(content)
+                return pkt.header.packetId
+            } catch (_: Exception) {}
+        }
+        return null
+    }
+
     /**
      * Loads the EXISTING RSEP file from storage.
      * If not already cached on disk, loads from the saved profile vault.

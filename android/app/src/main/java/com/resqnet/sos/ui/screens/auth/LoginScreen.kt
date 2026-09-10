@@ -130,7 +130,7 @@ fun LoginScreen(navController: NavController) {
                 isLoading = true
                 scope.launch {
                     try {
-                        val (requestId, mode) = serverBridge.sendEmailOtp(cleanEmail)
+                        val (requestId, _) = serverBridge.sendEmailOtp(cleanEmail)
                         isLoading = false
                         val encodedEmail = URLEncoder.encode(cleanEmail, "UTF-8")
                         val encodedReqId = URLEncoder.encode(requestId, "UTF-8")

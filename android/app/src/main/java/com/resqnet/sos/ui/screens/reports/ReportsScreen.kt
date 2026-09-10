@@ -25,6 +25,7 @@ import androidx.navigation.NavController
 import com.resqnet.sos.data.local.ReceivedIncidentsVault
 import com.resqnet.sos.theme.*
 import com.resqnet.sos.ui.navigation.Screen
+import kotlinx.coroutines.delay
 
 @Composable
 fun ReportsScreen(
@@ -34,6 +35,14 @@ fun ReportsScreen(
     val context = LocalContext.current
     val receivedVault = remember { ReceivedIncidentsVault(context) }
     var receivedPacketsList by remember { mutableStateOf(receivedVault.getReceivedPackets()) }
+
+    // Real-time auto refresh for received mesh alerts
+    LaunchedEffect(Unit) {
+        while (true) {
+            receivedPacketsList = receivedVault.getReceivedPackets()
+            delay(1000)
+        }
+    }
 
     Scaffold(
         containerColor = ResQBackground,

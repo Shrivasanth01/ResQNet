@@ -22,8 +22,10 @@ import com.resqnet.sos.ui.navigation.Screen
 import com.resqnet.sos.ui.screens.auth.CompleteProfileScreen
 import com.resqnet.sos.ui.screens.auth.LoginScreen
 import com.resqnet.sos.ui.screens.auth.VerifyOtpScreen
+import com.resqnet.sos.services.distribution.BleMeshForegroundService
 import com.resqnet.sos.ui.screens.dashboard.DashboardScreen
 import com.resqnet.sos.ui.screens.map.LiveMapScreen
+import com.resqnet.sos.ui.screens.mesh.MeshStatusScreen
 import com.resqnet.sos.ui.screens.reports.ReportsScreen
 import com.resqnet.sos.ui.screens.settings.EmergencyContactsScreen
 import com.resqnet.sos.ui.screens.settings.MedicalVaultScreen
@@ -37,6 +39,8 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         println("[MainActivity] Hardware permissions evaluated: $permissions")
+        NativeBleMeshEngine.init(this)
+        BleMeshForegroundService.startService(this)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,6 +48,7 @@ class MainActivity : ComponentActivity() {
         requestAppPermissions()
 
         NativeBleMeshEngine.init(this)
+        BleMeshForegroundService.startService(this)
 
         val profilePrefs = ProfilePreferences(this)
         val startDest = if (profilePrefs.isLoggedIn()) Screen.Dashboard.route else Screen.Login.route
@@ -97,6 +102,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Screen.CompleteProfile.route) {
                             CompleteProfileScreen(navController = navController)
+                        }
+                        composable(Screen.MeshStatus.route) {
+                            MeshStatusScreen(navController = navController)
                         }
                     }
                 }

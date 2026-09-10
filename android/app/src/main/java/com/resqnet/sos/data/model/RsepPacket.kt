@@ -58,7 +58,10 @@ data class PacketLocation(
     @SerialName("accuracy") val accuracy: Float? = null,
     @SerialName("speed") val speed: Float? = null,
     @SerialName("heading") val heading: Float? = null,
-    @SerialName("timestamp") val timestamp: String
+    @SerialName("timestamp") val timestamp: String,
+    @SerialName("isTransmitted") val isTransmitted: Boolean = false,
+    @SerialName("sosId") val sosId: String? = null,
+    @SerialName("deviceId") val deviceId: String? = null
 )
 
 @Serializable

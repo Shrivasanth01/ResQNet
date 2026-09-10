@@ -9,11 +9,39 @@ import kotlinx.serialization.json.Json
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.net.NetworkInterface
 
 object AndroidMeshBroadcaster {
 
     private val json = Json { ignoreUnknownKeys = true }
     private const val MESH_UDP_PORT = 8888
+
+    private fun resolveBroadcastAddresses(): List<InetAddress> {
+        val addresses = mutableSetOf<InetAddress>()
+        try {
+            addresses.add(InetAddress.getByName("255.255.255.255"))
+            addresses.add(InetAddress.getByName("239.255.255.250"))
+            addresses.add(InetAddress.getByName("224.0.0.1"))
+            addresses.add(InetAddress.getByName("192.168.49.255"))
+            addresses.add(InetAddress.getByName("192.168.43.255"))
+            addresses.add(InetAddress.getByName("192.168.49.1"))
+
+            val interfaces = NetworkInterface.getNetworkInterfaces()
+            while (interfaces.hasMoreElements()) {
+                val networkInterface = interfaces.nextElement()
+                if (networkInterface.isLoopback || !networkInterface.isUp) continue
+                for (interfaceAddress in networkInterface.interfaceAddresses) {
+                    val broadcast = interfaceAddress.broadcast
+                    if (broadcast != null) {
+                        addresses.add(broadcast)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return addresses.toList()
+    }
 
     suspend fun broadcastRsepPacket(context: Context, packet: RsepPacket) {
         withContext(Dispatchers.IO) {
@@ -24,15 +52,7 @@ object AndroidMeshBroadcaster {
                 val socket = DatagramSocket()
                 socket.broadcast = true
 
-                // Broadcast to all offline P2P subnets and Multicast groups (Wi-Fi Direct 192.168.49.x, Hotspot 192.168.43.x, Multicast 239.255.255.250 & 224.0.0.1)
-                val targetAddresses = listOf(
-                    InetAddress.getByName("255.255.255.255"),
-                    InetAddress.getByName("239.255.255.250"),
-                    InetAddress.getByName("224.0.0.1"),
-                    InetAddress.getByName("192.168.49.255"),
-                    InetAddress.getByName("192.168.43.255"),
-                    InetAddress.getByName("192.168.49.1")
-                )
+                val targetAddresses = resolveBroadcastAddresses()
 
                 for (targetAddr in targetAddresses) {
                     try {
@@ -43,11 +63,8 @@ object AndroidMeshBroadcaster {
                     }
                 }
 
-                println("[AndroidMeshBroadcaster] 📡 Transmitting 100% OFFLINE P2P & BLE Mesh Broadcast packet (${bytes.size} bytes) on port $MESH_UDP_PORT...")
+                println("[AndroidMeshBroadcaster] 📡 Transmitting 100% OFFLINE P2P & BLE Mesh Broadcast packet (${bytes.size} bytes) to ${targetAddresses.size} broadcast addresses on port $MESH_UDP_PORT...")
                 socket.close()
-
-                // Save locally in receiver vault for testing on same device / shared runtime
-                com.resqnet.sos.data.local.ReceivedIncidentsVault(context).saveReceivedPacket(packet)
 
             } catch (e: Exception) {
                 println("[AndroidMeshBroadcaster] UDP Broadcast notice: ${e.localizedMessage}")

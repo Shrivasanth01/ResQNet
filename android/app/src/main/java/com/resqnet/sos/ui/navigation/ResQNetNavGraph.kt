@@ -11,4 +11,5 @@ sealed class Screen(val route: String) {
     object Login : Screen("login")
     object VerifyOtp : Screen("verify_otp")
     object CompleteProfile : Screen("complete_profile")
+    object MeshStatus : Screen("mesh_status")
 }

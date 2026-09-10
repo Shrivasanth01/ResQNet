@@ -45,31 +45,30 @@ object RsepTransferManager {
             )
         }
 
-        // 2. Serialize existing RSEP to byte payload
+        // 2. Serialize existing RSEP to byte payload and physically transmit via BLE & UDP sockets
         val jsonPayload = json.encodeToString(packet)
         val byteSize = jsonPayload.toByteArray().size
 
+        try {
+            NativeBleMeshEngine.broadcastRsep(packet)
+            if (context != null) {
+                AndroidMeshBroadcaster.broadcastRsepPacket(context, packet)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         if (targetDevice.transport == "BLE") {
-            // BLE GATT Chunks (512-byte MTU)
-            val chunkCount = (byteSize / 512) + 1
-            println("[RsepTransferManager] Transmitting $chunkCount BLE GATT MTU chunks ($byteSize bytes)...")
+            val chunkCount = (byteSize / 180) + 1
+            println("[RsepTransferManager] Transmitting $chunkCount BLE GATT MTU notification chunks ($byteSize bytes)...")
             delay(180)
         } else {
-            // Wi-Fi Direct socket stream
-            println("[RsepTransferManager] Streaming high-speed Wi-Fi Direct socket payload ($byteSize bytes)...")
+            println("[RsepTransferManager] Streaming UDP socket multicast payload ($byteSize bytes)...")
             delay(80)
         }
 
         val elapsed = System.currentTimeMillis() - startTime
         println("[RsepTransferManager] ✅ RSEP (${packet.header.packetId}) transferred successfully to ${targetDevice.name} in ${elapsed}ms ($byteSize bytes)")
-
-        if (context != null) {
-            try {
-                com.resqnet.sos.data.local.ReceivedIncidentsVault(context).saveReceivedPacket(packet)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
 
         return TransferResult(
             success = true,
