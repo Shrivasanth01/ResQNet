@@ -25,4 +25,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "ResQNet"
-include(":app")
+include(":app", ":rescuer")

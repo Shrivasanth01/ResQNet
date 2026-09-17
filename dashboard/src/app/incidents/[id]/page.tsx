@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ApiService } from "@/lib/api";
+import { AiEmergencyService, AiTriageAnalysis } from "@/lib/ai";
 import { IncidentReport } from "@/types";
 import { 
   ShieldAlert, 
@@ -13,7 +14,11 @@ import {
   MapPin, 
   ArrowLeft, 
   CheckCircle2, 
-  Lock 
+  Lock,
+  Bot,
+  Sparkles,
+  RefreshCw,
+  AlertTriangle
 } from "lucide-react";
 import Link from "next/link";
 
@@ -23,12 +28,32 @@ export default function IncidentDetailsPage() {
   const id = params?.id as string;
   const [incident, setIncident] = useState<IncidentReport | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  
+  // AI Triage Assessment State
+  const [aiAnalysis, setAiAnalysis] = useState<AiTriageAnalysis | null>(null);
+  const [aiLoading, setAiLoading] = useState<boolean>(false);
+
+  const runAiAnalysis = async (inc: IncidentReport) => {
+    setAiLoading(true);
+    try {
+      const description = `Incident: ${inc.emergency_type} at lat:${inc.latitude}, lon:${inc.longitude}. Sensor ECS: ${inc.emergency_confidence_score}/100. Severity: ${inc.severity}. Status: ${inc.status}. Medical condition: ${inc.medicalVault?.medicalConditions || 'Unknown'}. Allergies: ${inc.medicalVault?.allergies || 'Unknown'}.`;
+      const result = await AiEmergencyService.analyzeDistressPayload(description, inc.emergency_type);
+      setAiAnalysis(result);
+    } catch (err) {
+      console.error("AI Analysis error:", err);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (id) {
       ApiService.getIncidentDetail(id).then((res) => {
         setIncident(res);
         setLoading(false);
+        if (res) {
+          runAiAnalysis(res);
+        }
       });
     }
   }, [id]);
@@ -84,6 +109,86 @@ export default function IncidentDetailsPage() {
             <span className="text-xl font-black">{incident.emergency_confidence_score} / 100</span>
           </div>
         </div>
+      </div>
+
+      {/* AI Emergency Triage Advisor Banner */}
+      <div className="card-surface p-5 border-cyan-500/40 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/30 rounded-2xl relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/40 text-cyan-400">
+              <Bot className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black text-white">AI Incident Triage & Tactical Advisor</h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/50 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-cyan-400" />
+                  {aiAnalysis?.modelUsed || "openai/gpt-6-astra"}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">Real-time situational assessment synthesized from mesh telemetry, sensory confidence & medical vault.</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => incident && runAiAnalysis(incident)}
+            disabled={aiLoading}
+            className="px-4 py-2 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/50 text-cyan-300 font-mono text-xs font-bold flex items-center gap-2 transition-all self-start md:self-auto disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${aiLoading ? 'animate-spin' : ''}`} />
+            {aiLoading ? 'Analyzing Situation...' : 'Re-assess with AI'}
+          </button>
+        </div>
+
+        {aiLoading ? (
+          <div className="py-8 text-center font-mono text-xs text-cyan-300 flex items-center justify-center gap-3">
+            <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+            Synthesizing tactical directives with OpenAI GPT-6 Astra...
+          </div>
+        ) : aiAnalysis ? (
+          <div className="mt-4 space-y-4">
+            <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
+              <span className="flex items-center gap-1.5 text-slate-300">
+                Assessed Risk:
+                <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase ${
+                  aiAnalysis.riskLevel === 'CRITICAL' ? 'bg-rose-950 text-rose-300 border border-rose-500/50' :
+                  aiAnalysis.riskLevel === 'HIGH' ? 'bg-amber-950 text-amber-300 border border-amber-500/50' :
+                  'bg-emerald-950 text-emerald-300 border border-emerald-500/50'
+                }`}>
+                  {aiAnalysis.riskLevel}
+                </span>
+              </span>
+
+              <span className="flex items-center gap-1.5 text-slate-300">
+                Model Confidence:
+                <span className="text-cyan-300 font-extrabold">{aiAnalysis.confidenceScore}%</span>
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-200 bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 leading-relaxed">
+              <strong className="text-cyan-300 font-mono block mb-1">Tactical Summary:</strong>
+              {aiAnalysis.summaryText}
+            </p>
+
+            {aiAnalysis.recommendedActions.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+                  Recommended Dispatch & Rescue Directives:
+                </span>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                  {aiAnalysis.recommendedActions.map((action, idx) => (
+                    <div key={idx} className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-start gap-2.5 text-xs text-slate-200">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <span className="leading-snug">{action}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="py-4 text-xs text-slate-400">Click &apos;Re-assess with AI&apos; to run automated triage.</div>
+        )}
       </div>
 
       {/* Grid Content: 3 Columns */}
