@@ -49,6 +49,8 @@ class PedestrianDeadReckoningEngine(context: Context) : SensorEventListener {
     private val _pdrTelemetry = MutableStateFlow(PdrTelemetry())
     val pdrTelemetry: StateFlow<PdrTelemetry> = _pdrTelemetry.asStateFlow()
 
+    var locationModeManager: LocationModeManager? = null
+
     private var isTracking = false
     private var initialHardwareSteps = -1
     private var lastStepTimestampMs = 0L
@@ -304,6 +306,7 @@ class PedestrianDeadReckoningEngine(context: Context) : SensorEventListener {
             driftRadiusMeters = finalDriftRadius,
             confidenceLevel = newConfidence
         )
+        locationModeManager?.onPdrStepUpdate(newStepCount, stepLengthMeters, current.currentHeadingDeg)
         println("[PDR Engine] 👣 Step #$newStepCount: stepLen=${String.format(Locale.US, "%.2f", stepLengthMeters)}m, totalWalked=${String.format(Locale.US, "%.1f", newTotalMovedMeters)}m, netFromOrigin=${String.format(Locale.US, "%.1f", finalNetDisplacement)}m, heading=${current.currentHeadingDeg.toInt()}° (${current.headingCardinal}) -> Lat=$finalLat, Lng=$finalLng")
     }
 

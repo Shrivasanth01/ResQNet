@@ -433,11 +433,51 @@ fun DashboardScreen(
             }
 
             // =========================================================================
-            // CONDITIONAL RESQMESH PDR MOTION SENSOR CARD (OFFLINE / NO GPS / AIRPLANE MODE ONLY)
+            // LOCATION STATE MACHINE & RE-SYNC POPUP BANNER
             // =========================================================================
             val locationService = remember { AndroidLocationService.getInstance(context) }
+            val locationState by locationService.locationModeManager.locationState.collectAsState()
             val pdrTelemetry by locationService.pdrEngine.pdrTelemetry.collectAsState()
             var checkpointMenuExpanded by remember { mutableStateOf(false) }
+
+            if (locationState.isResyncedEvent) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F231A)),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.5.dp, ResQGreen, RoundedCornerShape(12.dp))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.GpsFixed, contentDescription = null, tint = ResQGreen, modifier = Modifier.size(22.dp))
+                            Column {
+                                Text("Location Signal Restored", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                                Text("Position re-synchronized to new confirmed GPS fix.", color = ResQTextSecondary, fontSize = 11.sp)
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Dismiss",
+                            tint = ResQTextMuted,
+                            modifier = Modifier
+                                .size(18.dp)
+                                .clickable { locationService.locationModeManager.dismissResyncedEvent() }
+                        )
+                    }
+                }
+            }
 
             val systemLocManager = remember { context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager }
             val isGpsActive = remember(isAirplaneModeOn) {

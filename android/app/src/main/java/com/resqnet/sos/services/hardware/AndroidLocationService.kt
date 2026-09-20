@@ -32,6 +32,12 @@ class AndroidLocationService(private val context: Context) {
     private val repository = SosLocationRepository(context)
 
     val pdrEngine = PedestrianDeadReckoningEngine(context)
+    val locationModeManager = LocationModeManager(context)
+
+    init {
+        pdrEngine.locationModeManager = locationModeManager
+        locationModeManager.attachPdrEngine(pdrEngine)
+    }
 
     private var cachedCoordinates: GpsCoordinates = GpsCoordinates(
         latitude = 0.0,
@@ -139,7 +145,7 @@ class AndroidLocationService(private val context: Context) {
             _isUserMoving.value = isMoving
             lastLocation = location
 
-            // Update cached coordinates and PDR base GPS origin
+            // Update cached coordinates and location state machine
             cachedCoordinates = GpsCoordinates(
                 latitude = location.latitude,
                 longitude = location.longitude,
@@ -148,7 +154,7 @@ class AndroidLocationService(private val context: Context) {
                 speed = if (location.hasSpeed()) location.speed else null,
                 heading = if (location.hasBearing()) location.bearing else null
             )
-            pdrEngine.updateLastConfirmedGps(location.latitude, location.longitude)
+            locationModeManager.onNewLocationFix(location)
 
             // 3. Construct Record
             val record = SosLocationRecord(

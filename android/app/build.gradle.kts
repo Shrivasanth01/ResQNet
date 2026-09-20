@@ -74,5 +74,8 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.play.services.location)
 
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.mockito:mockito-core:5.11.0")
+
     debugImplementation(libs.androidx.ui.tooling)
 }
