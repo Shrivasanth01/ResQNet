@@ -277,22 +277,34 @@ class PedestrianDeadReckoningEngine(context: Context) : SensorEventListener {
         }
         val netDisplacement = results[0].toDouble()
 
+        // Loop Closure Reset: If user returns within 1.8m radius of starting GPS origin after walking 5+ steps
+        val isReturnedToOrigin = newStepCount > 5 && netDisplacement <= 1.8
+        
+        val finalLat = if (isReturnedToOrigin) current.lastConfirmedGpsLat else newLat
+        val finalLng = if (isReturnedToOrigin) current.lastConfirmedGpsLng else newLng
+        val finalNetDisplacement = if (isReturnedToOrigin) 0.0 else netDisplacement
+        val finalDriftRadius = if (isReturnedToOrigin) 0.0f else newDriftRadius
+
+        if (isReturnedToOrigin) {
+            println("[PDR Engine] 🔄 Loop-Closure Reset! User returned to starting GPS origin -> Reset meters to 0.0m!")
+        }
+
         val newConfidence = when {
             current.confidenceLevel == "CHECKPOINT_VERIFIED" -> "CHECKPOINT_VERIFIED"
-            newDriftRadius < 5.0f -> "MEDIUM_PDR"
+            finalDriftRadius < 5.0f -> "MEDIUM_PDR"
             else -> "LOW_DRIFT"
         }
 
         _pdrTelemetry.value = current.copy(
             stepCount = newStepCount,
-            estimatedLat = newLat,
-            estimatedLng = newLng,
+            estimatedLat = finalLat,
+            estimatedLng = finalLng,
             totalMovedMeters = newTotalMovedMeters,
-            netDisplacementMeters = netDisplacement,
-            driftRadiusMeters = newDriftRadius,
+            netDisplacementMeters = finalNetDisplacement,
+            driftRadiusMeters = finalDriftRadius,
             confidenceLevel = newConfidence
         )
-        println("[PDR Engine] 👣 Step #$newStepCount: stepLen=${String.format(Locale.US, "%.2f", stepLengthMeters)}m, totalWalked=${String.format(Locale.US, "%.1f", newTotalMovedMeters)}m, netFromOrigin=${String.format(Locale.US, "%.1f", netDisplacement)}m, heading=${current.currentHeadingDeg.toInt()}° (${current.headingCardinal}) -> Lat=$newLat, Lng=$newLng")
+        println("[PDR Engine] 👣 Step #$newStepCount: stepLen=${String.format(Locale.US, "%.2f", stepLengthMeters)}m, totalWalked=${String.format(Locale.US, "%.1f", newTotalMovedMeters)}m, netFromOrigin=${String.format(Locale.US, "%.1f", finalNetDisplacement)}m, heading=${current.currentHeadingDeg.toInt()}° (${current.headingCardinal}) -> Lat=$finalLat, Lng=$finalLng")
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
