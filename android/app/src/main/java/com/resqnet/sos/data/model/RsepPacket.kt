@@ -61,7 +61,13 @@ data class PacketLocation(
     @SerialName("timestamp") val timestamp: String,
     @SerialName("isTransmitted") val isTransmitted: Boolean = false,
     @SerialName("sosId") val sosId: String? = null,
-    @SerialName("deviceId") val deviceId: String? = null
+    @SerialName("deviceId") val deviceId: String? = null,
+    @SerialName("lastConfirmedLat") val lastConfirmedLat: Double? = null,
+    @SerialName("lastConfirmedLng") val lastConfirmedLng: Double? = null,
+    @SerialName("lastConfirmedTimestamp") val lastConfirmedTimestamp: String? = null,
+    @SerialName("stepCountSinceOffline") val stepCountSinceOffline: Int = 0,
+    @SerialName("headingAzimuthDeg") val headingAzimuthDeg: Float = 0f,
+    @SerialName("driftRadiusMeters") val driftRadiusMeters: Float = 0f
 )
 
 @Serializable

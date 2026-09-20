@@ -2,6 +2,7 @@ package com.resqnet.sos.data.local
 
 import android.content.Context
 import com.resqnet.sos.data.model.*
+import com.resqnet.sos.services.hardware.AndroidLocationService
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -66,6 +67,9 @@ class RsepStorageManager(private val context: Context) {
 
         val packetId = "RQ-PKT-" + UUID.randomUUID().toString().take(8).uppercase()
 
+        val locationService = AndroidLocationService.getInstance(context)
+        val currentLoc = locationService.getCachedLocation()
+
         val baselineRsep = RsepPacket(
             header = PacketHeader(
                 packetId = packetId,
@@ -82,9 +86,9 @@ class RsepStorageManager(private val context: Context) {
                 emergencyContacts = profile.emergencyContacts
             ),
             location = PacketLocation(
-                latitude = 13.0827,
-                longitude = 80.2707,
-                accuracy = 5.0f,
+                latitude = currentLoc.latitude,
+                longitude = currentLoc.longitude,
+                accuracy = currentLoc.accuracy ?: 5.0f,
                 timestamp = timestamp
             ),
             incident = PacketIncident(

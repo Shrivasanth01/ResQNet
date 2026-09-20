@@ -1,5 +1,8 @@
 package com.resqnet.sos.ui.screens.map
 
+import android.annotation.SuppressLint
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,6 +24,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import com.resqnet.sos.data.local.RsepStorageManager
 import com.resqnet.sos.services.hardware.AndroidLocationService
@@ -140,6 +144,31 @@ fun LiveMapScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = ResQTextSecondary
             )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // =========================================================================
+            // INTERACTIVE TACTICAL LEAFLET MAP VIEW
+            // =========================================================================
+            val victimMarkers = remember(mockIncidents) {
+                mockIncidents.map { Pair(it.latitude, it.longitude) }
+            }
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = ResQSurface),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp)
+                    .border(1.5.dp, ResQCyan, RoundedCornerShape(16.dp))
+            ) {
+                InteractiveMapView(
+                    myLat = coords.latitude,
+                    myLng = coords.longitude,
+                    victimMarkers = victimMarkers,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -339,4 +368,83 @@ fun LiveMapScreen(
             }
         }
     }
+}
+
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+fun InteractiveMapView(
+    myLat: Double,
+    myLng: Double,
+    victimMarkers: List<Pair<Double, Double>>,
+    modifier: Modifier = Modifier
+) {
+    val htmlContent = remember(myLat, myLng, victimMarkers) {
+        val validMyLat = if (myLat != 0.0) myLat else 13.0827
+        val validMyLng = if (myLng != 0.0) myLng else 80.2707
+
+        val markersJs = victimMarkers.joinToString("\n") { (vLat, vLng) ->
+            if (vLat != 0.0 && vLng != 0.0) {
+                "L.marker([$vLat, $vLng], {icon: redIcon}).addTo(map).bindPopup('🚨 Victim Emergency SOS Location');"
+            } else ""
+        }
+
+        """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+            <style>
+                body { margin: 0; padding: 0; background: #0B192C; }
+                #map { width: 100vw; height: 100vh; background: #0B192C; }
+                .leaflet-tile { filter: brightness(0.7) invert(1) contrast(1.3) hue-rotate(200deg); }
+                .leaflet-control-attribution { display: none !important; }
+            </style>
+        </head>
+        <body>
+            <div id="map"></div>
+            <script>
+                var map = L.map('map', { zoomControl: false }).setView([$validMyLat, $validMyLng], 16);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19
+                }).addTo(map);
+
+                var blueIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: "<div style='background-color:#00A8E8;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 12px #00A8E8;'></div>",
+                    iconSize: [22, 22],
+                    iconAnchor: [11, 11]
+                });
+
+                var redIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: "<div style='background-color:#D32F2F;width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 0 12px #D32F2F;'></div>",
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+
+                L.marker([$validMyLat, $validMyLng], {icon: blueIcon}).addTo(map).bindPopup('📍 Your Live Location');
+                L.circle([$validMyLat, $validMyLng], {radius: 25, color: '#00A8E8', fillColor: '#00A8E8', fillOpacity: 0.25}).addTo(map);
+
+                $markersJs
+            </script>
+        </body>
+        </html>
+        """.trimIndent()
+    }
+
+    AndroidView(
+        factory = { ctx ->
+            WebView(ctx).apply {
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
+                webViewClient = WebViewClient()
+            }
+        },
+        update = { webView ->
+            webView.loadDataWithBaseURL("https://openstreetmap.org", htmlContent, "text/html", "UTF-8", null)
+        },
+        modifier = modifier
+    )
 }

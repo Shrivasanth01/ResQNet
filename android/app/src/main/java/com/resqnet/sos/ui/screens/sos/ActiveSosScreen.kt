@@ -33,6 +33,7 @@ import com.resqnet.sos.services.distribution.*
 import com.resqnet.sos.ui.navigation.Screen
 import com.resqnet.sos.services.hardware.AndroidLocationService
 import com.resqnet.sos.services.hardware.AndroidSmsCallService
+import com.resqnet.sos.services.hardware.CheckpointCorrector
 import com.resqnet.sos.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -180,6 +181,155 @@ fun ActiveSosScreen(
                             color = ResQTextSecondary,
                             fontSize = 11.sp
                         )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // =========================================================================
+            // RESQMESH PEDESTRIAN DEAD RECKONING (PDR) & CHECKPOINT CORRECTION CARD
+            // =========================================================================
+            val pdrTelemetry by locationService.pdrEngine.pdrTelemetry.collectAsState()
+            var checkpointMenuExpanded by remember { mutableStateOf(false) }
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.5.dp, ResQCyan, RoundedCornerShape(16.dp))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.DirectionsWalk, contentDescription = null, tint = ResQCyan, modifier = Modifier.size(20.dp))
+                            Text(
+                                text = "Offline PDR Motion Sensor",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = Color.White,
+                                fontSize = 15.sp
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    when (pdrTelemetry.confidenceLevel) {
+                                        "CHECKPOINT_VERIFIED", "HIGH_GPS" -> ResQGreen.copy(alpha = 0.2f)
+                                        "MEDIUM_PDR" -> ResQYellow.copy(alpha = 0.2f)
+                                        else -> ResQCrimson.copy(alpha = 0.2f)
+                                    },
+                                    RoundedCornerShape(6.dp)
+                                )
+                                .border(
+                                    1.dp,
+                                    when (pdrTelemetry.confidenceLevel) {
+                                        "CHECKPOINT_VERIFIED", "HIGH_GPS" -> ResQGreen
+                                        "MEDIUM_PDR" -> ResQYellow
+                                        else -> ResQCrimson
+                                    },
+                                    RoundedCornerShape(6.dp)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = when (pdrTelemetry.confidenceLevel) {
+                                    "CHECKPOINT_VERIFIED" -> "✓ CHECKPOINT VERIFIED"
+                                    "HIGH_GPS" -> "✓ GPS CONFIRMED"
+                                    "MEDIUM_PDR" -> "⭕ MEDIUM (PDR)"
+                                    else -> "⚠️ LOW (DRIFT ±${pdrTelemetry.driftRadiusMeters.toInt()}m)"
+                                },
+                                color = when (pdrTelemetry.confidenceLevel) {
+                                    "CHECKPOINT_VERIFIED", "HIGH_GPS" -> ResQGreen
+                                    "MEDIUM_PDR" -> ResQYellow
+                                    else -> ResQCrimson
+                                },
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("PDR Footsteps", color = ResQTextSecondary, fontSize = 11.sp)
+                            Text("${pdrTelemetry.stepCount} steps", color = ResQCyan, fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Heading Azimuth", color = ResQTextSecondary, fontSize = 11.sp)
+                            Text("${pdrTelemetry.currentHeadingDeg.toInt()}° ${pdrTelemetry.headingCardinal}", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Sensor Drift Radius", color = ResQTextSecondary, fontSize = 11.sp)
+                            Text("±${pdrTelemetry.driftRadiusMeters.toInt()} meters", color = if (pdrTelemetry.driftRadiusMeters > 15f) ResQCrimson else ResQYellow, fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Estimated Pos: ${String.format("%.5f", pdrTelemetry.estimatedLat)}° N, ${String.format("%.5f", pdrTelemetry.estimatedLng)}° E",
+                        color = ResQTextMuted,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+
+                    if (pdrTelemetry.lastCheckpointName != null) {
+                        Text(
+                            text = "Last Corrected Checkpoint: ${pdrTelemetry.lastCheckpointName}",
+                            color = ResQGreen,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Box {
+                        Button(
+                            onClick = { checkpointMenuExpanded = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = ResQBlue),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Scan / Verify Location Checkpoint", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        DropdownMenu(
+                            expanded = checkpointMenuExpanded,
+                            onDismissRequest = { checkpointMenuExpanded = false },
+                            modifier = Modifier.background(ResQSurface)
+                        ) {
+                            CheckpointCorrector.KNOWN_CHECKPOINTS.forEach { chk ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(chk.name, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                            Text(chk.description, color = ResQTextSecondary, fontSize = 10.sp)
+                                        }
+                                    },
+                                    onClick = {
+                                        locationService.pdrEngine.correctWithCheckpoint(chk)
+                                        checkpointMenuExpanded = false
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }

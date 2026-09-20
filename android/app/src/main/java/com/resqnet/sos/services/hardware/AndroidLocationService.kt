@@ -3,6 +3,7 @@ package com.resqnet.sos.services.hardware
 import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Location
+import android.location.LocationManager
 import com.google.android.gms.location.*
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.resqnet.sos.data.local.SosLocationRepository
@@ -30,11 +31,62 @@ class AndroidLocationService(private val context: Context) {
 
     private val repository = SosLocationRepository(context)
 
+    val pdrEngine = PedestrianDeadReckoningEngine(context)
+
     private var cachedCoordinates: GpsCoordinates = GpsCoordinates(
-        latitude = 13.0827,
-        longitude = 80.2707,
-        accuracy = 5.0f
+        latitude = 0.0,
+        longitude = 0.0,
+        accuracy = 0.0f
     )
+
+    private fun fetchSystemBestLastLocation(): Location? {
+        try {
+            val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+            @SuppressLint("MissingPermission")
+            val gpsLoc = try { lm?.getLastKnownLocation(LocationManager.GPS_PROVIDER) } catch (_: Exception) { null }
+            @SuppressLint("MissingPermission")
+            val netLoc = try { lm?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER) } catch (_: Exception) { null }
+            @SuppressLint("MissingPermission")
+            val passLoc = try { lm?.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER) } catch (_: Exception) { null }
+
+            val candidates = listOfNotNull(gpsLoc, netLoc, passLoc)
+            return candidates.maxByOrNull { it.time }
+        } catch (_: Exception) {
+            return null
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun startGeneralLocationUpdates() {
+        try {
+            val best = fetchSystemBestLastLocation()
+            if (best != null && best.latitude != 0.0 && best.longitude != 0.0) {
+                cachedCoordinates = GpsCoordinates(
+                    latitude = best.latitude,
+                    longitude = best.longitude,
+                    altitude = if (best.hasAltitude()) best.altitude else null,
+                    accuracy = if (best.hasAccuracy()) best.accuracy else null,
+                    speed = if (best.hasSpeed()) best.speed else null,
+                    heading = if (best.hasBearing()) best.bearing else null
+                )
+                pdrEngine.updateLastConfirmedGps(best.latitude, best.longitude)
+            }
+
+            val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000L)
+                .setMinUpdateIntervalMillis(1000L)
+                .setGranularity(Granularity.GRANULARITY_FINE)
+                .build()
+
+            fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, context.mainLooper)
+            println("[AndroidLocationService] 🚀 Continuous General Location Updates Active.")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    init {
+        startGeneralLocationUpdates()
+    }
 
     private var activeSosId: String? = null
     private var activeDeviceId: String? = null
@@ -87,7 +139,7 @@ class AndroidLocationService(private val context: Context) {
             _isUserMoving.value = isMoving
             lastLocation = location
 
-            // Update cached coordinates
+            // Update cached coordinates and PDR base GPS origin
             cachedCoordinates = GpsCoordinates(
                 latitude = location.latitude,
                 longitude = location.longitude,
@@ -96,6 +148,7 @@ class AndroidLocationService(private val context: Context) {
                 speed = if (location.hasSpeed()) location.speed else null,
                 heading = if (location.hasBearing()) location.bearing else null
             )
+            pdrEngine.updateLastConfirmedGps(location.latitude, location.longitude)
 
             // 3. Construct Record
             val record = SosLocationRecord(
@@ -111,6 +164,11 @@ class AndroidLocationService(private val context: Context) {
                 deviceId = deviceId,
                 isTransmitted = false
             )
+
+            // Update PDR base GPS origin if fix is accurate
+            if (location.hasAccuracy() && location.accuracy <= 25.0f) {
+                pdrEngine.updateLastConfirmedGps(location.latitude, location.longitude)
+            }
 
             // 4. Save to persistent local repository
             repository.saveLocationRecord(record)
@@ -146,6 +204,7 @@ class AndroidLocationService(private val context: Context) {
 
         try {
             fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, context.mainLooper)
+            pdrEngine.startPdrTracking(cachedCoordinates.latitude, cachedCoordinates.longitude)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -161,6 +220,7 @@ class AndroidLocationService(private val context: Context) {
         activeDeviceId = null
         try {
             fusedLocationClient.removeLocationUpdates(locationCallback)
+            pdrEngine.stopPdrTracking()
             println("[AndroidLocationService] 🛑 Stopped Adaptive SOS Location Engine.")
         } catch (e: Exception) {
             e.printStackTrace()
@@ -174,9 +234,9 @@ class AndroidLocationService(private val context: Context) {
             val location: Location? = fusedLocationClient.getCurrentLocation(
                 Priority.PRIORITY_HIGH_ACCURACY,
                 cancellationTokenSource.token
-            ).await()
+            ).await() ?: fetchSystemBestLastLocation()
 
-            if (location != null) {
+            if (location != null && location.latitude != 0.0 && location.longitude != 0.0) {
                 cachedCoordinates = GpsCoordinates(
                     latitude = location.latitude,
                     longitude = location.longitude,
@@ -185,15 +245,40 @@ class AndroidLocationService(private val context: Context) {
                     speed = if (location.hasSpeed()) location.speed else null,
                     heading = if (location.hasBearing()) location.bearing else null
                 )
+                pdrEngine.updateLastConfirmedGps(location.latitude, location.longitude)
+                println("[AndroidLocationService] 🎯 High Accuracy Location Fix Obain: (${location.latitude}, ${location.longitude})")
             }
             cachedCoordinates
         } catch (e: Exception) {
             e.printStackTrace()
+            val best = fetchSystemBestLastLocation()
+            if (best != null && best.latitude != 0.0 && best.longitude != 0.0) {
+                cachedCoordinates = GpsCoordinates(
+                    latitude = best.latitude,
+                    longitude = best.longitude,
+                    altitude = if (best.hasAltitude()) best.altitude else null,
+                    accuracy = if (best.hasAccuracy()) best.accuracy else null,
+                    speed = if (best.hasSpeed()) best.speed else null,
+                    heading = if (best.hasBearing()) best.bearing else null
+                )
+                pdrEngine.updateLastConfirmedGps(best.latitude, best.longitude)
+            }
             cachedCoordinates
         }
     }
 
     fun getCachedLocation(): GpsCoordinates {
         return cachedCoordinates
+    }
+
+    companion object {
+        @Volatile
+        private var INSTANCE: AndroidLocationService? = null
+
+        fun getInstance(context: Context): AndroidLocationService {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: AndroidLocationService(context.applicationContext).also { INSTANCE = it }
+            }
+        }
     }
 }
