@@ -9,12 +9,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.resqnet.sos.data.local.ProfilePreferences
+import com.resqnet.sos.data.local.ThemePreferences
 import com.resqnet.sos.services.distribution.NativeBleMeshEngine
 import com.resqnet.sos.theme.ResQBackground
 import com.resqnet.sos.theme.ResQNetTheme
@@ -24,6 +27,7 @@ import com.resqnet.sos.ui.screens.auth.LoginScreen
 import com.resqnet.sos.ui.screens.auth.VerifyOtpScreen
 import com.resqnet.sos.services.distribution.BleMeshForegroundService
 import com.resqnet.sos.ui.screens.dashboard.DashboardScreen
+import com.resqnet.sos.ui.screens.firstaid.FirstAidScreen
 import com.resqnet.sos.ui.screens.map.LiveMapScreen
 import com.resqnet.sos.ui.screens.mesh.MeshStatusScreen
 import com.resqnet.sos.ui.screens.reports.ReportsScreen
@@ -47,14 +51,21 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         requestAppPermissions()
 
-        NativeBleMeshEngine.init(this)
-        BleMeshForegroundService.startService(this)
+        try {
+            NativeBleMeshEngine.init(this)
+            BleMeshForegroundService.startService(this)
+        } catch (e: Exception) {
+            println("[MainActivity] Mesh init warning: ${e.localizedMessage}")
+        }
 
         val profilePrefs = ProfilePreferences(this)
+        val themePrefs = ThemePreferences.getInstance(this)
         val startDest = if (profilePrefs.isLoggedIn()) Screen.Dashboard.route else Screen.Login.route
 
         setContent {
-            ResQNetTheme {
+            val isDarkMode by themePrefs.isDarkMode.collectAsState()
+
+            ResQNetTheme(darkTheme = isDarkMode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = ResQBackground
@@ -105,6 +116,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Screen.MeshStatus.route) {
                             MeshStatusScreen(navController = navController)
+                        }
+                        composable(Screen.FirstAid.route) {
+                            FirstAidScreen(navController = navController)
                         }
                     }
                 }

@@ -24,7 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.resqnet.rescuer.data.RescuerVault
-import com.resqnet.sos.theme.*
+import com.resqnet.rescuer.theme.*
+import com.resqnet.rescuer.ui.components.SubtleMeteorShowerBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,13 +46,13 @@ fun VictimDetailScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Victim Medical Vault & Dossier", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("Victim Medical Vault & Dossier", color = ResQTextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         Text("ID: $packetId", color = ResQCyan, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = ResQTextPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ResQSurface)
@@ -59,191 +60,195 @@ fun VictimDetailScreen(
         },
         containerColor = ResQBackground
     ) { innerPadding ->
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 16.dp)
-        ) {
-            if (pkt == null) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = ResQSurface),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Victim record not found.", color = ResQCrimson, fontSize = 14.sp, modifier = Modifier.padding(16.dp))
-                }
-            } else {
-                // Header Profile Card
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F231A)),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.5.dp, ResQCyan, RoundedCornerShape(16.dp))
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .background(ResQCrimson, CircleShape),
-                                contentAlignment = Alignment.Center
+        Box(modifier = Modifier.fillMaxSize()) {
+            SubtleMeteorShowerBackground()
+
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+            ) {
+                if (pkt == null) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = ResQSurface),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Victim record not found.", color = ResQCrimson, fontSize = 14.sp, modifier = Modifier.padding(16.dp))
+                    }
+                } else {
+                    // Header Profile Card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = ResQSurface),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.5.dp, ResQCyan, RoundedCornerShape(16.dp))
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
-                            }
-
-                            Column {
-                                Text(pkt.user.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                                Text("Age: ${pkt.user.age} yrs  •  Gender: ${pkt.user.gender}", color = ResQTextSecondary, fontSize = 12.sp)
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            MedicalBadge("Blood: ${pkt.user.bloodGroup}", ResQCrimson, Modifier.weight(1f))
-                            MedicalBadge("Ht: ${pkt.user.height} cm", ResQCyan, Modifier.weight(1f))
-                            MedicalBadge("Wt: ${pkt.user.weight} kg", ResQBlue, Modifier.weight(1f))
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Medical History Card
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = ResQSurface),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, ResQCardBorder, RoundedCornerShape(14.dp))
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Text("Medical Conditions & Vault", color = ResQTextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = pkt.user.medicalConditions.ifBlank { "No medical conditions recorded." },
-                            color = ResQTextSecondary,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Family Emergency Contacts Card
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = ResQSurface),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, ResQCardBorder, RoundedCornerShape(14.dp))
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Text("Family Emergency Contacts", color = ResQTextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        if (pkt.user.emergencyContacts.isEmpty()) {
-                            Text("No emergency contact numbers provided.", color = ResQTextMuted, fontSize = 11.sp)
-                        } else {
-                            pkt.user.emergencyContacts.forEach { contact ->
-                                Row(
+                                Box(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 6.dp)
-                                        .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
-                                        .padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                        .size(44.dp)
+                                        .background(ResQCrimson, CircleShape),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Column {
-                                        Text("${contact.name} (${contact.relationship})", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                        Text(contact.phoneNumber, color = ResQCyan, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-                                    }
+                                    Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+                                }
 
-                                    Button(
-                                        onClick = {
-                                            val dialIntent = Intent(Intent.ACTION_DIAL).apply {
-                                                data = Uri.parse("tel:${contact.phoneNumber}")
-                                            }
-                                            context.startActivity(dialIntent)
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = ResQGreen),
-                                        shape = RoundedCornerShape(6.dp)
+                                Column {
+                                    Text(pkt.user.name, color = ResQTextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                                    Text("Age: ${pkt.user.age} yrs  •  Gender: ${pkt.user.gender}", color = ResQTextSecondary, fontSize = 12.sp)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                MedicalBadge("Blood: ${pkt.user.bloodGroup}", ResQCrimson, Modifier.weight(1f))
+                                MedicalBadge("Ht: ${pkt.user.height} cm", ResQCyan, Modifier.weight(1f))
+                                MedicalBadge("Wt: ${pkt.user.weight} kg", ResQBlue, Modifier.weight(1f))
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Medical History Card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = ResQSurface),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.5.dp, ResQCardBorder, RoundedCornerShape(14.dp))
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Text("Medical Conditions & Vault", color = ResQTextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = pkt.user.medicalConditions.ifBlank { "No medical conditions recorded." },
+                                color = ResQTextSecondary,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Family Emergency Contacts Card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = ResQSurface),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.5.dp, ResQCardBorder, RoundedCornerShape(14.dp))
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Text("Family Emergency Contacts", color = ResQTextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            if (pkt.user.emergencyContacts.isEmpty()) {
+                                Text("No emergency contact numbers provided.", color = ResQTextSecondary, fontSize = 11.5.sp)
+                            } else {
+                                pkt.user.emergencyContacts.forEach { contact ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 6.dp)
+                                            .background(ResQSurfaceVariant, RoundedCornerShape(8.dp))
+                                            .padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(12.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Call", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        Column {
+                                            Text("${contact.name} (${contact.relationship})", color = ResQTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                            Text(contact.phoneNumber, color = ResQCyan, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                                        }
+
+                                        Button(
+                                            onClick = {
+                                                val dialIntent = Intent(Intent.ACTION_DIAL).apply {
+                                                    data = Uri.parse("tel:${contact.phoneNumber}")
+                                                }
+                                                context.startActivity(dialIntent)
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = ResQGreen),
+                                            shape = RoundedCornerShape(6.dp)
+                                        ) {
+                                            Icon(Icons.Default.Call, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Call", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                // Rescuer Field Notes Card
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = ResQSurface),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, ResQCyan.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Text("Rescuer Dispatch Notes", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
+                    // Rescuer Field Notes Card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = ResQSurface),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.5.dp, ResQCyan.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Text("Rescuer Dispatch Notes", color = ResQTextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                        OutlinedTextField(
-                            value = notesText,
-                            onValueChange = { notesText = it },
-                            placeholder = { Text("Enter field observations / rescue team status...", color = ResQTextMuted, fontSize = 12.sp) },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                focusedBorderColor = ResQCyan,
-                                unfocusedBorderColor = ResQCardBorder
-                            ),
-                            modifier = Modifier.fillMaxWidth().height(100.dp)
-                        )
+                            OutlinedTextField(
+                                value = notesText,
+                                onValueChange = { notesText = it },
+                                placeholder = { Text("Enter field observations / rescue team status...", color = ResQTextSecondary, fontSize = 12.sp) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = ResQTextPrimary,
+                                    unfocusedTextColor = ResQTextPrimary,
+                                    focusedBorderColor = ResQCyan,
+                                    unfocusedBorderColor = ResQCardBorder
+                                ),
+                                modifier = Modifier.fillMaxWidth().height(100.dp)
+                            )
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
 
-                        Button(
-                            onClick = {
-                                vault.updateTriageStatus(packetId, victimRecord?.triageStatus ?: "PENDING", notesText)
-                                victimRecord = vault.getVictimRecord(packetId)
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = ResQCyan),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Save Rescuer Notes", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        }
+                            Button(
+                                onClick = {
+                                    vault.updateTriageStatus(packetId, victimRecord?.triageStatus ?: "PENDING", notesText)
+                                    victimRecord = vault.getVictimRecord(packetId)
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = ResQCyan),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Save Rescuer Notes", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                        Button(
-                            onClick = {
-                                vault.deleteVictimRecord(packetId)
-                                navController.popBackStack()
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = ResQCrimson),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Delete SOS Dossier", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Button(
+                                onClick = {
+                                    vault.deleteVictimRecord(packetId)
+                                    navController.popBackStack()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = ResQCrimson),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Delete SOS Dossier", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
                         }
                     }
                 }

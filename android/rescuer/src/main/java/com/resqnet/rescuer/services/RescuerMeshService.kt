@@ -1,15 +1,19 @@
 package com.resqnet.rescuer.services
 
+import android.Manifest
+import android.R
 import android.app.*
 import android.bluetooth.BluetoothAdapter
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 
 class RescuerMeshService : Service() {
 
@@ -34,12 +38,20 @@ class RescuerMeshService : Service() {
         println("[RescuerMeshService] 🚀 Starting Rescuer Mesh Foreground Service...")
         startForegroundNotification()
 
-        val filter = IntentFilter().apply {
-            addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+        try {
+            val filter = IntentFilter().apply {
+                addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+            }
+            registerReceiver(radioStateReceiver, filter)
+        } catch (e: Exception) {
+            println("[RescuerMeshService] ⚠️ Receiver registration warning: ${e.localizedMessage}")
         }
-        registerReceiver(radioStateReceiver, filter)
 
-        RescuerBleScanner.init(this)
+        try {
+            RescuerBleScanner.init(this)
+        } catch (e: Exception) {
+            println("[RescuerMeshService] ⚠️ Scanner init warning: ${e.localizedMessage}")
+        }
     }
 
     override fun onDestroy() {
@@ -57,7 +69,7 @@ class RescuerMeshService : Service() {
 
     private fun startForegroundNotification() {
         val channelId = "rescuer_mesh_foreground_channel"
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         val channel = NotificationChannel(
             channelId,
@@ -69,26 +81,38 @@ class RescuerMeshService : Service() {
         notificationManager.createNotificationChannel(channel)
 
         val notification: Notification = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
+            .setSmallIcon(R.drawable.stat_sys_data_bluetooth)
             .setContentTitle("ResQNet Rescuer Mesh Active")
             .setContentText("Passively scanning for nearby victim emergency distress beacons...")
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .build()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val serviceType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-            } else {
-                0
-            }
-            if (serviceType != 0) {
-                startForeground(2001, notification, serviceType)
+        val hasBtConnectPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                if (hasBtConnectPermission) {
+                    startForeground(2001, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
+                } else {
+                    startForeground(2001, notification)
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(2001, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
             } else {
                 startForeground(2001, notification)
             }
-        } else {
-            startForeground(2001, notification)
+        } catch (e: Exception) {
+            println("[RescuerMeshService] ⚠️ startForeground warning: ${e.localizedMessage}")
+            try {
+                startForeground(2001, notification)
+            } catch (e2: Exception) {
+                println("[RescuerMeshService] ⚠️ Fallback startForeground error: ${e2.localizedMessage}")
+            }
         }
     }
 
@@ -102,7 +126,7 @@ class RescuerMeshService : Service() {
                     context.startService(intent)
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                println("[RescuerMeshService] ⚠️ Could not start foreground service: ${e.localizedMessage}")
             }
         }
     }

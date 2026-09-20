@@ -1,9 +1,7 @@
 import com.android.build.api.dsl.ApplicationExtension
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
 }
@@ -46,15 +44,10 @@ configure<ApplicationExtension> {
     }
     sourceSets {
         getByName("main") {
-            java.srcDir("../app/src/main/java")
-            res.srcDir("../app/src/main/res")
+            java.directories.add("../app/src/main/java")
+            kotlin.directories.add("../app/src/main/java")
+            res.directories.add("../app/src/main/res")
         }
-    }
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
