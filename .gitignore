@@ -51,6 +51,7 @@ build/
 app/build/
 *.apk
 *.aar
+*.hprof
 local.properties
 .idea/
 *.iml

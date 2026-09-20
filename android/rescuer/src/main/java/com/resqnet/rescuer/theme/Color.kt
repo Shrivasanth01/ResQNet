@@ -1,4 +1,4 @@
-package com.resqnet.sos.theme
+package com.resqnet.rescuer.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
