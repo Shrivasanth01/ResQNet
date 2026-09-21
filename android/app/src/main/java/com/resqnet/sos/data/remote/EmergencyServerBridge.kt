@@ -303,7 +303,7 @@ class EmergencyServerBridge {
                 put("medicalConditions", profile.medicalConditions)
                 put("allergies", profile.allergies)
                 put("emergencyContactName", primaryContact?.name ?: "Primary Guardian")
-                put("emergencyContactPhone", primaryContact?.phoneNumber ?: "112")
+                put("emergencyContactPhone", primaryContact?.phoneNumber ?: "108")
             }.toString()
 
             for (baseUrl in baseUrls) {

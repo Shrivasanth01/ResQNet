@@ -24,7 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.resqnet.sos.data.local.ProfilePreferences
+import com.resqnet.sos.data.local.ThemePreferences
 import com.resqnet.sos.theme.*
+import com.resqnet.sos.ui.components.SlidingBottomNavBar
+import com.resqnet.sos.ui.components.SubtleMeteorShowerBackground
 import com.resqnet.sos.ui.navigation.Screen
 
 @Composable
@@ -34,7 +37,10 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val profilePrefs = remember { ProfilePreferences(context) }
+    val themePrefs = remember { ThemePreferences.getInstance(context) }
+
     val profile = remember { profilePrefs.getProfile() }
+    val isDarkMode by themePrefs.isDarkMode.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     fun performLogout() {
@@ -52,7 +58,7 @@ fun SettingsScreen(
             title = {
                 Text(
                     text = "Sign Out of ResQNet?",
-                    color = Color.White,
+                    color = ResQTextPrimary,
                     fontWeight = FontWeight.Bold
                 )
             },
@@ -85,154 +91,236 @@ fun SettingsScreen(
     Scaffold(
         containerColor = ResQBackground,
         bottomBar = {
-            NavigationBar(containerColor = ResQSurface, tonalElevation = 8.dp) {
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { navController.navigate(Screen.Dashboard.route) },
-                    icon = { Icon(Icons.Default.Home, contentDescription = null, tint = ResQTextSecondary) },
-                    label = { Text("Home", color = ResQTextSecondary, fontSize = 11.sp) }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { navController.navigate(Screen.Map.route) },
-                    icon = { Icon(Icons.Default.Map, contentDescription = null, tint = ResQTextSecondary) },
-                    label = { Text("Map", color = ResQTextSecondary, fontSize = 11.sp) }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { navController.navigate(Screen.Reports.route) },
-                    icon = { Icon(Icons.Default.Assessment, contentDescription = null, tint = ResQTextSecondary) },
-                    label = { Text("Reports", color = ResQTextSecondary, fontSize = 11.sp) }
-                )
-                NavigationBarItem(
-                    selected = true,
-                    onClick = { },
-                    icon = { Icon(Icons.Default.Settings, contentDescription = null, tint = ResQCyan) },
-                    label = { Text("Settings", color = ResQCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
-                )
-            }
+            SlidingBottomNavBar(
+                selectedRoute = Screen.Settings.route,
+                navController = navController
+            )
         }
     ) { innerPadding ->
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 16.dp)
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
-            Text(
-                text = "Settings & Vault",
-                style = MaterialTheme.typography.headlineMedium,
-                color = ResQTextPrimary
-            )
-            Text(
-                text = "Manage your emergency profile, medical vault and account",
-                style = MaterialTheme.typography.bodyMedium,
-                color = ResQTextSecondary
-            )
+            SubtleMeteorShowerBackground()
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Profile Card with Sign Out Button
-            Card(
-                colors = CardDefaults.cardColors(containerColor = ResQSurface),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, ResQCardBorder, RoundedCornerShape(16.dp))
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 18.dp, vertical = 18.dp)
             ) {
+                Text(
+                    text = "Settings & Vault",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = ResQTextPrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 21.sp
+                )
+                Text(
+                    text = "Manage your emergency profile, medical vault and account",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = ResQTextSecondary,
+                    fontSize = 12.sp
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Profile Card
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = ResQSurface),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.5.dp, ResQCardBorder, RoundedCornerShape(16.dp))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .background(ResQCyan.copy(alpha = 0.15f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Person, contentDescription = null, tint = ResQCyan, modifier = Modifier.size(28.dp))
+                        }
+
+                        Spacer(modifier = Modifier.width(14.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(profile.fullName, color = ResQTextPrimary, fontSize = 15.5.sp, fontWeight = FontWeight.Bold)
+                            Text(profile.email, color = ResQTextSecondary, fontSize = 12.sp)
+                            Text("Blood Group: ${profile.bloodGroup} • Age: ${profile.age}", color = ResQCyan, fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // APPEARANCE & THEME SECTION
                 Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(50.dp)
-                            .background(ResQCyan.copy(alpha = 0.15f), CircleShape),
-                        contentAlignment = Alignment.Center
+                            .width(4.dp)
+                            .height(18.dp)
+                            .background(ResQPurple, RoundedCornerShape(2.dp))
+                    )
+                    Text(
+                        text = "App Theme & Interface",
+                        color = ResQTextPrimary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Theme Toggle Switch Row
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = ResQSurface),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.5.dp, ResQCardBorder, RoundedCornerShape(16.dp))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Icon(Icons.Default.Person, contentDescription = null, tint = ResQCyan, modifier = Modifier.size(28.dp))
-                    }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(ResQPurple.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
+                                    contentDescription = null,
+                                    tint = ResQPurple,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
 
-                    Spacer(modifier = Modifier.width(14.dp))
+                            Column {
+                                Text(
+                                    text = if (isDarkMode) "Dark Theme Active" else "Light Theme Active",
+                                    color = ResQTextPrimary,
+                                    fontSize = 14.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = if (isDarkMode) "High-contrast matte dark charcoal" else "Clean crisp slate off-white",
+                                    color = ResQTextSecondary,
+                                    fontSize = 11.5.sp
+                                )
+                            }
+                        }
 
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(profile.fullName, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        Text(profile.email, color = ResQTextSecondary, fontSize = 12.sp)
-                        Text("Blood Group: ${profile.bloodGroup} • Age: ${profile.age}", color = ResQCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    IconButton(
-                        onClick = { showLogoutDialog = true }
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Sign Out",
-                            tint = ResQCrimson
+                        Switch(
+                            checked = isDarkMode,
+                            onCheckedChange = { themePrefs.setDarkMode(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = ResQPurple,
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = ResQCardBorder
+                            )
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(4.dp)
+                            .height(18.dp)
+                            .background(ResQCyan, RoundedCornerShape(2.dp))
+                    )
+                    Text(
+                        text = "Vault & Radios",
+                        color = ResQTextPrimary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Settings Items
+                SettingsRow(
+                    title = "Medical Emergency Vault",
+                    subtitle = "Blood Group, Allergies, Chronic Conditions",
+                    icon = Icons.Default.MedicalServices,
+                    iconColor = ResQCrimson,
+                    onClick = { navController.navigate(Screen.MedicalVault.route) }
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                SettingsRow(
+                    title = "Emergency Contacts",
+                    subtitle = "${profile.emergencyContacts.size} Contacts Registered (Call & SMS)",
+                    icon = Icons.Default.Phone,
+                    iconColor = ResQGreen,
+                    onClick = { navController.navigate(Screen.EmergencyContacts.route) }
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                SettingsRow(
+                    title = "Offline Mesh Radios",
+                    subtitle = "BLE 5.0 GATT & Wi-Fi Direct Peer Relay",
+                    icon = Icons.Default.Bluetooth,
+                    iconColor = ResQBlue,
+                    onClick = { navController.navigate(Screen.MeshStatus.route) }
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(4.dp)
+                            .height(18.dp)
+                            .background(ResQCrimson, RoundedCornerShape(2.dp))
+                    )
+                    Text(
+                        text = "Account Session",
+                        color = ResQTextPrimary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Dedicated Logout Button Row
+                SettingsRow(
+                    title = "Log Out of ResQNet",
+                    subtitle = "Signed in as ${profile.email}",
+                    icon = Icons.AutoMirrored.Filled.ExitToApp,
+                    iconColor = ResQCrimson,
+                    onClick = { showLogoutDialog = true }
+                )
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "Vault & Radios",
-                color = ResQTextSecondary,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Settings Items
-            SettingsRow(
-                title = "Medical Emergency Vault",
-                subtitle = "Blood Group, Allergies, Chronic Conditions",
-                icon = Icons.Default.MedicalServices,
-                iconColor = ResQCrimson,
-                onClick = { navController.navigate(Screen.MedicalVault.route) }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            SettingsRow(
-                title = "Emergency Contacts",
-                subtitle = "${profile.emergencyContacts.size} Contacts Registered (Call & SMS)",
-                icon = Icons.Default.Phone,
-                iconColor = ResQGreen,
-                onClick = { navController.navigate(Screen.EmergencyContacts.route) }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            SettingsRow(
-                title = "Offline Mesh Radios",
-                subtitle = "BLE 5.0 GATT & Wi-Fi Direct Peer Relay",
-                icon = Icons.Default.Bluetooth,
-                iconColor = ResQBlue,
-                onClick = { }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Account Session",
-                color = ResQTextSecondary,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Dedicated Logout Button Row
-            SettingsRow(
-                title = "Log Out of ResQNet",
-                subtitle = "Signed in as ${profile.email}",
-                icon = Icons.AutoMirrored.Filled.ExitToApp,
-                iconColor = ResQCrimson,
-                onClick = { showLogoutDialog = true }
-            )
         }
     }
 }
@@ -247,32 +335,32 @@ fun SettingsRow(
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = ResQSurface),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, ResQCardBorder, RoundedCornerShape(12.dp))
+            .border(1.5.dp, ResQCardBorder, RoundedCornerShape(16.dp))
             .clickable { onClick() }
     ) {
         Row(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
-                    .background(iconColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp)),
+                    .size(40.dp)
+                    .background(iconColor.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(20.dp))
             }
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                Text(subtitle, color = ResQTextSecondary, fontSize = 11.sp)
+                Text(title, color = ResQTextPrimary, fontSize = 14.5.sp, fontWeight = FontWeight.Bold)
+                Text(subtitle, color = ResQTextSecondary, fontSize = 11.5.sp)
             }
 
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = ResQTextMuted)
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = ResQTextSecondary)
         }
     }
 }

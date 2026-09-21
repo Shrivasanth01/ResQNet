@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.resqnet.sos.data.local.ProfilePreferences
+import com.resqnet.sos.data.local.SentIncidentsVault
+import com.resqnet.sos.data.local.SentSosRecord
 import com.resqnet.sos.data.local.SosLocationRepository
 import com.resqnet.sos.services.distribution.*
 import com.resqnet.sos.ui.navigation.Screen
@@ -59,6 +61,7 @@ fun ActiveSosScreen(
     val profile = remember { profilePrefs.getProfile() }
     val primaryContact = remember { profile.emergencyContacts.firstOrNull() }
     var locationCoords by remember { mutableStateOf(locationService.getCachedLocation()) }
+    val sentVault = remember { SentIncidentsVault(context) }
 
     // Launch automated SOS distribution automatically on screen load
     LaunchedEffect(Unit) {
@@ -66,6 +69,16 @@ fun ActiveSosScreen(
             locationCoords = locationService.getHighAccuracyLocation()
         }
         controller.triggerAutomaticSos()
+        val pktId = "RQ-PKT-" + System.currentTimeMillis().toString(16).takeLast(8).uppercase()
+        sentVault.saveSentDispatch(
+            SentSosRecord(
+                packetId = pktId,
+                timestampMillis = System.currentTimeMillis(),
+                status = "Delivered via BLE Mesh & Gateway Relay",
+                latitude = locationCoords.latitude,
+                longitude = locationCoords.longitude
+            )
+        )
     }
 
     DisposableEffect(Unit) {
@@ -877,7 +890,7 @@ fun ActiveSosScreen(
                                         "Blood Group: ${profile.bloodGroup}\n" +
                                         "Allergies: ${profile.allergies}\n" +
                                         "Medical Conditions: ${profile.medicalConditions}\n" +
-                                        "Emergency Contact: ${primaryContact?.name ?: "Guardian"} (${primaryContact?.phoneNumber ?: "112"})\n" +
+                                        "Emergency Contact: ${primaryContact?.name ?: "Guardian"} (${primaryContact?.phoneNumber ?: "108"})\n" +
                                         "Live Location: https://www.google.com/maps?q=${locationCoords.latitude},${locationCoords.longitude}\n\n" +
                                         "RAW RSEP PAYLOAD:\n$rsepJson"
 
