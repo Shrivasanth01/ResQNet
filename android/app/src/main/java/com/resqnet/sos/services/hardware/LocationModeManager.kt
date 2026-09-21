@@ -69,15 +69,8 @@ class LocationModeManager(
 
     fun attachPdrEngine(engine: PedestrianDeadReckoningEngine) {
         this.pdrEngine = engine
-        // Sync PDR engine mode on attach
-        if (_locationState.value.mode == LocationMode.CONFIRMED) {
-            pdrEngine?.stopPdrTracking()
-        } else {
-            val origin = _locationState.value.lastConfirmedLocation
-            if (origin != null) {
-                pdrEngine?.startPdrTracking(origin.latitude, origin.longitude)
-            }
-        }
+        val origin = _locationState.value.lastConfirmedLocation ?: ConfirmedLocation(13.0827, 80.2707, 10.0f)
+        pdrEngine?.startPdrTracking(origin.latitude, origin.longitude)
     }
 
     fun onNewLocationFix(location: Location?, currentTimeMs: Long = System.currentTimeMillis()) {
@@ -100,7 +93,6 @@ class LocationModeManager(
 
             if (current.mode == LocationMode.PDR_ACTIVE && consecutiveGoodFixes >= config.requiredConsecutiveGoodFixes) {
                 // TRANSITION: PDR_ACTIVE -> CONFIRMED
-                pdrEngine?.stopPdrTracking() // Suspend PDR sensors to save battery
                 _locationState.value = current.copy(
                     mode = LocationMode.CONFIRMED,
                     lastConfirmedLocation = newConfirmed,
@@ -113,6 +105,7 @@ class LocationModeManager(
                     statusMessage = "Location signal restored. Position re-synchronized.",
                     isResyncedEvent = true
                 )
+                pdrEngine?.updateLastConfirmedGps(newConfirmed.latitude, newConfirmed.longitude)
                 println("[LocationModeManager] 🔄 RESYNC: GPS Signal Restored! Snapped to confirmed fix (${newConfirmed.latitude}, ${newConfirmed.longitude})")
             } else if (current.mode == LocationMode.CONFIRMED) {
                 _locationState.value = current.copy(

@@ -211,6 +211,20 @@ class AutomaticSosController(private val context: Context) {
 
             while (isRunning) {
                 try {
+                    val pdr = locationService.pdrEngine.pdrTelemetry.value
+                    if (pdr.estimatedLat != 0.0 && pdr.estimatedLng != 0.0) {
+                        existingRsep = existingRsep.copy(
+                            location = existingRsep.location.copy(
+                                latitude = pdr.estimatedLat,
+                                longitude = pdr.estimatedLng,
+                                lastConfirmedLat = pdr.lastConfirmedGpsLat,
+                                lastConfirmedLng = pdr.lastConfirmedGpsLng,
+                                stepCountSinceOffline = pdr.stepCount,
+                                headingAzimuthDeg = pdr.currentHeadingDeg,
+                                driftRadiusMeters = pdr.driftRadiusMeters
+                            )
+                        )
+                    }
                     AndroidMeshBroadcaster.broadcastRsepPacket(context, existingRsep)
                     NativeBleMeshEngine.broadcastRsep(existingRsep)
                 } catch (e: Exception) {

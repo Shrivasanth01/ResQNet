@@ -437,8 +437,6 @@ fun DashboardScreen(
             // =========================================================================
             val locationService = remember { AndroidLocationService.getInstance(context) }
             val locationState by locationService.locationModeManager.locationState.collectAsState()
-            val pdrTelemetry by locationService.pdrEngine.pdrTelemetry.collectAsState()
-            var checkpointMenuExpanded by remember { mutableStateOf(false) }
 
             if (locationState.isResyncedEvent) {
                 Spacer(modifier = Modifier.height(10.dp))
@@ -479,13 +477,6 @@ fun DashboardScreen(
                 }
             }
 
-            val systemLocManager = remember { context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager }
-            val isGpsActive = remember(isAirplaneModeOn) {
-                systemLocManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true ||
-                systemLocManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true
-            }
-            val isOfflineOrNoGps = isAirplaneModeOn || !isGpsActive || pdrTelemetry.confidenceLevel == "PDR_OFFLINE_TRACKING" || pdrTelemetry.stepCount > 0 || pdrTelemetry.confidenceLevel == "CHECKPOINT_VERIFIED"
-
             LaunchedEffect(Unit) {
                 locationService.startGeneralLocationUpdates()
                 while (true) {
@@ -496,161 +487,6 @@ fun DashboardScreen(
                         break
                     }
                     delay(1000)
-                }
-            }
-
-            DisposableEffect(Unit) {
-                val coords = locationService.getCachedLocation()
-                locationService.pdrEngine.startPdrTracking(coords.latitude, coords.longitude)
-                onDispose { }
-            }
-
-            if (isOfflineOrNoGps) {
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.5.dp, ResQCyan, RoundedCornerShape(16.dp))
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(Icons.Default.DirectionsWalk, contentDescription = null, tint = ResQCyan, modifier = Modifier.size(20.dp))
-                                Text(
-                                    text = "Offline PDR Motion Sensor",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = Color.White,
-                                    fontSize = 14.sp
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .background(
-                                        when (pdrTelemetry.confidenceLevel) {
-                                            "CHECKPOINT_VERIFIED" -> ResQGreen.copy(alpha = 0.2f)
-                                            else -> ResQCyan.copy(alpha = 0.2f)
-                                        },
-                                        RoundedCornerShape(6.dp)
-                                    )
-                                    .border(
-                                        1.dp,
-                                        when (pdrTelemetry.confidenceLevel) {
-                                            "CHECKPOINT_VERIFIED" -> ResQGreen
-                                            else -> ResQCyan
-                                        },
-                                        RoundedCornerShape(6.dp)
-                                    )
-                                    .padding(horizontal = 8.dp, vertical = 3.dp)
-                            ) {
-                                Text(
-                                    text = when (pdrTelemetry.confidenceLevel) {
-                                        "CHECKPOINT_VERIFIED" -> "✓ CHECKPOINT VERIFIED"
-                                        else -> "✈️ PDR MOTION (OFFLINE / NO GPS)"
-                                    },
-                                    color = when (pdrTelemetry.confidenceLevel) {
-                                        "CHECKPOINT_VERIFIED" -> ResQGreen
-                                        else -> ResQCyan
-                                    },
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("PDR Footsteps", color = ResQTextSecondary, fontSize = 11.sp)
-                                Text("${pdrTelemetry.stepCount} steps", color = ResQCyan, fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Gyro/Compass", color = ResQTextSecondary, fontSize = 11.sp)
-                                Text("${pdrTelemetry.currentHeadingDeg.toInt()}° ${pdrTelemetry.headingCardinal}", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Vector Shift", color = ResQTextSecondary, fontSize = 11.sp)
-                                Text("${String.format(Locale.US, "%.1fm", pdrTelemetry.netDisplacementMeters)}", color = if (pdrTelemetry.netDisplacementMeters < 2.0) ResQGreen else ResQYellow, fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        if (pdrTelemetry.estimatedLat == 0.0 || pdrTelemetry.estimatedLng == 0.0) {
-                            Text(
-                                text = "📍 Acquiring Live GPS Fix...",
-                                color = ResQYellow,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        } else {
-                            Text(
-                                text = "Last Confirmed GPS: ${String.format(Locale.US, "%.7f", pdrTelemetry.lastConfirmedGpsLat)}° N, ${String.format(Locale.US, "%.7f", pdrTelemetry.lastConfirmedGpsLng)}° E",
-                                color = ResQGreen,
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace
-                            )
-
-                            Text(
-                                text = "Current Est Pos: ${String.format(Locale.US, "%.7f", pdrTelemetry.estimatedLat)}° N, ${String.format(Locale.US, "%.7f", pdrTelemetry.estimatedLng)}° E (±${String.format(Locale.US, "%.1f", pdrTelemetry.driftRadiusMeters)}m drift)",
-                                color = ResQTextMuted,
-                                fontSize = 10.5.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Box {
-                            Button(
-                                onClick = { checkpointMenuExpanded = true },
-                                colors = ButtonDefaults.buttonColors(containerColor = ResQBlue),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Scan / Verify Location Checkpoint", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-
-                            DropdownMenu(
-                                expanded = checkpointMenuExpanded,
-                                onDismissRequest = { checkpointMenuExpanded = false },
-                                modifier = Modifier.background(ResQSurface)
-                            ) {
-                                CheckpointCorrector.KNOWN_CHECKPOINTS.forEach { chk ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Column {
-                                                Text(chk.name, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                                Text(chk.description, color = ResQTextSecondary, fontSize = 10.sp)
-                                            }
-                                        },
-                                        onClick = {
-                                            locationService.pdrEngine.correctWithCheckpoint(chk)
-                                            checkpointMenuExpanded = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
                 }
             }
 

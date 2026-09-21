@@ -314,7 +314,15 @@ fun RescuerDashboardScreen(
                                 Text("Medical: ${pkt.user.medicalConditions}", color = ResQTextSecondary, fontSize = 11.sp)
                             }
 
-                            Text("GPS: ${pkt.location.latitude}, ${pkt.location.longitude}", color = ResQTextMuted, fontSize = 10.5.sp, fontFamily = FontFamily.Monospace)
+                            Text("Est Pos: ${pkt.location.latitude}, ${pkt.location.longitude}", color = Color.White, fontSize = 11.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+
+                            if (pkt.location.lastConfirmedLat != null && pkt.location.lastConfirmedLat != 0.0) {
+                                Text("Last GPS: ${pkt.location.lastConfirmedLat}, ${pkt.location.lastConfirmedLng}", color = ResQGreen, fontSize = 10.5.sp, fontFamily = FontFamily.Monospace)
+                            }
+
+                            if (pkt.location.stepCountSinceOffline > 0) {
+                                Text("PDR Vector: ${pkt.location.stepCountSinceOffline} steps (${pkt.location.headingAzimuthDeg.toInt()}°) • Drift: ±${pkt.location.driftRadiusMeters.toInt()}m", color = ResQYellow, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                            }
 
                             Spacer(modifier = Modifier.height(12.dp))
 
