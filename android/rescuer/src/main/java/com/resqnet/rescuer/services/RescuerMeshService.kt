@@ -14,18 +14,34 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.resqnet.rescuer.data.RescuerVault
+import com.resqnet.sos.data.model.RsepPacket
+import com.resqnet.sos.services.distribution.AndroidMeshListener
+import kotlinx.serialization.json.Json
 
 class RescuerMeshService : Service() {
 
     private val radioStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            val ctx = context ?: return
             when (intent?.action) {
                 BluetoothAdapter.ACTION_STATE_CHANGED -> {
                     val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
                     if (state == BluetoothAdapter.STATE_ON) {
                         println("[RescuerMeshService] 📡 Bluetooth turned ON! Starting Rescuer BLE Scanner...")
-                        context?.let {
-                            RescuerBleScanner.init(it)
+                        RescuerBleScanner.init(ctx)
+                    }
+                }
+                "com.resqnet.rescuer.ACTION_INGEST_VICTIM_SOS" -> {
+                    val rsepJson = intent.getStringExtra("rsep_json")
+                    if (!rsepJson.isNullOrEmpty()) {
+                        try {
+                            val json = Json { ignoreUnknownKeys = true }
+                            val packet = json.decodeFromString<RsepPacket>(rsepJson)
+                            RescuerVault(ctx).saveVictimRecord(packet)
+                            println("[RescuerMeshService] 📥 Inter-process Ingested victim SOS packet (${packet.header.packetId}) for ${packet.user.name}")
+                        } catch (e: Exception) {
+                            e.printStackTrace()
                         }
                     }
                 }
@@ -41,14 +57,17 @@ class RescuerMeshService : Service() {
         try {
             val filter = IntentFilter().apply {
                 addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+                addAction("com.resqnet.rescuer.ACTION_INGEST_VICTIM_SOS")
             }
-            registerReceiver(radioStateReceiver, filter)
+            ContextCompat.registerReceiver(this, radioStateReceiver, filter, ContextCompat.RECEIVER_EXPORTED)
         } catch (e: Exception) {
             println("[RescuerMeshService] ⚠️ Receiver registration warning: ${e.localizedMessage}")
         }
 
         try {
             RescuerBleScanner.init(this)
+            AndroidMeshListener.startListening(this)
+            println("[RescuerMeshService] 📡 Dual Rescuer Mesh Ingestion Active (BLE GATT + UDP Socket).")
         } catch (e: Exception) {
             println("[RescuerMeshService] ⚠️ Scanner init warning: ${e.localizedMessage}")
         }

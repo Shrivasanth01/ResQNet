@@ -49,8 +49,7 @@ fun SlidingBottomNavBar(
 ) {
     val tabs = remember {
         listOf(
-            RescuerNavTabSpec("dashboard", "Dashboard", Icons.AutoMirrored.Filled.List),
-            RescuerNavTabSpec("map", "Tactical Map", Icons.Default.Map)
+            RescuerNavTabSpec("rescuer_dashboard", "Triage Center", Icons.AutoMirrored.Filled.List)
         )
     }
 

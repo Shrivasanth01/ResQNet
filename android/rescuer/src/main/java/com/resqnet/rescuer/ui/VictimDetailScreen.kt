@@ -26,6 +26,7 @@ import androidx.navigation.NavController
 import com.resqnet.rescuer.data.RescuerVault
 import com.resqnet.rescuer.theme.*
 import com.resqnet.rescuer.ui.components.SubtleMeteorShowerBackground
+import com.resqnet.sos.services.hardware.AudioVoiceNoteRecorder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -194,6 +195,40 @@ fun VictimDetailScreen(
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
+
+                    if (pkt.incident.hasVoiceNote && pkt.incident.voiceNoteBase64 != null) {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1A08)),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(1.5.dp, ResQYellow, RoundedCornerShape(14.dp))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Text("🚨 Victim Emergency Voice Message (${pkt.incident.voiceNoteDurationSec}s)", color = ResQYellow, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text("Victim attached a 30s voice recording during offline SOS dispatch.", color = ResQTextSecondary, fontSize = 11.5.sp)
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Button(
+                                    onClick = {
+                                        AudioVoiceNoteRecorder.playBase64Audio(
+                                            context,
+                                            pkt.incident.voiceNoteBase64
+                                        )
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = ResQYellow),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.VolumeUp, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Play Voice Message", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
 
                     // Rescuer Field Notes Card
                     Card(

@@ -3,6 +3,7 @@ package com.resqnet.sos.data.local
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.resqnet.sos.data.model.RsepPacket
 import kotlinx.serialization.encodeToString
@@ -28,6 +29,14 @@ class ReceivedIncidentsVault(private val context: Context) {
             val file = File(receivedDir, "${packet.header.packetId}.rsep")
             val content = json.encodeToString(packet)
             file.writeText(content)
+
+            // Broadcast inter-process intent to Rescuer App
+            try {
+                val intent = Intent("com.resqnet.rescuer.ACTION_INGEST_VICTIM_SOS").apply {
+                    putExtra("rsep_json", content)
+                }
+                context.sendBroadcast(intent)
+            } catch (_: Exception) {}
 
             // Post system notification on receiving device
             postNotification(packet)

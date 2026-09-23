@@ -11,6 +11,7 @@ import com.resqnet.sos.data.model.RsepPacket
 import com.resqnet.sos.services.distribution.NativeBleMeshEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -187,9 +188,10 @@ object RescuerBleScanner {
                         }
                     }
 
-                    // Direct GATT Write "REQ" trigger to prompt victim phone to transmit active SOS payload
+                    val victimMac = gatt.device?.address ?: "UNKNOWN"
+                    // Direct GATT Write "REQ" trigger after CCCD handshake
                     scope.launch {
-                        kotlinx.coroutines.delay(400)
+                        delay(800)
                         try {
                             val reqBytes = "REQ".toByteArray(Charsets.UTF_8)
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -201,11 +203,35 @@ object RescuerBleScanner {
                                 @Suppress("DEPRECATION")
                                 gatt.writeCharacteristic(characteristic)
                             }
+                            addLog("📤 Transmitted REQ trigger to victim $victimMac")
                         } catch (_: Exception) {}
                     }
                 }
 
                 gatt.requestMtu(512)
+            }
+        }
+
+        override fun onDescriptorWrite(gatt: BluetoothGatt?, descriptor: BluetoothGattDescriptor?, status: Int) {
+            val mac = gatt?.device?.address ?: return
+            addLog("CCCD Notification Handshake completed for victim $mac")
+            scope.launch {
+                try {
+                    val service = gatt?.getService(NativeBleMeshEngine.MESH_SERVICE_UUID)
+                    val char = service?.getCharacteristic(NativeBleMeshEngine.MESH_CHARACTERISTIC_UUID)
+                    if (char != null) {
+                        val reqBytes = "REQ".toByteArray(Charsets.UTF_8)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            gatt.writeCharacteristic(char, reqBytes, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            char.value = reqBytes
+                            char.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                            @Suppress("DEPRECATION")
+                            gatt.writeCharacteristic(char)
+                        }
+                    }
+                } catch (_: Exception) {}
             }
         }
 

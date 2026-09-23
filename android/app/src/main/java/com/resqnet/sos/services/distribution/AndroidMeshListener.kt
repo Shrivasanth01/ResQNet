@@ -71,10 +71,25 @@ object AndroidMeshListener {
                             val activeSosId = RsepStorageManager(appContext).getActiveSosPacketId()
 
                             if (activeSosId != null && rsepPacket.header.packetId == activeSosId) {
-                                println("[AndroidMeshListener] 🛑 Ignored local loopback packet from self (${rsepPacket.header.packetId})")
+                                println("[AndroidMeshListener] 🛑 Ignored local loopback packet for Civilian Vault (${rsepPacket.header.packetId})")
+                                try {
+                                    val rescuerVaultClass = Class.forName("com.resqnet.rescuer.data.RescuerVault")
+                                    val rescuerVaultInst = rescuerVaultClass.getConstructor(Context::class.java).newInstance(appContext)
+                                    val saveMethod = rescuerVaultClass.getMethod("saveVictimRecord", RsepPacket::class.java, String::class.java, String::class.java)
+                                    saveMethod.invoke(rescuerVaultInst, rsepPacket, "PENDING", "")
+                                    println("[AndroidMeshListener] 📥 Ingested local active SOS packet into RescuerVault (${rsepPacket.header.packetId})")
+                                } catch (_: Exception) {}
                             } else {
                                 vault.saveReceivedPacket(rsepPacket)
                                 println("[AndroidMeshListener] ✅ Saved received peer RSEP packet (${rsepPacket.header.packetId}) from ${rsepPacket.user.name}")
+
+                                try {
+                                    val rescuerVaultClass = Class.forName("com.resqnet.rescuer.data.RescuerVault")
+                                    val rescuerVaultInst = rescuerVaultClass.getConstructor(Context::class.java).newInstance(appContext)
+                                    val saveMethod = rescuerVaultClass.getMethod("saveVictimRecord", RsepPacket::class.java, String::class.java, String::class.java)
+                                    saveMethod.invoke(rescuerVaultInst, rsepPacket, "PENDING", "")
+                                    println("[AndroidMeshListener] 📥 Ingested into RescuerVault for Rescuer App (${rsepPacket.header.packetId})")
+                                } catch (_: Exception) {}
                             }
                         } catch (e: Exception) {
                             println("[AndroidMeshListener] Packet parse error: ${e.localizedMessage}")

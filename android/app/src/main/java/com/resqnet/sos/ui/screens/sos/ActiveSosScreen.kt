@@ -1,10 +1,13 @@
 package com.resqnet.sos.ui.screens.sos
 
+import android.Manifest
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -26,19 +29,26 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.resqnet.sos.data.local.ProfilePreferences
+import com.resqnet.sos.data.local.RsepStorageManager
 import com.resqnet.sos.data.local.SentIncidentsVault
 import com.resqnet.sos.data.local.SentSosRecord
 import com.resqnet.sos.data.local.SosLocationRepository
+import com.resqnet.sos.data.model.RsepPacket
 import com.resqnet.sos.services.distribution.*
 import com.resqnet.sos.ui.navigation.Screen
 import com.resqnet.sos.services.hardware.AndroidLocationService
 import com.resqnet.sos.services.hardware.AndroidSmsCallService
+import com.resqnet.sos.services.hardware.AudioVoiceNoteRecorder
 import com.resqnet.sos.services.hardware.CheckpointCorrector
 import com.resqnet.sos.theme.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import java.io.File
 import java.lang.String
 import java.util.Locale
 
@@ -341,6 +351,206 @@ fun ActiveSosScreen(
                                         checkpointMenuExpanded = false
                                     }
                                 )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // =========================================================================
+            // EMERGENCY VOICE MESSAGE CARD (30s RECORDING & MESH BROADCAST)
+            // =========================================================================
+            val voiceRecorder = remember { AudioVoiceNoteRecorder(context) }
+            val voiceFile = remember { File(context.filesDir, "active_voice_note.aac") }
+            var isRecordingVoice by remember { mutableStateOf(false) }
+            var isPlayingVoice by remember { mutableStateOf(false) }
+            var voiceRecordedSecs by remember { mutableIntStateOf(0) }
+            var voiceRecordedBase64 by remember { mutableStateOf<kotlin.String?>(null) }
+            var isVoiceSent by remember { mutableStateOf(false) }
+
+            LaunchedEffect(isRecordingVoice) {
+                if (isRecordingVoice) {
+                    voiceRecordedSecs = 0
+                    for (sec in 1..30) {
+                        if (!isRecordingVoice) break
+                        delay(1000)
+                        voiceRecordedSecs = sec
+                    }
+                    if (isRecordingVoice) {
+                        isRecordingVoice = false
+                        voiceRecorder.stopRecording()
+                        voiceRecordedBase64 = AudioVoiceNoteRecorder.encodeFileToBase64(voiceFile)
+                        Toast.makeText(context, "30s Voice Note Recorded!", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0D1B2A)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.5.dp, if (isVoiceSent) ResQGreen else ResQYellow, RoundedCornerShape(16.dp))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.Mic, contentDescription = null, tint = ResQYellow, modifier = Modifier.size(20.dp))
+                            Text(
+                                text = "Emergency Voice Message",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = Color.White,
+                                fontSize = 15.sp
+                            )
+                        }
+
+                        if (isVoiceSent) {
+                            Box(
+                                modifier = Modifier
+                                    .background(ResQGreen.copy(alpha = 0.2f), RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text("✓ VOICE ATTACHED", color = ResQGreen, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Convey your emergency situation via 30s voice note to nearby mesh rescuers:",
+                        color = ResQTextSecondary,
+                        fontSize = 11.5.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (isRecordingVoice) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                            Text("🎙️ Recording... ${voiceRecordedSecs}s / 30s", color = ResQCrimson, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            LinearProgressIndicator(
+                                progress = { voiceRecordedSecs / 30f },
+                                modifier = Modifier.fillMaxWidth(),
+                                color = ResQCrimson,
+                                trackColor = Color.White.copy(alpha = 0.1f)
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Button(
+                                onClick = {
+                                    isRecordingVoice = false
+                                    voiceRecorder.stopRecording()
+                                    voiceRecordedBase64 = AudioVoiceNoteRecorder.encodeFileToBase64(voiceFile)
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = ResQCrimson),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Stop Recording", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            }
+                        }
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Button(
+                                onClick = {
+                                    val hasRecordPerm = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                                    if (hasRecordPerm) {
+                                        val started = voiceRecorder.startRecording(voiceFile)
+                                        if (started) {
+                                            isRecordingVoice = true
+                                            isVoiceSent = false
+                                        }
+                                    } else {
+                                        Toast.makeText(context, "Microphone permission required for voice notes", Toast.LENGTH_LONG).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = ResQYellow),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.Mic, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(if (voiceRecordedBase64 != null) "Re-Record 30s" else "Record 30s Voice", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            }
+
+                            if (voiceRecordedBase64 != null) {
+                                Button(
+                                    onClick = {
+                                        if (isPlayingVoice) {
+                                            voiceRecorder.stopPlayback()
+                                            isPlayingVoice = false
+                                        } else {
+                                            voiceRecorder.playVoiceNote(voiceFile) {
+                                                isPlayingVoice = false
+                                            }
+                                            isPlayingVoice = true
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = ResQBlue),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(if (isPlayingVoice) Icons.Default.Stop else Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(if (isPlayingVoice) "Stop" else "Listen", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                }
+                            }
+                        }
+
+                        if (voiceRecordedBase64 != null && !isVoiceSent) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Button(
+                                onClick = {
+                                    val rsepStorage = RsepStorageManager(context)
+                                    var currentRsep = rsepStorage.getExistingRsep()
+                                    val base64Note = voiceRecordedBase64
+                                    currentRsep = currentRsep.copy(
+                                        incident = currentRsep.incident.copy(
+                                            hasVoiceNote = true,
+                                            voiceNoteBase64 = base64Note,
+                                            voiceNoteDurationSec = voiceRecordedSecs.coerceAtLeast(1)
+                                        )
+                                    )
+                                    rsepStorage.saveRsep(currentRsep)
+                                    NativeBleMeshEngine.broadcastRsep(currentRsep)
+                                    scope.launch(Dispatchers.IO) {
+                                        AndroidMeshBroadcaster.broadcastRsepPacket(context, currentRsep)
+                                    }
+
+                                    // Inter-process broadcast + Direct RescuerVault Ingestion
+                                    try {
+                                        val jsonEngine = Json { ignoreUnknownKeys = true }
+                                        val jsonStr = jsonEngine.encodeToString(RsepPacket.serializer(), currentRsep)
+                                        val intent = Intent("com.resqnet.rescuer.ACTION_INGEST_VICTIM_SOS").apply {
+                                            putExtra("rsep_json", jsonStr)
+                                        }
+                                        context.sendBroadcast(intent)
+
+                                        val rsepClass = Class.forName("com.resqnet.sos.data.model.RsepPacket")
+                                        val rescuerVaultClass = Class.forName("com.resqnet.rescuer.data.RescuerVault")
+                                        val rescuerVaultInst = rescuerVaultClass.getConstructor(Context::class.java).newInstance(context)
+                                        val saveMethod = rescuerVaultClass.getMethod("saveVictimRecord", rsepClass, String::class.java, String::class.java)
+                                        saveMethod.invoke(rescuerVaultInst, currentRsep, "PENDING", "")
+                                        println("[ActiveSosScreen] 🔊 Voice SOS attached and saved to RescuerVault (${currentRsep.header.packetId})")
+                                    } catch (_: Exception) {}
+
+                                    isVoiceSent = true
+                                    Toast.makeText(context, "Voice SOS Attached & Broadcasted via Mesh!", Toast.LENGTH_LONG).show()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = ResQGreen),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Broadcast Voice SOS via Mesh", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
                     }

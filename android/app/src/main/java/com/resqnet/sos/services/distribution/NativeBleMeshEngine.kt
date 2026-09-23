@@ -22,6 +22,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 @SuppressLint("MissingPermission")
 object NativeBleMeshEngine {
@@ -80,7 +81,10 @@ object NativeBleMeshEngine {
         _logs.value = (_logs.value + entry).takeLast(100)
     }
 
+    private var isInitialized = false
+
     fun init(context: Context) {
+        if (isInitialized) return
         appContext = context.applicationContext
 
         bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
@@ -93,6 +97,7 @@ object NativeBleMeshEngine {
             return
         }
 
+        isInitialized = true
         _isMeshActive.value = true
         _relayStatus.value = "ACTIVE"
         addLog("🚀 Initializing Native BLE Emergency Mesh Engine...")
@@ -582,7 +587,14 @@ object NativeBleMeshEngine {
         }
     }
 
+    private val isTransmittingGatt = AtomicBoolean(false)
+
     fun broadcastRsep(packet: RsepPacket) {
+        if (!isTransmittingGatt.compareAndSet(false, true)) {
+            println("[NativeBleMeshEngine] ⏳ BLE GATT transfer in progress. Queued next transmission.")
+            return
+        }
+
         scope.launch {
             try {
                 appContext?.let { ctx ->
@@ -593,7 +605,7 @@ object NativeBleMeshEngine {
                 val packetId = packet.header.packetId
                 _lastSentMessageId.value = packetId
 
-                addLog("Broadcasting RSEP ($packetId) over connected BLE GATT peers & server...")
+                addLog("Broadcasting RSEP ($packetId, ${jsonPayload.length}B) over connected BLE GATT peers...")
 
                 val bytes = jsonPayload.toByteArray(Charsets.UTF_8)
                 val chunkSize = 180
@@ -611,7 +623,7 @@ object NativeBleMeshEngine {
                                 val chunk = bytes.copyOfRange(offset, offset + length)
                                 notifyPeerDevice(device, characteristic, chunk)
                                 offset += length
-                                delay(40)
+                                delay(18)
                             }
 
                             // Send EOF marker chunk
@@ -643,7 +655,7 @@ object NativeBleMeshEngine {
                                 gatt.writeCharacteristic(clientChar)
                             }
                             offset += length
-                            delay(40)
+                            delay(18)
                         }
 
                         // Send EOF marker
@@ -661,6 +673,8 @@ object NativeBleMeshEngine {
                 }
             } catch (e: Exception) {
                 addLog("BLE GATT Broadcast notice: ${e.localizedMessage}")
+            } finally {
+                isTransmittingGatt.set(false)
             }
         }
     }

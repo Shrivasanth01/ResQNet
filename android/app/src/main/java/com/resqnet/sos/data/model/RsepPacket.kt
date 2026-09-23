@@ -77,7 +77,10 @@ data class PacketIncident(
     @SerialName("emergencyConfidenceScore") val emergencyConfidenceScore: Int = 100,
     @SerialName("isAutomatic") val isAutomatic: Boolean = false,
     @SerialName("triggerSource") val triggerSource: String = "MANUAL_SOS_BUTTON",
-    @SerialName("additionalDescription") val additionalDescription: String? = null
+    @SerialName("additionalDescription") val additionalDescription: String? = null,
+    @SerialName("voiceNoteBase64") val voiceNoteBase64: String? = null,
+    @SerialName("hasVoiceNote") val hasVoiceNote: Boolean = false,
+    @SerialName("voiceNoteDurationSec") val voiceNoteDurationSec: Int = 0
 )
 
 @Serializable

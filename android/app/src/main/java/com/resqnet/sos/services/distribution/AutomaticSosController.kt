@@ -225,6 +225,19 @@ class AutomaticSosController(private val context: Context) {
                             )
                         )
                     }
+
+                    // Sync latest voice note payload if attached by user
+                    val latestDiskRsep = existingRsepManager.getExistingRsep()
+                    if (latestDiskRsep.incident.hasVoiceNote && !latestDiskRsep.incident.voiceNoteBase64.isNullOrEmpty()) {
+                        existingRsep = existingRsep.copy(
+                            incident = existingRsep.incident.copy(
+                                hasVoiceNote = true,
+                                voiceNoteBase64 = latestDiskRsep.incident.voiceNoteBase64,
+                                voiceNoteDurationSec = latestDiskRsep.incident.voiceNoteDurationSec
+                            )
+                        )
+                    }
+
                     AndroidMeshBroadcaster.broadcastRsepPacket(context, existingRsep)
                     NativeBleMeshEngine.broadcastRsep(existingRsep)
                 } catch (e: Exception) {

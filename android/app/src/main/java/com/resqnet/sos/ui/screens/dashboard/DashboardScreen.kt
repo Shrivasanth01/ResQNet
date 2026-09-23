@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.resqnet.sos.services.distribution.NativeBleMeshEngine
 import com.resqnet.sos.services.hardware.AndroidLocationService
+import com.resqnet.sos.services.hardware.AudioVoiceNoteRecorder
 import com.resqnet.sos.theme.*
 import com.resqnet.sos.ui.components.SlidingBottomNavBar
 import com.resqnet.sos.ui.components.SubtleMeteorShowerBackground
@@ -130,36 +131,121 @@ fun DashboardScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(horizontal = 18.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(
-                                imageVector = if (isPopupOnlineState) Icons.Default.Wifi else Icons.Default.WifiOff,
-                                contentDescription = null,
-                                tint = if (isPopupOnlineState) ResQGreen else ResQCyan,
-                                modifier = Modifier.size(22.dp)
-                            )
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "ResQNet",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = ResQTextPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 21.sp
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .padding(start = 6.dp)
+                                        .size(7.dp)
+                                        .background(ResQCyan, CircleShape)
+                                )
+                            }
                             Text(
-                                text = signalPopupMessage!!,
-                                color = Color.White,
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Bold
+                                text = "Decentralized Emergency SOS",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = ResQTextSecondary,
+                                fontSize = 11.5.sp
                             )
                         }
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
-                            tint = ResQTextMuted,
+
+                        Surface(
+                            color = if (NativeBleMeshEngine.isMeshActive.collectAsState().value) ResQGreen.copy(alpha = 0.15f) else ResQCrimson.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(8.dp),
+                            border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
+                                brush = Brush.linearGradient(
+                                    listOf(
+                                        if (NativeBleMeshEngine.isMeshActive.collectAsState().value) ResQGreen else ResQCrimson,
+                                        if (NativeBleMeshEngine.isMeshActive.collectAsState().value) ResQBlue else ResQCrimson
+                                    )
+                                )
+                            ),
+                            modifier = Modifier.clickable { navController.navigate(Screen.MeshStatus.route) }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(
+                                            if (NativeBleMeshEngine.isMeshActive.collectAsState().value) ResQGreen else ResQCrimson,
+                                            CircleShape
+                                        )
+                                )
+                                Text(
+                                    text = if (NativeBleMeshEngine.isMeshActive.collectAsState().value) "MESH ACTIVE" else "BT OFF",
+                                    color = if (NativeBleMeshEngine.isMeshActive.collectAsState().value) ResQGreen else ResQCrimson,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // =========================================================================
+                // SIGNAL STATUS POPUP BANNER (CONDITIONAL NULL-SAFE)
+                // =========================================================================
+                val activeSignalMsg = signalPopupMessage
+                if (activeSignalMsg != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isPopupOnlineState) Color(0xFF0F231A) else Color(0xFF07172C)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.5.dp, if (isPopupOnlineState) ResQGreen else ResQCyan, RoundedCornerShape(12.dp))
+                    ) {
+                        Row(
                             modifier = Modifier
-                                .size(18.dp)
-                                .clickable { signalPopupMessage = null }
-                        )
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = if (isPopupOnlineState) Icons.Default.Wifi else Icons.Default.WifiOff,
+                                    contentDescription = null,
+                                    tint = if (isPopupOnlineState) ResQGreen else ResQCyan,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Text(
+                                    text = activeSignalMsg,
+                                    color = Color.White,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = ResQTextMuted,
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clickable { signalPopupMessage = null }
+                            )
+                        }
                     }
                 }
             }
@@ -461,6 +547,25 @@ fun DashboardScreen(
                                     Text(bodySpecs, color = ResQCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     Text("Medical: ${pkt.user.medicalConditions}", color = ResQTextSecondary, fontSize = 11.sp)
                                     Text("GPS: ${pkt.location.latitude}, ${pkt.location.longitude}", color = ResQTextMuted, fontSize = 10.sp)
+
+                                    if (pkt.incident.hasVoiceNote && !pkt.incident.voiceNoteBase64.isNullOrEmpty()) {
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Button(
+                                            onClick = {
+                                                AudioVoiceNoteRecorder.playBase64Audio(
+                                                    context,
+                                                    pkt.incident.voiceNoteBase64!!
+                                                )
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = ResQYellow),
+                                            shape = RoundedCornerShape(6.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Icon(Icons.Default.VolumeUp, contentDescription = null, tint = Color.Black, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Play Victim Voice Note (${pkt.incident.voiceNoteDurationSec}s)", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 10.5.sp)
+                                        }
+                                    }
 
                                     Spacer(modifier = Modifier.height(8.dp))
 

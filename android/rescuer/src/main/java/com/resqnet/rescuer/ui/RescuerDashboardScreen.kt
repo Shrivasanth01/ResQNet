@@ -32,7 +32,9 @@ import com.resqnet.rescuer.theme.*
 import com.resqnet.rescuer.ui.components.SlidingBottomNavBar
 import com.resqnet.rescuer.ui.components.SubtleMeteorShowerBackground
 import com.resqnet.sos.services.hardware.AndroidLocationService
+import com.resqnet.sos.services.hardware.AudioVoiceNoteRecorder
 import kotlinx.coroutines.delay
+import java.io.File
 import java.net.URLEncoder
 
 @Composable
@@ -342,6 +344,32 @@ fun RescuerDashboardScreen(
 
                                 if (pkt.location.stepCountSinceOffline > 0) {
                                     Text("PDR Vector: ${pkt.location.stepCountSinceOffline} steps (${pkt.location.headingAzimuthDeg.toInt()}°) • Drift: ±${pkt.location.driftRadiusMeters.toInt()}m", color = ResQYellow, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                if (pkt.incident.hasVoiceNote && !pkt.incident.voiceNoteBase64.isNullOrEmpty()) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Button(
+                                        onClick = {
+                                            try {
+                                                val cachedAudio = File(context.cacheDir, "voice_${pkt.header.packetId}.aac")
+                                                if (cachedAudio.exists() && cachedAudio.length() > 0) {
+                                                    val player = AudioVoiceNoteRecorder(context)
+                                                    player.playVoiceNote(cachedAudio)
+                                                } else {
+                                                    AudioVoiceNoteRecorder.playBase64Audio(context, pkt.incident.voiceNoteBase64)
+                                                }
+                                            } catch (e: Exception) {
+                                                e.printStackTrace()
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = ResQYellow),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(Icons.Default.VolumeUp, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Play Victim Voice Note (${pkt.incident.voiceNoteDurationSec}s)", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    }
                                 }
 
                                 Spacer(modifier = Modifier.height(12.dp))
