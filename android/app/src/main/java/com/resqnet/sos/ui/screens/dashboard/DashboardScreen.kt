@@ -3,6 +3,8 @@ package com.resqnet.sos.ui.screens.dashboard
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.provider.Settings
@@ -33,8 +35,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.resqnet.sos.services.distribution.NativeBleMeshEngine
+<<<<<<< HEAD
 import com.resqnet.sos.services.hardware.AndroidLocationService
 import com.resqnet.sos.services.hardware.AudioVoiceNoteRecorder
+=======
+>>>>>>> 7dd040b (fix(dashboard): resolve NPE crash on signal popup card by safely checking signalPopupMessage)
 import com.resqnet.sos.theme.*
 import com.resqnet.sos.ui.components.SlidingBottomNavBar
 import com.resqnet.sos.ui.components.SubtleMeteorShowerBackground
@@ -47,20 +52,6 @@ fun DashboardScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val locationService = remember { AndroidLocationService.getInstance(context) }
-    val locationState by locationService.locationModeManager.locationState.collectAsState()
-    val pdrTelemetry by locationService.pdrEngine.pdrTelemetry.collectAsState()
-    var checkpointMenuExpanded by remember { mutableStateOf(false) }
-
-    var isAirplaneModeOn by remember { mutableStateOf(false) }
-    var isBluetoothOn by remember { mutableStateOf(false) }
-    var signalPopupMessage by remember { mutableStateOf<String?>(null) }
-    var isPopupOnlineState by remember { mutableStateOf(false) }
-    var lastOnlineState by remember { mutableStateOf<Boolean?>(null) }
-
-    val btManager = remember { context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager }
-    val btAdapter = remember { btManager?.adapter }
-
     val vibrator = remember { context.getSystemService(Vibrator::class.java) }
     var isHoldingSos by remember { mutableStateOf(false) }
     var countdownProgress by remember { mutableFloatStateOf(0f) }
@@ -94,6 +85,52 @@ fun DashboardScreen(
             }
         } else {
             countdownProgress = 0f
+        }
+    }
+
+    var isAirplaneModeOn by remember { mutableStateOf(false) }
+    var isBluetoothOn by remember { mutableStateOf(false) }
+    var signalPopupMessage by remember { mutableStateOf<String?>(null) }
+    var isPopupOnlineState by remember { mutableStateOf(false) }
+    var lastOnlineState by remember { mutableStateOf<Boolean?>(null) }
+
+    val btManager = remember { context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager }
+    val btAdapter = remember { btManager?.adapter }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            isAirplaneModeOn = try {
+                Settings.Global.getInt(
+                    context.contentResolver,
+                    Settings.Global.AIRPLANE_MODE_ON,
+                    0
+                ) != 0
+            } catch (_: Exception) {
+                false
+            }
+            isBluetoothOn = btAdapter?.isEnabled == true
+            if (isBluetoothOn) {
+                NativeBleMeshEngine.init(context)
+            }
+
+            // Check live cellular/Wi-Fi internet signal transition
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            val activeNetwork = cm?.activeNetwork
+            val caps = cm?.getNetworkCapabilities(activeNetwork)
+            val currentOnline = caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true && !isAirplaneModeOn
+
+            if (lastOnlineState != null && lastOnlineState != currentOnline) {
+                if (currentOnline) {
+                    signalPopupMessage = "🌐 NETWORK SIGNAL RESTORED — ONLINE"
+                    isPopupOnlineState = true
+                } else {
+                    signalPopupMessage = "📡 OFFLINE MESH ACTIVE — NO CELL SIGNAL"
+                    isPopupOnlineState = false
+                }
+            }
+            lastOnlineState = currentOnline
+
+            delay(1000)
         }
     }
 
@@ -132,6 +169,7 @@ fun DashboardScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 18.dp, vertical = 14.dp),
+<<<<<<< HEAD
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -724,6 +762,8 @@ fun DashboardScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
+=======
+>>>>>>> 7dd040b (fix(dashboard): resolve NPE crash on signal popup card by safely checking signalPopupMessage)
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -786,28 +826,52 @@ fun DashboardScreen(
                     }
                 }
 
-                var isAirplaneModeOn by remember { mutableStateOf(false) }
-                var isBluetoothOn by remember { mutableStateOf(false) }
-
-                val btManager = remember { context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager }
-                val btAdapter = remember { btManager?.adapter }
-
-                LaunchedEffect(Unit) {
-                    while (true) {
-                        isAirplaneModeOn = try {
-                            Settings.Global.getInt(
-                                context.contentResolver,
-                                Settings.Global.AIRPLANE_MODE_ON,
-                                0
-                            ) != 0
-                        } catch (_: Exception) {
-                            false
+                val currentPopupMsg = signalPopupMessage
+                if (currentPopupMsg != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isPopupOnlineState) Color(0xFF0F231A) else Color(0xFF07172C)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.5.dp, if (isPopupOnlineState) ResQGreen else ResQCyan, RoundedCornerShape(12.dp))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = if (isPopupOnlineState) Icons.Default.Wifi else Icons.Default.WifiOff,
+                                    contentDescription = null,
+                                    tint = if (isPopupOnlineState) ResQGreen else ResQCyan,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Text(
+                                    text = currentPopupMsg,
+                                    color = Color.White,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = ResQTextMuted,
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clickable { signalPopupMessage = null }
+                            )
                         }
-                        isBluetoothOn = btAdapter?.isEnabled == true
-                        if (isBluetoothOn) {
-                            NativeBleMeshEngine.init(context)
-                        }
-                        delay(1000)
                     }
                 }
 
@@ -975,7 +1039,7 @@ fun DashboardScreen(
                 Spacer(modifier = Modifier.weight(1f))
 
                 // =========================================================================
-                // HERO SOS BUTTON
+                // HERO SOS BUTTON (PROMINENT, BIGGER SIZE & HIGHER POSITIONING)
                 // =========================================================================
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -1017,7 +1081,7 @@ fun DashboardScreen(
                                 .border(2.5.dp, ResQCrimson.copy(alpha = 0.45f), CircleShape)
                         )
 
-                        // Main Core SOS Button (220dp)
+                        // Main Core SOS Button (Bigger Size: 220dp)
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
